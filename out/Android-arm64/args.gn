@@ -15,19 +15,20 @@ android64_ndk_api_level = 29
 
 # Disable all backends except Vulkan
 angle_enable_vulkan = true
-angle_enable_gl = false
+angle_enable_gl = true
 angle_enable_d3d9 = false
 angle_enable_d3d11 = false
 angle_enable_null = false
 angle_enable_metal = false
 
 # SwiftShader is loaded as the system Vulkan driver on Android, not compiled by ANGLE
-angle_enable_swiftshader = false
+angle_enable_swiftshader = true
 
 # Disable all shader translator targets except desktop GL (for Vulkan)
 angle_enable_essl = true
 angle_enable_glsl = true
-angle_enable_hlsl = false
+angle_enable_hlsl = true
+angle_enable_vksl = true
 
 #angle_enable_commit_id = false
 
