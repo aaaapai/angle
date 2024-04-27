@@ -39,7 +39,7 @@ jobs:
           export PATH=`pwd`/depot_tools:$PATH
           echo $PATH
           cd angle
-          vpython scripts/bootstrap.py
+          python scripts/bootstrap.py
           gclient sync
           gn gen out/Android-${{matrix.arch}}
           autoninja -C out/Android-${{matrix.arch}}
