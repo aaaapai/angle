@@ -799,11 +799,6 @@ deps = {
     'condition': 'not build_with_chromium',
   },
 
-  'third_party/libpng/src': {
-    'url': Var('android_git') + '/platform/external/libpng@d2ece84bd73af1cd5fae5e7574f79b40e5de4fba',
-    'condition': 'not build_with_chromium',
-  },
-
   'third_party/llvm/src': {
     'url': Var('chromium_git') + '/external/github.com/llvm/llvm-project@d222fa4521531cc4ac14b8e157d231c108c003be',
     'condition': 'not build_with_chromium',
@@ -993,11 +988,6 @@ deps = {
   'third_party/six': {
     'url': Var('chromium_git') + '/chromium/src/third_party/six@580980eb7d380150995b82cd18e1254ab5eff77f',
     'condition': 'checkout_android and not build_with_chromium',
-  },
-
-  'third_party/SwiftShader': {
-    'url': Var('swiftshader_git') + '/SwiftShader@e76961fac58c34c61bb52ed3887917300f0e37a3',
-    'condition': 'not build_with_chromium',
   },
 
   'third_party/turbine/cipd': {
@@ -5474,32 +5464,6 @@ hooks = [
                '-o', 'build/util/LASTCHANGE'],
   },
 
-  # Pull rc binaries using checked-in hashes.
-  {
-    'name': 'rc_win',
-    'pattern': '.',
-    'condition': 'checkout_win and host_os == "win" and not build_with_chromium',
-    'action': [ 'python3',
-                'third_party/depot_tools/download_from_google_storage.py',
-                '--no_resume',
-                '--no_auth',
-                '--bucket', 'chromium-browser-clang/rc',
-                '-s', 'build/toolchain/win/rc/win/rc.exe.sha1',
-    ],
-  },
-
-  {
-    'name': 'rc_mac',
-    'pattern': '.',
-    'condition': 'checkout_win and host_os == "mac" and not build_with_chromium',
-    'action': [ 'python3',
-                'third_party/depot_tools/download_from_google_storage.py',
-                '--no_resume',
-                '--no_auth',
-                '--bucket', 'chromium-browser-clang/rc',
-                '-s', 'build/toolchain/win/rc/mac/rc.sha1',
-    ],
-  },
   {
     'name': 'rc_linux',
     'pattern': '.',
