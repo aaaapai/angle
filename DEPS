@@ -43,7 +43,7 @@ vars = {
   'checkout_angle_mesa': False,
 
   # Version of Chromium our Chromium-based DEPS are mirrored from.
-  'chromium_revision': '3d34cc12858adb0a993f444dedb4dc42f9f55fd0',
+  'chromium_revision': 'a1ed57f54522d48fc3157c780edc1c5e1f5021a1',
   # We never want to checkout chromium,
   # but need a dummy DEPS entry for the autoroller
   'dummy_checkout_chromium': False,
@@ -450,7 +450,7 @@ vars = {
 deps = {
 
   'build': {
-    'url': Var('chromium_git') + '/chromium/src/build.git@44bcc9d7b830ddf5d56e96bf8bc7fea9023bad6f',
+    'url': Var('chromium_git') + '/chromium/src/build.git@6b60728ea92e526ed2d577ff360d5beb95f87e6a',
     'condition': 'not build_with_chromium',
   },
 
@@ -847,7 +847,7 @@ deps = {
   },
 
   'third_party/llvm-libc/src': {
-    'url': Var('chromium_git') + '/external/github.com/llvm/llvm-project/libc.git@30f439e02ebf9be89259f491f647bb246fde49cc',
+    'url': Var('chromium_git') + '/external/github.com/llvm/llvm-project/libc.git@b0de9011b9f34818da12b1448f40e212f611afa3',
     'condition': 'not build_with_chromium',
   },
 
@@ -1011,7 +1011,7 @@ deps = {
   },
 
   'third_party/vulkan-deps': {
-    'url': Var('chromium_git') + '/vulkan-deps@bfa23916c97efe0f7076fca1b26d5a19b725e7d7',
+    'url': Var('chromium_git') + '/vulkan-deps@04a50a3dd7b9e98c7320cf28c1095aab5c3ad704',
     'condition': 'not build_with_chromium',
   },
 
@@ -1061,7 +1061,7 @@ deps = {
   },
 
   'third_party/vulkan-validation-layers/src': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-ValidationLayers@34b85f655e7b07865ce554eb365ab8241cb8be6e',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-ValidationLayers@d6141280aadb706f49cd46128b1dee2b3a361c2e',
     'condition': 'not build_with_chromium',
   },
 
