@@ -34,13 +34,13 @@ void *OpenLibVulkan()
 #endif
     };
 
-    const char* dri = std::getenv("LIBGL_VK_DRI");
     constexpr SearchType kSearchTypes[] = {
 // On Android, Fuchsia and GGP we use the system libvulkan.
 #if defined(ANGLE_USE_CUSTOM_LIBVULKAN)
         SearchType::ModuleDir,
 #else
-        (dri && std::strcmp(dri, "1") == 0) ? SearchType::AlreadyLoaded : SearchType::SystemDir,
+        SearchType::AlreadyLoaded,
+        SearchType::SystemDir,
 #endif  // defined(ANGLE_USE_CUSTOM_LIBVULKAN)
     };
 
