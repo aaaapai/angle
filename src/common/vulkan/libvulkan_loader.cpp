@@ -11,6 +11,9 @@
 
 #include "common/system_utils.h"
 
+#include <cstdlib>
+#include <cstring>
+ 
 namespace angle
 {
 namespace vk
@@ -36,7 +39,7 @@ void *OpenLibVulkan()
 #if defined(ANGLE_USE_CUSTOM_LIBVULKAN)
         SearchType::ModuleDir,
 #else
-        (getenv("LIBGL_VK_DRI") && strcmp(getenv("LIBGL_VK_DRI"), "1") == 0) ? SearchType::AlreadyLoaded : SearchType::SystemDir,
+        (std::getenv("LIBGL_VK_DRI") && std::strcmp(std::getenv("LIBGL_VK_DRI"), "1") == 0) ? SearchType::AlreadyLoaded : SearchType::SystemDir,
 #endif  // defined(ANGLE_USE_CUSTOM_LIBVULKAN)
     };
 
