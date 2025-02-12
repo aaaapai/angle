@@ -36,7 +36,7 @@ void *OpenLibVulkan()
 #if defined(ANGLE_USE_CUSTOM_LIBVULKAN)
         SearchType::ModuleDir,
 #else
-        SearchType::SystemDir,
+        (getenv("LIBGL_VK_DRI") && strcmp(getenv("LIBGL_VK_DRI"), "1") == 0) ? SearchType::AlreadyLoaded : SearchType::SystemDir,
 #endif  // defined(ANGLE_USE_CUSTOM_LIBVULKAN)
     };
 
