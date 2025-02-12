@@ -25,6 +25,7 @@ void *OpenLibVulkan()
         "libvulkan.1.dylib",
         "libMoltenVK.dylib"
 #else
+        "libvulkan_freedreno.so"
         "libvulkan.so",
         "libvulkan.so.1",
 #endif
