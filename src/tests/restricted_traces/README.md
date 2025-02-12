@@ -7,7 +7,7 @@ to share publicly.
 ## Accessing the traces
 
 In order to compile and run with these, you must be granted access by Google,
-then authenticate with [CIPD](CIPD). Googlers, use your @google account.
+then authenticate with [CIPD](https://chromium.googlesource.com/infra/luci/luci-go/+/main/cipd/README.md). Googlers, use your @google account.
 ```
 cipd auth-login
 ```
@@ -47,8 +47,6 @@ src/tests/restricted_traces/clash_royale/
 src/tests/restricted_traces/cod_mobile/
 ...
 ```
-
-[CIPD]: https://chromium.googlesource.com/infra/luci/luci-go/+/main/cipd/README.md
 
 ## Building the trace tests
 
@@ -124,6 +122,37 @@ After [building](../../../doc/DevSetupAndroid.md#building-angle-for-android) and
 [installing](../../../doc/DevSetupAndroid.md#install-the-angle-apk) the APK with the above arg,
 we're ready to start capturing.
 
+If capturing a new trace using OpenCL, also add the following to your Debug setup:
+```
+angle_enable_cl = true
+```
+
+<details>
+  <summary>Example of full OpenCL GN arg Debug setup for Capture</summary>
+  <br>
+
+    # Target information
+    is_clang = true
+    target_cpu = "arm64"
+    target_os = "android"
+
+    # Enable CL + backends
+    angle_enable_cl = true
+    angle_enable_vulkan = true
+
+    # Debug mode flags
+    is_debug = true
+    symbol_level = 2
+    strip_debug_info = false
+    android_full_debug = true
+    ignore_elf32_limitations = true
+
+    # Other flag settings
+    is_official_build = false
+    is_component_build = false
+    angle_extract_native_libs = true
+</details>
+
 ## Determine the target app
 
 We first need to identify which application we want to trace.  That can generally be done by
@@ -165,6 +194,8 @@ export LABEL=angry_birds_2
 
 ## Opt the application into ANGLE
 
+Note: If running an executable, not an application/APK, these settings don't apply.
+
 Next, opt the application into using your ANGLE with capture enabled by default:
 ```
 adb shell settings put global angle_debug_package org.chromium.angle
@@ -197,6 +228,12 @@ require more. Use your discretion here:
 adb shell setprop debug.angle.capture.trigger 10
 ```
 
+For OpenCL capture, a trigger most likely won't be wanted. So, set the frame_start and frame_end values accordingly. Each ```clEnqueueNDRangeKernel``` is considered the end of a frame.
+```
+adb shell setprop debug.angle.capture.frame_start 1
+adb shell setprop debug.angle.capture.frame_end 100.
+```
+
 ## Create output location
 
 We need to write out the trace file in a location accessible by the app. We use the app's data
@@ -220,6 +257,8 @@ ANGLE   : INFO: Disabling GL_NV_shader_noperspective_interpolation during captur
 ANGLE   : INFO: Limiting draw buffer count to 4 while FrameCapture enabled
 ```
 ## Trigger the capture
+
+Note: If you have set the start and end frame, this step does not apply.
 
 When you have reached the content in your application that you want to record, set the trigger
 value to zero:

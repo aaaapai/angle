@@ -11,6 +11,7 @@
 
 #include "common/platform.h"
 #include "libANGLE/Display.h"
+#include "libANGLE/ErrorStrings.h"
 #include "libANGLE/Surface.h"
 #include "libANGLE/renderer/metal/ContextMtl.h"
 #include "libANGLE/renderer/metal/DisplayMtl.h"
@@ -170,37 +171,37 @@ egl::Error SurfaceMtl::postSubBuffer(const gl::Context *context,
                                      EGLint height)
 {
     UNIMPLEMENTED();
-    return egl::EglBadAccess();
+    return egl::Error(EGL_BAD_ACCESS);
 }
 
 egl::Error SurfaceMtl::querySurfacePointerANGLE(EGLint attribute, void **value)
 {
     UNIMPLEMENTED();
-    return egl::EglBadAccess();
+    return egl::Error(EGL_BAD_ACCESS);
 }
 
 egl::Error SurfaceMtl::bindTexImage(const gl::Context *context, gl::Texture *texture, EGLint buffer)
 {
     UNIMPLEMENTED();
-    return egl::EglBadAccess();
+    return egl::Error(EGL_BAD_ACCESS);
 }
 
 egl::Error SurfaceMtl::releaseTexImage(const gl::Context *context, EGLint buffer)
 {
     UNIMPLEMENTED();
-    return egl::EglBadAccess();
+    return egl::Error(EGL_BAD_ACCESS);
 }
 
 egl::Error SurfaceMtl::getSyncValues(EGLuint64KHR *ust, EGLuint64KHR *msc, EGLuint64KHR *sbc)
 {
     UNIMPLEMENTED();
-    return egl::EglBadAccess();
+    return egl::Error(EGL_BAD_ACCESS);
 }
 
 egl::Error SurfaceMtl::getMscRate(EGLint *numerator, EGLint *denominator)
 {
     UNIMPLEMENTED();
-    return egl::EglBadAccess();
+    return egl::Error(EGL_BAD_ACCESS);
 }
 
 void SurfaceMtl::setSwapInterval(const egl::Display *display, EGLint interval) {}
@@ -467,11 +468,11 @@ egl::Error WindowSurfaceMtl::initialize(const egl::Display *display)
     {
         if ([mLayer isKindOfClass:CAMetalLayer.class])
         {
-            mMetalLayer.retainAssign(static_cast<CAMetalLayer *>(mLayer));
+            mMetalLayer = static_cast<CAMetalLayer *>(mLayer);
         }
         else
         {
-            mMetalLayer             = [[[CAMetalLayer alloc] init] ANGLE_MTL_AUTORELEASE];
+            mMetalLayer             = angle::adoptObjCPtr([[CAMetalLayer alloc] init]);
             mMetalLayer.get().frame = mLayer.frame;
         }
 
@@ -661,8 +662,7 @@ angle::Result WindowSurfaceMtl::obtainNextDrawable(const gl::Context *context)
     ANGLE_MTL_OBJC_SCOPE
     {
         ContextMtl *contextMtl = mtl::GetImpl(context);
-
-        ANGLE_MTL_TRY(contextMtl, mMetalLayer);
+        ANGLE_CHECK(contextMtl, mMetalLayer, gl::err::kInternalError, GL_INVALID_OPERATION);
 
         // Check if layer was resized
         if (checkIfLayerResized(context))
@@ -670,14 +670,14 @@ angle::Result WindowSurfaceMtl::obtainNextDrawable(const gl::Context *context)
             contextMtl->onBackbufferResized(context, this);
         }
 
-        mCurrentDrawable.retainAssign([mMetalLayer nextDrawable]);
+        mCurrentDrawable = [mMetalLayer nextDrawable];
         if (!mCurrentDrawable)
         {
             // The GPU might be taking too long finishing its rendering to the previous frame.
             // Try again, indefinitely wait until the previous frame render finishes.
             // TODO: this may wait forever here
             mMetalLayer.get().allowsNextDrawableTimeout = NO;
-            mCurrentDrawable.retainAssign([mMetalLayer nextDrawable]);
+            mCurrentDrawable                            = [mMetalLayer nextDrawable];
             mMetalLayer.get().allowsNextDrawableTimeout = YES;
         }
 

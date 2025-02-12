@@ -593,11 +593,11 @@ bool CommandQueue::waitUntilSerialCompleted(uint64_t serial, uint64_t timeoutNs)
     return true;
 }
 
-AutoObjCPtr<id<MTLCommandBuffer>> CommandQueue::makeMetalCommandBuffer(uint64_t *queueSerialOut)
+angle::ObjCPtr<id<MTLCommandBuffer>> CommandQueue::makeMetalCommandBuffer(uint64_t *queueSerialOut)
 {
     ANGLE_MTL_OBJC_SCOPE
     {
-        AutoObjCPtr<id<MTLCommandBuffer>> metalCmdBuffer = [get() commandBuffer];
+        angle::ObjCPtr<id<MTLCommandBuffer>> metalCmdBuffer = [get() commandBuffer];
 
         std::lock_guard<std::mutex> lg(mLock);
 
@@ -639,6 +639,14 @@ void CommandQueue::onCommandBufferCompleted(id<MTLCommandBuffer> buf,
     std::lock_guard<std::mutex> lg(mLock);
 
     ANGLE_MTL_LOG("Completed MTLCommandBuffer %llu:%p", serial, buf);
+
+    NSError *error = buf.error;
+    if (error)
+    {
+        ERR() << "Completed MTLCommandBuffer failed, and error is "
+              << error.localizedDescription.UTF8String;
+        mCmdBufferError.store(static_cast<MTLCommandBufferError>(error.code));
+    }
 
     if (timeElapsedEntry != 0)
     {
@@ -925,7 +933,7 @@ uint64_t CommandBuffer::getQueueSerial() const
 void CommandBuffer::restart()
 {
     uint64_t serial                                  = 0;
-    AutoObjCPtr<id<MTLCommandBuffer>> metalCmdBuffer = mCmdQueue.makeMetalCommandBuffer(&serial);
+    angle::ObjCPtr<id<MTLCommandBuffer>> metalCmdBuffer = mCmdQueue.makeMetalCommandBuffer(&serial);
 
     std::lock_guard<std::mutex> lg(mLock);
 
@@ -999,7 +1007,7 @@ uint64_t CommandBuffer::queueEventSignal(id<MTLEvent> event, uint64_t value)
         // We cannot set event when there is an active render pass, defer the setting until the pass
         // end.
         PendingEvent pending;
-        pending.event.retainAssign(event);
+        pending.event       = std::move(event);
         pending.signalValue = value;
         mPendingSignalEvents.push_back(std::move(pending));
     }
@@ -2348,7 +2356,7 @@ RenderCommandEncoder &RenderCommandEncoder::setStencilLoadAction(MTLLoadAction a
 
 void RenderCommandEncoder::setLabel(NSString *label)
 {
-    mLabel.retainAssign(label);
+    mLabel = std::move(label);
 }
 
 // BlitCommandEncoder

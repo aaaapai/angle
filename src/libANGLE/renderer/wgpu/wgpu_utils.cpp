@@ -122,6 +122,7 @@ void GenerateCaps(const wgpu::Limits &limitsWgpu,
     glExtensions->textureUsageANGLE           = true;
     glExtensions->translatedShaderSourceANGLE = true;
     glExtensions->vertexArrayObjectOES        = true;
+    glExtensions->elementIndexUintOES         = true;
 
     glExtensions->textureStorageEXT = true;
     glExtensions->rgb8Rgba8OES      = true;
@@ -417,8 +418,7 @@ wgpu::PrimitiveTopology GetPrimitiveTopology(gl::PrimitiveMode mode)
         case gl::PrimitiveMode::Lines:
             return wgpu::PrimitiveTopology::LineList;
         case gl::PrimitiveMode::LineLoop:
-            UNIMPLEMENTED();
-            return wgpu::PrimitiveTopology::LineList;  // Emulated
+            return wgpu::PrimitiveTopology::LineStrip;  // Emulated
         case gl::PrimitiveMode::LineStrip:
             return wgpu::PrimitiveTopology::LineStrip;
         case gl::PrimitiveMode::Triangles:
@@ -439,7 +439,6 @@ wgpu::IndexFormat GetIndexFormat(gl::DrawElementsType drawElementsType)
     switch (drawElementsType)
     {
         case gl::DrawElementsType::UnsignedByte:
-            UNIMPLEMENTED();
             return wgpu::IndexFormat::Uint16;  // Emulated
         case gl::DrawElementsType::UnsignedShort:
             return wgpu::IndexFormat::Uint16;
@@ -497,6 +496,121 @@ wgpu::ColorWriteMask GetColorWriteMask(bool r, bool g, bool b, bool a)
            (a ? wgpu::ColorWriteMask::Alpha : wgpu::ColorWriteMask::None);
 }
 
+wgpu::BlendFactor GetBlendFactor(gl::BlendFactorType blendFactor)
+{
+    switch (blendFactor)
+    {
+        case gl::BlendFactorType::Zero:
+            return wgpu::BlendFactor::Zero;
+
+        case gl::BlendFactorType::One:
+            return wgpu::BlendFactor::One;
+
+        case gl::BlendFactorType::SrcColor:
+            return wgpu::BlendFactor::Src;
+
+        case gl::BlendFactorType::OneMinusSrcColor:
+            return wgpu::BlendFactor::OneMinusSrc;
+
+        case gl::BlendFactorType::SrcAlpha:
+            return wgpu::BlendFactor::SrcAlpha;
+
+        case gl::BlendFactorType::OneMinusSrcAlpha:
+            return wgpu::BlendFactor::OneMinusSrcAlpha;
+
+        case gl::BlendFactorType::DstAlpha:
+            return wgpu::BlendFactor::DstAlpha;
+
+        case gl::BlendFactorType::OneMinusDstAlpha:
+            return wgpu::BlendFactor::OneMinusDstAlpha;
+
+        case gl::BlendFactorType::DstColor:
+            return wgpu::BlendFactor::Dst;
+
+        case gl::BlendFactorType::OneMinusDstColor:
+            return wgpu::BlendFactor::OneMinusDst;
+
+        case gl::BlendFactorType::SrcAlphaSaturate:
+            return wgpu::BlendFactor::SrcAlphaSaturated;
+
+        case gl::BlendFactorType::ConstantColor:
+            return wgpu::BlendFactor::Constant;
+
+        case gl::BlendFactorType::OneMinusConstantColor:
+            return wgpu::BlendFactor::OneMinusConstant;
+
+        case gl::BlendFactorType::ConstantAlpha:
+            UNIMPLEMENTED();
+            return wgpu::BlendFactor::Undefined;
+
+        case gl::BlendFactorType::OneMinusConstantAlpha:
+            UNIMPLEMENTED();
+            return wgpu::BlendFactor::Undefined;
+
+        case gl::BlendFactorType::Src1Alpha:
+            return wgpu::BlendFactor::Src1Alpha;
+
+        case gl::BlendFactorType::Src1Color:
+            return wgpu::BlendFactor::Src1;
+
+        case gl::BlendFactorType::OneMinusSrc1Color:
+            return wgpu::BlendFactor::OneMinusSrc1;
+
+        case gl::BlendFactorType::OneMinusSrc1Alpha:
+            return wgpu::BlendFactor::OneMinusSrc1Alpha;
+
+        default:
+            UNREACHABLE();
+            return wgpu::BlendFactor::Undefined;
+    }
+}
+
+wgpu::BlendOperation GetBlendEquation(gl::BlendEquationType blendEquation)
+{
+    switch (blendEquation)
+    {
+        case gl::BlendEquationType::Add:
+            return wgpu::BlendOperation::Add;
+
+        case gl::BlendEquationType::Min:
+            return wgpu::BlendOperation::Min;
+
+        case gl::BlendEquationType::Max:
+            return wgpu::BlendOperation::Max;
+
+        case gl::BlendEquationType::Subtract:
+            return wgpu::BlendOperation::Subtract;
+
+        case gl::BlendEquationType::ReverseSubtract:
+            return wgpu::BlendOperation::ReverseSubtract;
+
+        case gl::BlendEquationType::Multiply:
+        case gl::BlendEquationType::Screen:
+        case gl::BlendEquationType::Overlay:
+        case gl::BlendEquationType::Darken:
+        case gl::BlendEquationType::Lighten:
+        case gl::BlendEquationType::Colordodge:
+        case gl::BlendEquationType::Colorburn:
+        case gl::BlendEquationType::Hardlight:
+        case gl::BlendEquationType::Softlight:
+        case gl::BlendEquationType::Unused2:
+        case gl::BlendEquationType::Difference:
+        case gl::BlendEquationType::Unused3:
+        case gl::BlendEquationType::Exclusion:
+        case gl::BlendEquationType::HslHue:
+        case gl::BlendEquationType::HslSaturation:
+        case gl::BlendEquationType::HslColor:
+        case gl::BlendEquationType::HslLuminosity:
+            // EXT_blend_equation_advanced
+            UNIMPLEMENTED();
+            return wgpu::BlendOperation::Undefined;
+
+        default:
+            UNREACHABLE();
+            return wgpu::BlendOperation::Undefined;
+    }
+}
+
 wgpu::TextureDimension getWgpuTextureDimension(gl::TextureType glTextureType)
 {
     wgpu::TextureDimension dimension = {};
@@ -523,8 +637,13 @@ wgpu::TextureDimension getWgpuTextureDimension(gl::TextureType glTextureType)
     return dimension;
 }
 
-wgpu::CompareFunction getCompareFunc(const GLenum glCompareFunc)
+wgpu::CompareFunction GetCompareFunc(const GLenum glCompareFunc, bool testEnabled)
 {
+    if (!testEnabled)
+    {
+        return wgpu::CompareFunction::Always;
+    }
+
     switch (glCompareFunc)
     {
         case GL_NEVER:

@@ -16,6 +16,7 @@
 #include "common/hash_containers.h"
 
 #include "libANGLE/renderer/vulkan/CLContextVk.h"
+#include "libANGLE/renderer/vulkan/CLEventVk.h"
 #include "libANGLE/renderer/vulkan/CLKernelVk.h"
 #include "libANGLE/renderer/vulkan/CLMemoryVk.h"
 #include "libANGLE/renderer/vulkan/cl_types.h"
@@ -65,7 +66,11 @@ struct HostTransferConfig
     size_t size            = 0;
     size_t offset          = 0;
     void *dstHostPtr       = nullptr;
+
+    // Source host pointer that can contain data/pattern/etc
     const void *srcHostPtr = nullptr;
+
+    size_t patternSize     = 0;
     size_t rowPitch        = 0;
     size_t slicePitch      = 0;
     size_t elementSize     = 0;
@@ -319,7 +324,7 @@ class CLCommandQueueVk : public CLCommandQueueImpl
     CLPlatformVk *getPlatform() { return mContext->getPlatform(); }
     CLContextVk *getContext() { return mContext; }
 
-    cl_mem getOrCreatePrintfBuffer();
+    cl::MemoryPtr getOrCreatePrintfBuffer();
 
     angle::Result finishQueueSerial(const QueueSerial queueSerial);
 
@@ -329,6 +334,8 @@ class CLCommandQueueVk : public CLCommandQueueImpl
     {
         return mLastFlushedQueueSerial != mLastSubmittedQueueSerial;
     }
+
+    void addEventReference(CLEventVk &eventVk);
 
   private:
     static constexpr size_t kMaxDependencyTrackerSize    = 64;
@@ -340,9 +347,9 @@ class CLCommandQueueVk : public CLCommandQueueImpl
 
     // Create-update-bind the kernel's descriptor set, put push-constants in cmd buffer, capture
     // kernel resources, and handle kernel execution dependencies
-    angle::Result processKernelResources(CLKernelVk &kernelVk,
-                                         const cl::NDRange &ndrange,
-                                         const cl::WorkgroupCount &workgroupCount);
+    angle::Result processKernelResources(CLKernelVk &kernelVk);
+    // Updates global push constants for a given CL kernel
+    angle::Result processGlobalPushConstants(CLKernelVk &kernelVk, const cl::NDRange &ndrange);
 
     angle::Result submitCommands();
     angle::Result finishInternal();
@@ -378,6 +385,8 @@ class CLCommandQueueVk : public CLCommandQueueImpl
 
     angle::Result insertBarrier();
     angle::Result addMemoryDependencies(cl::Memory *clMem);
+
+    angle::Result submitEmptyCommand();
 
     CLContextVk *mContext;
     const CLDeviceVk *mDevice;

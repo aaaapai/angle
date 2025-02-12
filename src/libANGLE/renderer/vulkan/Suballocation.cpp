@@ -84,7 +84,7 @@ void BufferBlock::destroy(Renderer *renderer)
     mDeviceMemory.destroy(device);
 }
 
-VkResult BufferBlock::init(Context *context,
+VkResult BufferBlock::init(ErrorContext *context,
                            Buffer &buffer,
                            uint32_t memoryTypeIndex,
                            vma::VirtualBlockCreateFlags flags,
@@ -112,7 +112,7 @@ VkResult BufferBlock::init(Context *context,
     return VK_SUCCESS;
 }
 
-void BufferBlock::initWithoutVirtualBlock(Context *context,
+void BufferBlock::initWithoutVirtualBlock(ErrorContext *context,
                                           Buffer &buffer,
                                           MemoryAllocationType memoryAllocationType,
                                           uint32_t memoryTypeIndex,
@@ -140,7 +140,7 @@ void BufferBlock::initWithoutVirtualBlock(Context *context,
 VkResult BufferBlock::map(const VkDevice device)
 {
     ASSERT(mMappedMemory == nullptr);
-    return mDeviceMemory.map(device, 0, mSize, 0, &mMappedMemory);
+    return mDeviceMemory.map(device, 0, mAllocatedBufferSize, 0, &mMappedMemory);
 }
 
 void BufferBlock::unmap(const VkDevice device)
@@ -177,9 +177,45 @@ void BufferBlock::calculateStats(vma::StatInfo *pStatInfo) const
 }
 
 // BufferSuballocation implementation.
-VkResult BufferSuballocation::map(Context *context)
+VkResult BufferSuballocation::map(ErrorContext *context)
 {
     return mBufferBlock->map(context->getDevice());
+}
+
+void BufferSuballocation::flush(Renderer *renderer)
+{
+    if (!isCoherent())
+    {
+        const VkDeviceSize nonCoherentAtomSize =
+            renderer->getPhysicalDeviceProperties().limits.nonCoherentAtomSize;
+
+        VkMappedMemoryRange mappedRange = {};
+        mappedRange.sType               = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+        mappedRange.memory              = mBufferBlock->getDeviceMemory().getHandle();
+        mappedRange.offset              = getOffset();
+        mappedRange.size                = roundUp<VkDeviceSize>(mSize, nonCoherentAtomSize);
+
+        ASSERT(mappedRange.size <= mBufferBlock->getAllocatedBufferSize());
+        mBufferBlock->getDeviceMemory().flush(renderer->getDevice(), mappedRange);
+    }
+}
+
+void BufferSuballocation::invalidate(Renderer *renderer)
+{
+    if (!isCoherent())
+    {
+        const VkDeviceSize nonCoherentAtomSize =
+            renderer->getPhysicalDeviceProperties().limits.nonCoherentAtomSize;
+
+        VkMappedMemoryRange mappedRange = {};
+        mappedRange.sType               = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+        mappedRange.memory              = mBufferBlock->getDeviceMemory().getHandle();
+        mappedRange.offset              = getOffset();
+        mappedRange.size                = roundUp<VkDeviceSize>(mSize, nonCoherentAtomSize);
+
+        ASSERT(mappedRange.size <= mBufferBlock->getAllocatedBufferSize());
+        mBufferBlock->getDeviceMemory().invalidate(renderer->getDevice(), mappedRange);
+    }
 }
 
 // BufferSuballocationGarbage implementation.

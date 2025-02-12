@@ -1232,6 +1232,12 @@ struct FeaturesVk : FeatureSetBase
         &members,
     };
 
+    FeatureInfo useVkEventForBufferBarrier = {
+        "useVkEventForBufferBarrier",
+        FeatureCategory::VulkanFeatures,
+        &members,
+    };
+
     FeatureInfo supportsSynchronization2 = {
         "supportsSynchronization2",
         FeatureCategory::VulkanFeatures,
@@ -1408,6 +1414,30 @@ struct FeaturesVk : FeatureSetBase
 
     FeatureInfo supportsImageCompressionControlSwapchain = {
         "supportsImageCompressionControlSwapchain",
+        FeatureCategory::VulkanFeatures,
+        &members,
+    };
+
+    FeatureInfo supportsAngleRgbxInternalFormat = {
+        "supportsAngleRgbxInternalFormat",
+        FeatureCategory::VulkanFeatures,
+        &members,
+    };
+
+    FeatureInfo supportsAppleClipDistance = {
+        "supportsAppleClipDistance",
+        FeatureCategory::VulkanFeatures,
+        &members,
+    };
+
+    FeatureInfo supportsUniformBufferStandardLayout = {
+        "supportsUniformBufferStandardLayout",
+        FeatureCategory::VulkanFeatures,
+        &members,
+    };
+
+    FeatureInfo usesNativeBuiltinClKernel = {
+        "usesNativeBuiltinClKernel",
         FeatureCategory::VulkanFeatures,
         &members,
     };

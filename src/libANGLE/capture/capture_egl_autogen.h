@@ -13,6 +13,9 @@
 
 #include "common/PackedEnums.h"
 #include "libANGLE/capture/FrameCapture.h"
+#ifdef ANGLE_ENABLE_CL
+#    include "common/PackedCLEnums_autogen.h"
+#endif
 
 namespace egl
 {
@@ -323,6 +326,12 @@ angle::CallCapture CaptureReleaseDeviceANGLE(egl::Thread *thread,
                                              bool isCallValid,
                                              egl::Device *devicePacked,
                                              EGLBoolean returnValue);
+angle::CallCapture CaptureLockVulkanQueueANGLE(egl::Thread *thread,
+                                               bool isCallValid,
+                                               egl::Display *dpyPacked);
+angle::CallCapture CaptureUnlockVulkanQueueANGLE(egl::Thread *thread,
+                                                 bool isCallValid,
+                                                 egl::Display *dpyPacked);
 angle::CallCapture CaptureAcquireExternalContextANGLE(egl::Thread *thread,
                                                       bool isCallValid,
                                                       egl::Display *dpyPacked,

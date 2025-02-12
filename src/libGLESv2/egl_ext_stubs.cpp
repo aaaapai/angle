@@ -457,7 +457,8 @@ const char *QueryDeviceStringEXT(Thread *thread, Device *dev, EGLint name)
             result = dev->getDeviceString(name).c_str();
             break;
         default:
-            thread->setError(EglBadDevice(), "eglQueryDeviceStringEXT", GetDeviceIfValid(dev));
+            thread->setError(egl::Error(EGL_BAD_DEVICE_EXT), "eglQueryDeviceStringEXT",
+                             GetDeviceIfValid(dev));
             return nullptr;
     }
 
@@ -673,6 +674,22 @@ EGLBoolean SwapBuffersWithDamageKHR(Thread *thread,
 
     thread->setSuccess();
     return EGL_TRUE;
+}
+
+void LockVulkanQueueANGLE(Thread *thread, egl::Display *display)
+{
+    ANGLE_EGL_TRY_PREPARE_FOR_CALL(thread, display->prepareForCall(), "eglLockVulkanQueueANGLE",
+                                   GetDisplayIfValid(display));
+    display->lockVulkanQueue();
+    thread->setSuccess();
+}
+
+void UnlockVulkanQueueANGLE(Thread *thread, egl::Display *display)
+{
+    ANGLE_EGL_TRY_PREPARE_FOR_CALL(thread, display->prepareForCall(), "eglUnlockVulkanQueueANGLE",
+                                   GetDisplayIfValid(display));
+    display->unlockVulkanQueue();
+    thread->setSuccess();
 }
 
 EGLBoolean PrepareSwapBuffersANGLE(Thread *thread, Display *display, SurfaceID surfaceID)

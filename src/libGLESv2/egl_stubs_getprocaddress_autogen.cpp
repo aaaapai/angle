@@ -10,8 +10,7 @@
 //   Mapping from a string entry point name to function address.
 //
 
-#include "libGLESv2/proc_table_egl.h"
-
+#include "libANGLE/Thread.h"
 #include "libGLESv2/entry_points_egl_autogen.h"
 #include "libGLESv2/entry_points_egl_ext_autogen.h"
 #include "libGLESv2/entry_points_gles_1_0_autogen.h"
@@ -28,6 +27,20 @@
 
 namespace egl
 {
+
+namespace
+{
+struct ProcEntry
+{
+    const char *name;
+    __eglMustCastToProperFunctionPointerType func;
+};
+
+bool CompareProc(const ProcEntry &a, const char *b)
+{
+    return strcmp(a.name, b) < 0;
+}
+
 // clang-format off
 const ProcEntry g_procTable[] = {
     {"ANGLEGetDisplayPlatform", P(ANGLEGetDisplayPlatform)},
@@ -92,6 +105,7 @@ const ProcEntry g_procTable[] = {
     {"eglInitialize", P(EGL_Initialize)},
     {"eglLabelObjectKHR", P(EGL_LabelObjectKHR)},
     {"eglLockSurfaceKHR", P(EGL_LockSurfaceKHR)},
+    {"eglLockVulkanQueueANGLE", P(EGL_LockVulkanQueueANGLE)},
     {"eglMakeCurrent", P(EGL_MakeCurrent)},
     {"eglPostSubBufferNV", P(EGL_PostSubBufferNV)},
     {"eglPrepareSwapBuffersANGLE", P(EGL_PrepareSwapBuffersANGLE)},
@@ -140,6 +154,7 @@ const ProcEntry g_procTable[] = {
     {"eglSwapInterval", P(EGL_SwapInterval)},
     {"eglTerminate", P(EGL_Terminate)},
     {"eglUnlockSurfaceKHR", P(EGL_UnlockSurfaceKHR)},
+    {"eglUnlockVulkanQueueANGLE", P(EGL_UnlockVulkanQueueANGLE)},
     {"eglWaitClient", P(EGL_WaitClient)},
     {"eglWaitGL", P(EGL_WaitGL)},
     {"eglWaitNative", P(EGL_WaitNative)},
@@ -991,5 +1006,21 @@ const ProcEntry g_procTable[] = {
     {"glWeightPointerOES", P(GL_WeightPointerOES)},
 };
 // clang-format on
-const size_t g_numProcs = std::size(g_procTable);
+}  // anonymous namespace
+
+__eglMustCastToProperFunctionPointerType GetProcAddress(Thread *thread, const char *procname)
+{
+    const ProcEntry *entry =
+        std::lower_bound(std::begin(g_procTable), std::end(g_procTable), procname, CompareProc);
+
+    thread->setSuccess();
+
+    if (entry == std::end(g_procTable) || strcmp(entry->name, procname) != 0)
+    {
+        return nullptr;
+    }
+
+    return entry->func;
+}
+
 }  // namespace egl

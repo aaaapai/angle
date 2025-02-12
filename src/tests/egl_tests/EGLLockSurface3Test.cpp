@@ -48,8 +48,6 @@ class EGLLockSurface3Test : public ANGLETest<>
     {
         if (mDisplay != EGL_NO_DISPLAY)
         {
-            EXPECT_EGL_TRUE(
-                eglMakeCurrent(mDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT));
             eglTerminate(mDisplay);
             eglReleaseThread();
             mDisplay = EGL_NO_DISPLAY;
@@ -426,7 +424,9 @@ TEST_P(EGLLockSurface3Test, PbufferSurfaceReadWriteTest)
 
     EXPECT_TRUE(checkSurfaceRGBA32(fillColor));
 
-    EXPECT_EGL_TRUE(eglMakeCurrent(mDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, context));
+    EXPECT_EGL_TRUE(eglMakeCurrent(mDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT));
+    EXPECT_EGL_TRUE(eglDestroySurface(mDisplay, pBufferSurface));
+    EXPECT_EGL_TRUE(eglDestroyContext(mDisplay, context));
 }
 
 // Create PBufferSurface, glClear Green, Lock, check buffer for green, Write white pixels,
@@ -501,7 +501,9 @@ TEST_P(EGLLockSurface3Test, PbufferSurfaceReadWriteDeferredCleaarTest)
 
     EXPECT_TRUE(checkSurfaceRGBA32(fillColor));
 
-    EXPECT_EGL_TRUE(eglMakeCurrent(mDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, context));
+    EXPECT_EGL_TRUE(eglMakeCurrent(mDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT));
+    EXPECT_EGL_TRUE(eglDestroySurface(mDisplay, pBufferSurface));
+    EXPECT_EGL_TRUE(eglDestroyContext(mDisplay, context));
 }
 
 // Create WindowSurface, Clear Color to GREEN, draw red quad, Lock with PRESERVE_PIXELS,
@@ -576,11 +578,11 @@ TEST_P(EGLLockSurface3Test, WindowSurfaceReadTest)
     EXPECT_TRUE(checkSurfaceRGBA32(drawColor));
     EXPECT_EGL_TRUE(eglSwapBuffers(mDisplay, windowSurface));
 
-    EXPECT_EGL_TRUE(eglMakeCurrent(mDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, context));
-
     glDeleteTextures(1, &texture);
 
-    eglDestroySurface(mDisplay, windowSurface);
+    EXPECT_EGL_TRUE(eglMakeCurrent(mDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT));
+    EXPECT_EGL_TRUE(eglDestroySurface(mDisplay, windowSurface));
+    EXPECT_EGL_TRUE(eglDestroyContext(mDisplay, context));
     osWindow->destroy();
     OSWindow::Delete(&osWindow);
 }
@@ -659,11 +661,11 @@ TEST_P(EGLLockSurface3Test, WindowMsaaSurfaceReadTest)
     EXPECT_TRUE(checkSurfaceRGBA32(drawColor));
     EXPECT_EGL_TRUE(eglSwapBuffers(mDisplay, windowSurface));
 
-    EXPECT_EGL_TRUE(eglMakeCurrent(mDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, context));
-
     glDeleteTextures(1, &texture);
 
-    eglDestroySurface(mDisplay, windowSurface);
+    EXPECT_EGL_TRUE(eglMakeCurrent(mDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT));
+    EXPECT_EGL_TRUE(eglDestroySurface(mDisplay, windowSurface));
+    EXPECT_EGL_TRUE(eglDestroyContext(mDisplay, context));
     osWindow->destroy();
     OSWindow::Delete(&osWindow);
 }
@@ -724,9 +726,9 @@ TEST_P(EGLLockSurface3Test, WindowSurfaceWritePreserveTest)
     EXPECT_TRUE(checkSurfaceRGBA32(fillColor));
     EXPECT_EGL_TRUE(eglSwapBuffers(mDisplay, windowSurface));
 
-    EXPECT_EGL_TRUE(eglMakeCurrent(mDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, context));
-
-    eglDestroySurface(mDisplay, windowSurface);
+    EXPECT_EGL_TRUE(eglMakeCurrent(mDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT));
+    EXPECT_EGL_TRUE(eglDestroySurface(mDisplay, windowSurface));
+    EXPECT_EGL_TRUE(eglDestroyContext(mDisplay, context));
     osWindow->destroy();
     OSWindow::Delete(&osWindow);
 }

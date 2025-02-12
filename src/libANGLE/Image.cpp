@@ -38,6 +38,10 @@ gl::ImageIndex GetImageIndex(EGLenum eglTarget, const egl::AttributeMap &attribs
     {
         return gl::ImageIndex::Make3D(mip, layer);
     }
+    else if (gl::IsCubeMapFaceTarget(target))
+    {
+        return gl::ImageIndex::MakeCubeMapFace(target, mip);
+    }
     else
     {
         ASSERT(layer == 0);
@@ -529,7 +533,7 @@ Error Image::initialize(const Display *display, const gl::Context *context)
         if (!gl::ColorspaceFormatOverride(mState.colorspace, &nonLinearFormat))
         {
             // the colorspace format is not supported
-            return egl::EglBadMatch();
+            return egl::Error(EGL_BAD_MATCH);
         }
         mState.format = gl::Format(nonLinearFormat);
     }

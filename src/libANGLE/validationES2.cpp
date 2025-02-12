@@ -614,7 +614,7 @@ static bool IsCapBannedWithActivePLS(GLenum cap)
     }
 }
 
-bool ValidCap(const PrivateState &state, ErrorSet *errors, GLenum cap, bool queryOnly)
+bool ValidCapUncommon(const PrivateState &state, ErrorSet *errors, GLenum cap, bool queryOnly)
 {
     switch (cap)
     {
@@ -623,14 +623,8 @@ bool ValidCap(const PrivateState &state, ErrorSet *errors, GLenum cap, bool quer
         case GL_SAMPLE_ALPHA_TO_ONE_EXT:
             return state.getExtensions().multisampleCompatibilityEXT;
 
-        case GL_CULL_FACE:
-        case GL_POLYGON_OFFSET_FILL:
         case GL_SAMPLE_ALPHA_TO_COVERAGE:
         case GL_SAMPLE_COVERAGE:
-        case GL_SCISSOR_TEST:
-        case GL_STENCIL_TEST:
-        case GL_DEPTH_TEST:
-        case GL_BLEND:
         case GL_DITHER:
             return true;
 
@@ -754,6 +748,19 @@ bool ValidCap(const PrivateState &state, ErrorSet *errors, GLenum cap, bool quer
         default:
             return false;
     }
+}
+
+ANGLE_INLINE bool ValidCap(const PrivateState &state, ErrorSet *errors, GLenum cap, bool queryOnly)
+{
+    // Most frequent cases inline.
+    if (ANGLE_LIKELY(cap == GL_BLEND || cap == GL_DEPTH_TEST || cap == GL_SCISSOR_TEST ||
+                     cap == GL_STENCIL_TEST || cap == GL_CULL_FACE ||
+                     cap == GL_POLYGON_OFFSET_FILL))
+    {
+        return true;
+    }
+    // Other less common cases are a function call.
+    return ValidCapUncommon(state, errors, cap, queryOnly);
 }
 
 // Return true if a character belongs to the ASCII subset as defined in GLSL ES 1.0 spec section
@@ -2202,7 +2209,7 @@ bool ValidateGetDebugMessageLogKHR(const Context *context,
 
     if (bufSize < 0 && messageLog != nullptr)
     {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kNegativeBufferSize);
+        ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kNegativeBufSize);
         return false;
     }
 
@@ -2458,7 +2465,7 @@ bool ValidateGetObjectLabelBase(const Context *context,
 {
     if (bufSize < 0)
     {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kNegativeBufferSize);
+        ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kNegativeBufSize);
         return false;
     }
 
@@ -2553,7 +2560,7 @@ bool ValidateGetObjectPtrLabelBase(const Context *context,
 {
     if (bufSize < 0)
     {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kNegativeBufferSize);
+        ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kNegativeBufSize);
         return false;
     }
 
@@ -4553,7 +4560,7 @@ bool ValidateGetActiveAttrib(const Context *context,
 {
     if (bufsize < 0)
     {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kNegativeBufferSize);
+        ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kNegativeBufSize);
         return false;
     }
 
@@ -4585,7 +4592,7 @@ bool ValidateGetActiveUniform(const Context *context,
 {
     if (bufsize < 0)
     {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kNegativeBufferSize);
+        ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kNegativeBufSize);
         return false;
     }
 
@@ -4718,7 +4725,7 @@ bool ValidateGetProgramInfoLog(const Context *context,
 {
     if (bufsize < 0)
     {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kNegativeBufferSize);
+        ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kNegativeBufSize);
         return false;
     }
 
@@ -4740,7 +4747,7 @@ bool ValidateGetShaderInfoLog(const Context *context,
 {
     if (bufsize < 0)
     {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kNegativeBufferSize);
+        ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kNegativeBufSize);
         return false;
     }
 
@@ -4800,7 +4807,7 @@ bool ValidateGetShaderSource(const Context *context,
 {
     if (bufsize < 0)
     {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kNegativeBufferSize);
+        ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kNegativeBufSize);
         return false;
     }
 
@@ -5254,36 +5261,6 @@ bool ValidateStencilOpSeparate(const PrivateState &state,
     return ValidateStencilOp(state, errors, entryPoint, fail, zfail, zpass);
 }
 
-bool ValidateUniformMatrix2fv(const Context *context,
-                              angle::EntryPoint entryPoint,
-                              UniformLocation location,
-                              GLsizei count,
-                              GLboolean transpose,
-                              const GLfloat *value)
-{
-    return ValidateUniformMatrix(context, entryPoint, GL_FLOAT_MAT2, location, count, transpose);
-}
-
-bool ValidateUniformMatrix3fv(const Context *context,
-                              angle::EntryPoint entryPoint,
-                              UniformLocation location,
-                              GLsizei count,
-                              GLboolean transpose,
-                              const GLfloat *value)
-{
-    return ValidateUniformMatrix(context, entryPoint, GL_FLOAT_MAT3, location, count, transpose);
-}
-
-bool ValidateUniformMatrix4fv(const Context *context,
-                              angle::EntryPoint entryPoint,
-                              UniformLocation location,
-                              GLsizei count,
-                              GLboolean transpose,
-                              const GLfloat *value)
-{
-    return ValidateUniformMatrix(context, entryPoint, GL_FLOAT_MAT4, location, count, transpose);
-}
-
 bool ValidateValidateProgram(const Context *context,
                              angle::EntryPoint entryPoint,
                              ShaderProgramID program)
@@ -5296,84 +5273,6 @@ bool ValidateValidateProgram(const Context *context,
     }
 
     return true;
-}
-
-bool ValidateVertexAttrib1f(const PrivateState &state,
-                            ErrorSet *errors,
-                            angle::EntryPoint entryPoint,
-                            GLuint index,
-                            GLfloat x)
-{
-    return ValidateVertexAttribIndex(state, errors, entryPoint, index);
-}
-
-bool ValidateVertexAttrib1fv(const PrivateState &state,
-                             ErrorSet *errors,
-                             angle::EntryPoint entryPoint,
-                             GLuint index,
-                             const GLfloat *values)
-{
-    return ValidateVertexAttribIndex(state, errors, entryPoint, index);
-}
-
-bool ValidateVertexAttrib2f(const PrivateState &state,
-                            ErrorSet *errors,
-                            angle::EntryPoint entryPoint,
-                            GLuint index,
-                            GLfloat x,
-                            GLfloat y)
-{
-    return ValidateVertexAttribIndex(state, errors, entryPoint, index);
-}
-
-bool ValidateVertexAttrib2fv(const PrivateState &state,
-                             ErrorSet *errors,
-                             angle::EntryPoint entryPoint,
-                             GLuint index,
-                             const GLfloat *values)
-{
-    return ValidateVertexAttribIndex(state, errors, entryPoint, index);
-}
-
-bool ValidateVertexAttrib3f(const PrivateState &state,
-                            ErrorSet *errors,
-                            angle::EntryPoint entryPoint,
-                            GLuint index,
-                            GLfloat x,
-                            GLfloat y,
-                            GLfloat z)
-{
-    return ValidateVertexAttribIndex(state, errors, entryPoint, index);
-}
-
-bool ValidateVertexAttrib3fv(const PrivateState &state,
-                             ErrorSet *errors,
-                             angle::EntryPoint entryPoint,
-                             GLuint index,
-                             const GLfloat *values)
-{
-    return ValidateVertexAttribIndex(state, errors, entryPoint, index);
-}
-
-bool ValidateVertexAttrib4f(const PrivateState &state,
-                            ErrorSet *errors,
-                            angle::EntryPoint entryPoint,
-                            GLuint index,
-                            GLfloat x,
-                            GLfloat y,
-                            GLfloat z,
-                            GLfloat w)
-{
-    return ValidateVertexAttribIndex(state, errors, entryPoint, index);
-}
-
-bool ValidateVertexAttrib4fv(const PrivateState &state,
-                             ErrorSet *errors,
-                             angle::EntryPoint entryPoint,
-                             GLuint index,
-                             const GLfloat *values)
-{
-    return ValidateVertexAttribIndex(state, errors, entryPoint, index);
 }
 
 bool ValidateViewport(const PrivateState &state,
@@ -5777,135 +5676,6 @@ bool ValidateFramebufferTexture3DOES(const Context *context,
     return true;
 }
 
-bool ValidateGenBuffers(const Context *context,
-                        angle::EntryPoint entryPoint,
-                        GLint n,
-                        const BufferID *buffers)
-{
-    return ValidateGenOrDelete(context, entryPoint, n);
-}
-
-bool ValidateGenFramebuffers(const Context *context,
-                             angle::EntryPoint entryPoint,
-                             GLint n,
-                             const FramebufferID *framebuffers)
-{
-    return ValidateGenOrDelete(context, entryPoint, n);
-}
-
-bool ValidateGenRenderbuffers(const Context *context,
-                              angle::EntryPoint entryPoint,
-                              GLint n,
-                              const RenderbufferID *renderbuffers)
-{
-    return ValidateGenOrDelete(context, entryPoint, n);
-}
-
-bool ValidateGenTextures(const Context *context,
-                         angle::EntryPoint entryPoint,
-                         GLint n,
-                         const TextureID *textures)
-{
-    return ValidateGenOrDelete(context, entryPoint, n);
-}
-
-bool ValidateGenerateMipmap(const Context *context,
-                            angle::EntryPoint entryPoint,
-                            TextureType target)
-{
-    return ValidateGenerateMipmapBase(context, entryPoint, target);
-}
-
-bool ValidateGetBufferParameteriv(const Context *context,
-                                  angle::EntryPoint entryPoint,
-                                  BufferBinding target,
-                                  GLenum pname,
-                                  const GLint *params)
-{
-    return ValidateGetBufferParameterBase(context, entryPoint, target, pname, false, nullptr);
-}
-
-bool ValidateGetRenderbufferParameteriv(const Context *context,
-                                        angle::EntryPoint entryPoint,
-                                        GLenum target,
-                                        GLenum pname,
-                                        const GLint *params)
-{
-    return ValidateGetRenderbufferParameterivBase(context, entryPoint, target, pname, nullptr);
-}
-
-bool ValidateGetShaderiv(const Context *context,
-                         angle::EntryPoint entryPoint,
-                         ShaderProgramID shader,
-                         GLenum pname,
-                         const GLint *params)
-{
-    return ValidateGetShaderivBase(context, entryPoint, shader, pname, nullptr);
-}
-
-bool ValidateGetTexParameterfv(const Context *context,
-                               angle::EntryPoint entryPoint,
-                               TextureType target,
-                               GLenum pname,
-                               const GLfloat *params)
-{
-    return ValidateGetTexParameterBase(context, entryPoint, target, pname, nullptr);
-}
-
-bool ValidateGetTexParameteriv(const Context *context,
-                               angle::EntryPoint entryPoint,
-                               TextureType target,
-                               GLenum pname,
-                               const GLint *params)
-{
-    return ValidateGetTexParameterBase(context, entryPoint, target, pname, nullptr);
-}
-
-bool ValidateGetUniformfv(const Context *context,
-                          angle::EntryPoint entryPoint,
-                          ShaderProgramID program,
-                          UniformLocation location,
-                          const GLfloat *params)
-{
-    return ValidateGetUniformBase(context, entryPoint, program, location);
-}
-
-bool ValidateGetUniformiv(const Context *context,
-                          angle::EntryPoint entryPoint,
-                          ShaderProgramID program,
-                          UniformLocation location,
-                          const GLint *params)
-{
-    return ValidateGetUniformBase(context, entryPoint, program, location);
-}
-
-bool ValidateGetVertexAttribfv(const Context *context,
-                               angle::EntryPoint entryPoint,
-                               GLuint index,
-                               GLenum pname,
-                               const GLfloat *params)
-{
-    return ValidateGetVertexAttribBase(context, entryPoint, index, pname, nullptr, false, false);
-}
-
-bool ValidateGetVertexAttribiv(const Context *context,
-                               angle::EntryPoint entryPoint,
-                               GLuint index,
-                               GLenum pname,
-                               const GLint *params)
-{
-    return ValidateGetVertexAttribBase(context, entryPoint, index, pname, nullptr, false, false);
-}
-
-bool ValidateGetVertexAttribPointerv(const Context *context,
-                                     angle::EntryPoint entryPoint,
-                                     GLuint index,
-                                     GLenum pname,
-                                     void *const *pointer)
-{
-    return ValidateGetVertexAttribBase(context, entryPoint, index, pname, nullptr, true, false);
-}
-
 bool ValidateIsEnabled(const PrivateState &state,
                        ErrorSet *errors,
                        angle::EntryPoint entryPoint,
@@ -5938,56 +5708,6 @@ bool ValidateLinkProgram(const Context *context,
     }
 
     return true;
-}
-
-bool ValidateReadPixels(const Context *context,
-                        angle::EntryPoint entryPoint,
-                        GLint x,
-                        GLint y,
-                        GLsizei width,
-                        GLsizei height,
-                        GLenum format,
-                        GLenum type,
-                        const void *pixels)
-{
-    return ValidateReadPixelsBase(context, entryPoint, x, y, width, height, format, type, -1,
-                                  nullptr, nullptr, nullptr, pixels);
-}
-
-bool ValidateTexParameterf(const Context *context,
-                           angle::EntryPoint entryPoint,
-                           TextureType target,
-                           GLenum pname,
-                           GLfloat param)
-{
-    return ValidateTexParameterBase(context, entryPoint, target, pname, -1, false, &param);
-}
-
-bool ValidateTexParameterfv(const Context *context,
-                            angle::EntryPoint entryPoint,
-                            TextureType target,
-                            GLenum pname,
-                            const GLfloat *params)
-{
-    return ValidateTexParameterBase(context, entryPoint, target, pname, -1, true, params);
-}
-
-bool ValidateTexParameteri(const Context *context,
-                           angle::EntryPoint entryPoint,
-                           TextureType target,
-                           GLenum pname,
-                           GLint param)
-{
-    return ValidateTexParameterBase(context, entryPoint, target, pname, -1, false, &param);
-}
-
-bool ValidateTexParameteriv(const Context *context,
-                            angle::EntryPoint entryPoint,
-                            TextureType target,
-                            GLenum pname,
-                            const GLint *params)
-{
-    return ValidateTexParameterBase(context, entryPoint, target, pname, -1, true, params);
 }
 
 bool ValidateUseProgram(const Context *context,
@@ -6158,7 +5878,7 @@ bool ValidateGetTranslatedShaderSourceANGLE(const Context *context,
 
     if (bufsize < 0)
     {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kNegativeBufferSize);
+        ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kNegativeBufSize);
         return false;
     }
 

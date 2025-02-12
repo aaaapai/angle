@@ -17,6 +17,24 @@
 namespace rx
 {
 
+enum class BufferType
+{
+    IndexBuffer,
+    ArrayBuffer,
+};
+
+enum class IndexDataNeedsStreaming
+{
+    Yes,
+    No,
+};
+
+struct VertexBufferWithOffset
+{
+    webgpu::BufferHelper *buffer = nullptr;
+    size_t offset                = 0;
+};
+
 class VertexArrayWgpu : public VertexArrayImpl
 {
   public:
@@ -27,11 +45,15 @@ class VertexArrayWgpu : public VertexArrayImpl
                             gl::VertexArray::DirtyAttribBitsArray *attribBits,
                             gl::VertexArray::DirtyBindingBitsArray *bindingBits) override;
 
-    webgpu::BufferHelper *getVertexBuffer(size_t slot) const { return mCurrentArrayBuffers[slot]; }
+    const VertexBufferWithOffset &getVertexBuffer(size_t slot) const
+    {
+        return mCurrentArrayBuffers[slot];
+    }
     webgpu::BufferHelper *getIndexBuffer() const { return mCurrentIndexBuffer; }
 
     angle::Result syncClientArrays(const gl::Context *context,
                                    const gl::AttributesMask &activeAttributesMask,
+                                   gl::PrimitiveMode mode,
                                    GLint first,
                                    GLsizei count,
                                    GLsizei instanceCount,
@@ -39,7 +61,8 @@ class VertexArrayWgpu : public VertexArrayImpl
                                    const void *indices,
                                    GLint baseVertex,
                                    bool primitiveRestartEnabled,
-                                   const void **adjustedIndicesPtr);
+                                   const void **adjustedIndicesPtr,
+                                   uint32_t *indexCountOut);
 
   private:
     angle::Result syncDirtyAttrib(ContextWgpu *contextWgpu,
@@ -48,9 +71,19 @@ class VertexArrayWgpu : public VertexArrayImpl
                                   size_t attribIndex);
     angle::Result syncDirtyElementArrayBuffer(ContextWgpu *contextWgpu);
 
+    angle::Result ensureBufferCreated(const gl::Context *context,
+                                      webgpu::BufferHelper &buffer,
+                                      size_t size,
+                                      size_t attribIndex,
+                                      wgpu::BufferUsage usage,
+                                      BufferType bufferType);
+
     gl::AttribArray<webgpu::PackedVertexAttribute> mCurrentAttribs;
     gl::AttribArray<webgpu::BufferHelper> mStreamingArrayBuffers;
-    gl::AttribArray<webgpu::BufferHelper *> mCurrentArrayBuffers;
+    gl::AttribArray<VertexBufferWithOffset> mCurrentArrayBuffers;
+
+    // Attributes that need to be streamed due to incompatibilities
+    gl::AttributesMask mForcedStreamingAttributes;
 
     webgpu::BufferHelper mStreamingIndexBuffer;
     webgpu::BufferHelper *mCurrentIndexBuffer = nullptr;
