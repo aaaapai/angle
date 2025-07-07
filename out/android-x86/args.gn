@@ -1,0 +1,35 @@
+# Build arguments go here.
+# See "gn args <out_dir> --list" for available build arguments.
+# Standard boilerplate for our usage
+target_os = "android"
+target_cpu = "x86"
+
+is_component_build = false # Dynamically links dependencies, rather than static
+is_debug = false # Sets as "release" build
+angle_expose_non_conformant_extensions_and_versions = true # Enables ES3.2
+angle_build_tests = false # This is a big portion of the build time that is just never used because this goes into CI, so keep it off
+
+# Stops libs.uncompressed from being built, which is only when symbol_level != 0
+symbol_level = 0
+
+# Stops ANGLE APKs from being built (we are never using those)
+angle_standalone = false
+
+# Disable all unneeded backends
+angle_enable_gl = false
+angle_enable_d3d9 = false
+angle_enable_d3d11 = false
+angle_enable_null = false
+angle_enable_metal = false
+angle_enable_wgpu = false
+angle_enable_swiftshader = false
+
+angle_enable_vulkan = true
+angle_enable_essl = true
+angle_enable_glsl = true
+
+# Other stuff
+angle_has_frame_capture = false # Turns off frame capture (we don't use it, why would you?! Also turns off rapidJSON)
+build_angle_deqp_tests = false # This was somehow being set to true, am forcing it false 
+angle_build_all = false # Why would we need all of it? (yes this is redundant)
+# libcxx_abi_unstable = false # Apparently breaks std::string, doesn't seem to anymore. Comments mention this option causing slowdowns.
