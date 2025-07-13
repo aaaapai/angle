@@ -350,7 +350,7 @@ egl::Error SurfaceD3D::checkForOutOfDateSwapChain(DisplayD3D *displayD3D)
     return egl::NoError();
 }
 
-egl::Error SurfaceD3D::swap(const gl::Context *context)
+egl::Error SurfaceD3D::swap(const gl::Context *context, SurfaceSwapFeedback *feedback)
 {
     DisplayD3D *displayD3D = GetImplAs<DisplayD3D>(context->getDisplay());
     return swapRect(displayD3D, 0, 0, mWidth, mHeight);
@@ -429,7 +429,7 @@ egl::Error SurfaceD3D::querySurfacePointerANGLE(EGLint attribute, void **value)
     return egl::NoError();
 }
 
-const angle::Format *SurfaceD3D::getD3DTextureColorFormat() const
+const angle::Format *SurfaceD3D::getClientBufferTextureColorFormat() const
 {
     return mColorFormat;
 }

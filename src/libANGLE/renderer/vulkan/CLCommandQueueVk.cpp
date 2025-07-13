@@ -192,10 +192,10 @@ angle::Result CLCommandQueueVk::init()
                                 renderer->getQueueFamilyIndex(), getProtectionType()),
                             CL_OUT_OF_RESOURCES);
 
-    ANGLE_CL_IMPL_TRY_ERROR(mContext->getRenderer()->getOutsideRenderPassCommandBufferHelper(
-                                mContext, &mCommandPool.outsideRenderPassPool,
-                                &mOutsideRenderPassCommandsAllocator, &mComputePassCommands),
-                            CL_OUT_OF_RESOURCES);
+    ANGLE_CL_IMPL_TRY_ERROR(
+        mContext->getRenderer()->getOutsideRenderPassCommandBufferHelper(
+            mContext, &mCommandPool.outsideRenderPassPool, &mComputePassCommands),
+        CL_OUT_OF_RESOURCES);
 
     // Generate initial QueueSerial for command buffer helper
     ANGLE_CL_IMPL_TRY_ERROR(mContext->getRenderer()->allocateQueueSerialIndex(&mQueueSerialIndex),
@@ -1339,7 +1339,7 @@ angle::Result CLCommandQueueVk::enqueueNativeKernel(cl::UserFunc userFunc,
                                                     void *args,
                                                     size_t cbArgs,
                                                     const cl::BufferPtrs &buffers,
-                                                    const std::vector<size_t> bufferPtrOffsets,
+                                                    const std::vector<size_t> &bufferPtrOffsets,
                                                     const cl::EventPtrs &waitEvents,
                                                     CLEventImpl::CreateFunc *eventCreateFunc)
 {
@@ -1503,14 +1503,14 @@ angle::Result CLCommandQueueVk::addMemoryDependencies(cl::Memory *clMem)
     mCommandsStateMap[mComputePassCommands->getQueueSerial()].memories.emplace_back(clMem);
 
     // Handle possible resource RAW hazard
-    bool insertBarrier = false;
+    bool needsBarrier = false;
     if (clMem->getFlags().intersects(CL_MEM_READ_WRITE))
     {
         // Texel buffers have backing buffer objects
         if (mDependencyTracker.contains(clMem) || mDependencyTracker.contains(parentMem) ||
             mDependencyTracker.size() == kMaxDependencyTrackerSize)
         {
-            insertBarrier = true;
+            needsBarrier = true;
             mDependencyTracker.clear();
         }
         mDependencyTracker.insert(clMem);
@@ -1528,12 +1528,9 @@ angle::Result CLCommandQueueVk::addMemoryDependencies(cl::Memory *clMem)
                                          vkMem.getImage().getAspectFlags(),
                                          vk::ImageLayout::ComputeShaderWrite, &vkMem.getImage());
     }
-    else if (insertBarrier && cl::IsBufferType(clMem->getType()))
+    if (needsBarrier)
     {
-        CLBufferVk &vkMem = clMem->getImpl<CLBufferVk>();
-
-        mComputePassCommands->bufferWrite(mContext, VK_ACCESS_SHADER_WRITE_BIT,
-                                          vk::PipelineStage::ComputeShader, &vkMem.getBuffer());
+        ANGLE_TRY(insertBarrier());
     }
 
     return angle::Result::Continue;
@@ -1544,7 +1541,6 @@ angle::Result CLCommandQueueVk::processKernelResources(CLKernelVk &kernelVk)
     bool podBufferPresent              = false;
     uint32_t podBinding                = 0;
     VkDescriptorType podDescriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    bool needsBarrier = false;
     const CLProgramVk::DeviceProgramData *devProgramData =
         kernelVk.getProgram()->getDeviceProgramData(mCommandQueue.getDevice().getNative());
     ASSERT(devProgramData != nullptr);
@@ -1578,8 +1574,44 @@ angle::Result CLCommandQueueVk::processKernelResources(CLKernelVk &kernelVk)
     mCommandsStateMap[mComputePassCommands->getQueueSerial()].kernels.emplace_back(
         &kernelVk.getFrontendObject());
 
-    // Process each kernel argument/resource
+    // Process descriptor sets used by the kernel
     vk::DescriptorSetArray<UpdateDescriptorSetsBuilder> updateDescriptorSetsBuilders;
+
+    UpdateDescriptorSetsBuilder &literalSamplerDescSetBuilder =
+        updateDescriptorSetsBuilders[DescriptorSetIndex::LiteralSampler];
+
+    // Create/Setup Literal Sampler
+    for (const ClspvLiteralSampler &literalSampler : devProgramData->reflectionData.literalSamplers)
+    {
+        cl::SamplerPtr clLiteralSampler =
+            cl::SamplerPtr(cl::Sampler::Cast(this->mContext->getFrontendObject().createSampler(
+                literalSampler.normalizedCoords, literalSampler.addressingMode,
+                literalSampler.filterMode)));
+
+        // Release immediately to ensure correct refcount
+        clLiteralSampler->release();
+        ASSERT(clLiteralSampler != nullptr);
+        CLSamplerVk &vkLiteralSampler = clLiteralSampler->getImpl<CLSamplerVk>();
+
+        VkDescriptorImageInfo &samplerInfo =
+            literalSamplerDescSetBuilder.allocDescriptorImageInfo();
+        samplerInfo.sampler     = vkLiteralSampler.getSamplerHelper().get().getHandle();
+        samplerInfo.imageView   = VK_NULL_HANDLE;
+        samplerInfo.imageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+        VkWriteDescriptorSet &writeDescriptorSet =
+            literalSamplerDescSetBuilder.allocWriteDescriptorSet();
+        writeDescriptorSet.descriptorCount = 1;
+        writeDescriptorSet.descriptorType  = VK_DESCRIPTOR_TYPE_SAMPLER;
+        writeDescriptorSet.pImageInfo      = &samplerInfo;
+        writeDescriptorSet.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        writeDescriptorSet.dstSet = kernelVk.getDescriptorSet(DescriptorSetIndex::LiteralSampler);
+        writeDescriptorSet.dstBinding = literalSampler.binding;
+
+        mCommandsStateMap[mComputePassCommands->getQueueSerial()].samplers.emplace_back(
+            clLiteralSampler);
+    }
+
     CLKernelArguments args = kernelVk.getArgs();
     UpdateDescriptorSetsBuilder &kernelArgDescSetBuilder =
         updateDescriptorSetsBuilders[DescriptorSetIndex::KernelArguments];
@@ -1703,10 +1735,9 @@ angle::Result CLCommandQueueVk::processKernelResources(CLKernelVk &kernelVk)
                 // Update image/descriptor info
                 VkDescriptorImageInfo &imageInfo =
                     kernelArgDescSetBuilder.allocDescriptorImageInfo();
-                imageInfo.imageLayout =
-                    arg.type == NonSemanticClspvReflectionArgumentStorageImage
-                        ? VK_IMAGE_LAYOUT_GENERAL
-                        : vkMem.getImage().getCurrentLayout(mContext->getRenderer());
+                imageInfo.imageLayout = arg.type == NonSemanticClspvReflectionArgumentStorageImage
+                                            ? VK_IMAGE_LAYOUT_GENERAL
+                                            : vkMem.getImage().getCurrentLayout();
                 imageInfo.imageView = vkMem.getImageView().getHandle();
                 imageInfo.sampler   = VK_NULL_HANDLE;
                 VkWriteDescriptorSet &writeDescriptorSet =
@@ -1848,11 +1879,6 @@ angle::Result CLCommandQueueVk::processKernelResources(CLKernelVk &kernelVk)
 
             ++descriptorSetIndex;
         }
-    }
-
-    if (needsBarrier)
-    {
-        ANGLE_TRY(insertBarrier());
     }
 
     return angle::Result::Continue;
@@ -2206,7 +2232,7 @@ angle::Result CLCommandQueueVk::processPrintfBuffer()
     ASSERT(mPrintfInfos);
 
     cl::MemoryPtr clMem = getOrCreatePrintfBuffer();
-    CLBufferVk &vkMem = clMem->getImpl<CLBufferVk>();
+    CLBufferVk &vkMem   = clMem->getImpl<CLBufferVk>();
 
     unsigned char *data = nullptr;
     ANGLE_TRY(vkMem.map(data, 0));
