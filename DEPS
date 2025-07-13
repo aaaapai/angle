@@ -804,19 +804,12 @@ deps = {
     'condition': 'not build_with_chromium',
   },
 
+
   'third_party/libpng/src': {
-    'url': Var('android_git') + '/platform/external/libpng@8cc222cd3e79fa5190f3aa039a03a4cbea6cfbe7',
+    'url': Var('android_git') + '/platform/external/libpng@d2ece84bd73af1cd5fae5e7574f79b40e5de4fba',
     'condition': 'not build_with_chromium',
   },
 
-<<<<<<< HEAD
-=======
-  'third_party/llvm/src': {
-    'url': Var('chromium_git') + '/external/github.com/llvm/llvm-project@1fd8d3fea53e6e4573cdce55bd38ef0a7813a442',
-    'condition': 'not build_with_chromium',
-  },
-
->>>>>>> google/main
   'third_party/jdk': {
       'packages': [
           {
@@ -1007,12 +1000,10 @@ deps = {
     'url': Var('chromium_git') + '/chromium/src/third_party/six@580980eb7d380150995b82cd18e1254ab5eff77f',
     'condition': 'checkout_android and not build_with_chromium',
   },
-
-  'third_party/SwiftShader': {
-    'url': Var('swiftshader_git') + '/SwiftShader@c1f7fbbec4e17769c0182daae185466cb806d0d5',
+   'third_party/SwiftShader': {
+    'url': Var('swiftshader_git') + '/SwiftShader@e76961fac58c34c61bb52ed3887917300f0e37a3',
     'condition': 'not build_with_chromium',
   },
-
   'third_party/turbine/cipd': {
       'packages': [
           {
@@ -4498,33 +4489,6 @@ hooks = [
                '-o', 'build/util/LASTCHANGE'],
   },
 
-<<<<<<< HEAD
-=======
-  # Pull rc binaries using checked-in hashes.
-  {
-    'name': 'rc_win',
-    'pattern': '.',
-    'condition': 'checkout_win and host_os == "win" and not build_with_chromium',
-    'action': [ 'python3',
-                'third_party/depot_tools/download_from_google_storage.py',
-                '--no_resume',
-                '--bucket', 'chromium-browser-clang/rc',
-                '-s', 'build/toolchain/win/rc/win/rc.exe.sha1',
-    ],
-  },
-
-  {
-    'name': 'rc_mac',
-    'pattern': '.',
-    'condition': 'checkout_win and host_os == "mac" and not build_with_chromium',
-    'action': [ 'python3',
-                'third_party/depot_tools/download_from_google_storage.py',
-                '--no_resume',
-                '--bucket', 'chromium-browser-clang/rc',
-                '-s', 'build/toolchain/win/rc/mac/rc.sha1',
-    ],
-  },
->>>>>>> google/main
   {
     'name': 'rc_linux',
     'pattern': '.',
