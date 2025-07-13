@@ -121,6 +121,7 @@ struct CommandsState
     cl::EventPtrs events;
     cl::MemoryPtrs memories;
     cl::KernelPtrs kernels;
+    cl::SamplerPtrs samplers;
     HostTransferEntries hostTransferList;
 };
 using CommandsStateMap = angle::HashMap<QueueSerial, CommandsState>;
@@ -301,7 +302,7 @@ class CLCommandQueueVk : public CLCommandQueueImpl
                                       void *args,
                                       size_t cbArgs,
                                       const cl::BufferPtrs &buffers,
-                                      const std::vector<size_t> bufferPtrOffsets,
+                                      const std::vector<size_t> &bufferPtrOffsets,
                                       const cl::EventPtrs &waitEvents,
                                       CLEventImpl::CreateFunc *eventCreateFunc) override;
 
@@ -394,7 +395,6 @@ class CLCommandQueueVk : public CLCommandQueueImpl
 
     vk::SecondaryCommandPools mCommandPool;
     vk::OutsideRenderPassCommandBufferHelper *mComputePassCommands;
-    vk::SecondaryCommandMemoryAllocator mOutsideRenderPassCommandsAllocator;
 
     // Queue Serials for this command queue
     SerialIndex mQueueSerialIndex;

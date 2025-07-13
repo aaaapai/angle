@@ -131,7 +131,6 @@ std::string GetCaptureTrigger()
     // Use the GetAndSet variant to improve future lookup times
     return GetAndSetEnvironmentVarOrUnCachedAndroidProperty(kTriggerVarName, kAndroidTrigger);
 }
-
 struct FmtGetSerializedContextStateFunction
 {
     FmtGetSerializedContextStateFunction(gl::ContextID contextIdIn,
@@ -184,7 +183,7 @@ void WriteStringParamReplay(ReplayWriter &replayWriter,
                             std::ostream &header,
                             const CallCapture &call,
                             const ParamCapture &param,
-                            std::vector<uint8_t> *binaryData)
+                            FrameCaptureBinaryData *binaryData)
 {
     const std::vector<uint8_t> &data = param.data[0];
     // null terminate C style string
@@ -196,9 +195,7 @@ void WriteStringParamReplay(ReplayWriter &replayWriter,
     {
         // Store in binary file if the string is too long.
         // Round up to 16-byte boundary for cross ABI safety.
-        size_t offset = rx::roundUpPow2(binaryData->size(), kBinaryAlignment);
-        binaryData->resize(offset + str.size() + 1);
-        memcpy(binaryData->data() + offset, str.data(), str.size() + 1);
+        const size_t offset = binaryData->append(str.data(), str.size() + 1);
         out << "(const char *)&gBinaryData[" << offset << "]";
     }
     else if (str.find('\n') != std::string::npos)
@@ -272,7 +269,7 @@ void WriteCppReplayForCall(const CallCapture &call,
                            ReplayWriter &replayWriter,
                            std::ostream &out,
                            std::ostream &header,
-                           std::vector<uint8_t> *binaryData,
+                           FrameCaptureBinaryData *binaryData,
                            size_t *maxResourceIDBufferSize)
 {
     if (call.customFunctionName == "Comment")
@@ -495,7 +492,7 @@ void MaybeResetResources(egl::Display *display,
                          std::stringstream &out,
                          std::stringstream &header,
                          ResourceTracker *resourceTracker,
-                         std::vector<uint8_t> *binaryData,
+                         FrameCaptureBinaryData *binaryData,
                          bool &anyResourceReset,
                          size_t *maxResourceIDBufferSize)
 {
@@ -942,7 +939,7 @@ void MaybeResetFenceSyncObjects(std::stringstream &out,
                                 ReplayWriter &replayWriter,
                                 std::stringstream &header,
                                 ResourceTracker *resourceTracker,
-                                std::vector<uint8_t> *binaryData,
+                                FrameCaptureBinaryData *binaryData,
                                 size_t *maxResourceIDBufferSize)
 {
     FenceSyncCalls &fenceSyncRegenCalls = resourceTracker->getFenceSyncRegenCalls();
@@ -1016,7 +1013,7 @@ void MaybeResetDefaultUniforms(std::stringstream &out,
                                std::stringstream &header,
                                const gl::Context *context,
                                ResourceTracker *resourceTracker,
-                               std::vector<uint8_t> *binaryData,
+                               FrameCaptureBinaryData *binaryData,
                                size_t *maxResourceIDBufferSize)
 {
     DefaultUniformLocationsPerProgramMap &defaultUniformsToReset =
@@ -1083,7 +1080,7 @@ void MaybeResetOpaqueTypeObjects(ReplayWriter &replayWriter,
                                  std::stringstream &header,
                                  const gl::Context *context,
                                  ResourceTracker *resourceTracker,
-                                 std::vector<uint8_t> *binaryData,
+                                 FrameCaptureBinaryData *binaryData,
                                  size_t *maxResourceIDBufferSize)
 {
     MaybeResetFenceSyncObjects(out, replayWriter, header, resourceTracker, binaryData,
@@ -1098,7 +1095,7 @@ void MaybeResetContextState(ReplayWriter &replayWriter,
                             std::stringstream &header,
                             ResourceTracker *resourceTracker,
                             const gl::Context *context,
-                            std::vector<uint8_t> *binaryData,
+                            FrameCaptureBinaryData *binaryData,
                             StateResetHelper &stateResetHelper,
                             size_t *maxResourceIDBufferSize)
 {
@@ -1233,7 +1230,7 @@ void WriteCppReplayFunctionWithParts(const gl::ContextID contextID,
                                      ReplayFunc replayFunc,
                                      ReplayWriter &replayWriter,
                                      uint32_t frameIndex,
-                                     std::vector<uint8_t> *binaryData,
+                                     FrameCaptureBinaryData *binaryData,
                                      const std::vector<CallCapture> &calls,
                                      std::stringstream &header,
                                      std::stringstream &out,
@@ -1308,7 +1305,7 @@ void WriteCppReplayFunctionWithPartsMultiContext(const gl::ContextID contextID,
                                                  ReplayFunc replayFunc,
                                                  ReplayWriter &replayWriter,
                                                  uint32_t frameIndex,
-                                                 std::vector<uint8_t> *binaryData,
+                                                 FrameCaptureBinaryData *binaryData,
                                                  std::vector<CallCapture> &calls,
                                                  std::stringstream &header,
                                                  std::stringstream &out,
@@ -1459,7 +1456,7 @@ void WriteAuxiliaryContextCppSetupReplay(ReplayWriter &replayWriter,
                                          const std::string &captureLabel,
                                          uint32_t frameIndex,
                                          const std::vector<CallCapture> &setupCalls,
-                                         std::vector<uint8_t> *binaryData,
+                                         FrameCaptureBinaryData *binaryData,
                                          bool serializeStateEnabled,
                                          const FrameCaptureShared &frameCaptureShared,
                                          size_t *maxResourceIDBufferSize)
@@ -1511,7 +1508,7 @@ void WriteShareGroupCppSetupReplay(ReplayWriter &replayWriter,
                                    uint32_t frameCount,
                                    const std::vector<CallCapture> &setupCalls,
                                    ResourceTracker *resourceTracker,
-                                   std::vector<uint8_t> *binaryData,
+                                   FrameCaptureBinaryData *binaryData,
                                    bool serializeStateEnabled,
                                    gl::ContextID windowSurfaceContextID,
                                    size_t *maxResourceIDBufferSize)
@@ -6009,6 +6006,8 @@ void CoherentBufferTracker::onEndFrame()
         return;
     }
 
+    mHasBeenReset = true;
+
     // Remove protection from all buffers
     for (const auto &pair : mBuffers)
     {
@@ -6130,6 +6129,49 @@ void CoherentBufferTracker::removeBuffer(gl::BufferID id)
     mBuffers.erase(id.value);
 }
 
+size_t FrameCaptureBinaryData::append(const void *data, size_t size)
+{
+    if (mData.empty())
+    {
+        mData.resize(1);
+    }
+
+    // Limit blocks of binary data to avoid allocating large vectors.  The following 512MB value
+    // works with Chrome captures, but is otherwise arbitrary.
+    constexpr size_t kMaxDataBlockSize = 512 * 1024 * 1024;
+
+    ASSERT(mTotalSize % kBinaryAlignment == 0);
+    const size_t offset         = mTotalSize;
+    const size_t sizeToIncrease = rx::roundUpPow2(size, kBinaryAlignment);
+
+    ASSERT(mData.back().size() % kBinaryAlignment == 0);
+    size_t offsetInLastElement = mData.back().size();
+    if (offsetInLastElement + sizeToIncrease > kMaxDataBlockSize)
+    {
+        // Add a new data block to append to so that each block is capped at kMaxDataBlockSize
+        // bytes.
+        mData.emplace_back();
+        offsetInLastElement = 0;
+    }
+
+    mData.back().resize(offsetInLastElement + sizeToIncrease);
+    memcpy(mData.back().data() + offsetInLastElement, data, size);
+    if (sizeToIncrease != size)
+    {
+        // Make sure the padding does not include garbage.
+        memset(mData.back().data() + offsetInLastElement + size, 0, sizeToIncrease - size);
+    }
+    mTotalSize += sizeToIncrease;
+
+    return offset;
+}
+
+void FrameCaptureBinaryData::clear()
+{
+    mData.clear();
+    mTotalSize = 0;
+}
+
 void *FrameCaptureShared::maybeGetShadowMemoryPointer(gl::Buffer *buffer,
                                                       GLsizeiptr length,
                                                       GLbitfield access)
@@ -6218,6 +6260,11 @@ void FrameCaptureShared::trackBufferMapping(const gl::Context *context,
         // first coherent glMapBufferRange call.
         if (coherent && isCaptureActive())
         {
+            if (mCoherentBufferTracker.hasBeenReset())
+            {
+                FATAL() << "Multi-capture not supprted for apps using persistent coherent memory";
+            }
+
             mCoherentBufferTracker.enable();
             // When not using shadow memory, adding buffers to the tracking happens here instead of
             // during mapping
@@ -6738,7 +6785,7 @@ void FrameCaptureShared::maybeCaptureDrawElementsClientData(const gl::Context *c
     }
 
     // index starts from 0
-    captureClientArraySnapshot(context, indexRange.end + 1, instanceCount);
+    captureClientArraySnapshot(context, indexRange.end() + 1, instanceCount);
 }
 
 template <typename AttribT, typename FactoryT>
@@ -7081,6 +7128,10 @@ void FrameCaptureShared::maybeCapturePreCallUpdates(
             // If we're capturing, track which programs have been deleted
             const ParamCapture &param =
                 call.params.getParam("programPacked", ParamType::TShaderProgramID, 0);
+            if (param.value.ShaderProgramIDVal.value == 0)
+            {
+                break;  // no-op
+            }
             handleDeletedResource(context, param.value.ShaderProgramIDVal);
 
             // If this assert fires, it means a ShaderProgramID has changed from program to shader
@@ -7106,6 +7157,10 @@ void FrameCaptureShared::maybeCapturePreCallUpdates(
             // If we're capturing, track which shaders have been deleted
             const ParamCapture &param =
                 call.params.getParam("shaderPacked", ParamType::TShaderProgramID, 0);
+            if (param.value.ShaderProgramIDVal.value == 0)
+            {
+                break;  // no-op
+            }
             handleDeletedResource(context, param.value.ShaderProgramIDVal);
 
             // If this assert fires, it means a ShaderProgramID has changed from shader to program
@@ -7754,6 +7809,10 @@ void FrameCaptureShared::maybeCapturePostCallUpdates(const gl::Context *context)
         {
             const ParamCapture &param =
                 lastCall.params.getParam("programPacked", ParamType::TShaderProgramID, 0);
+            if (param.value.ShaderProgramIDVal.value == 0)
+            {
+                break;  // no-op
+            }
             CaptureDeleteUniformLocations(param.value.ShaderProgramIDVal, &mFrameCalls);
             break;
         }
@@ -8023,13 +8082,7 @@ void FrameCaptureShared::captureMappedBufferSnapshot(const gl::Context *context,
 
 void FrameCaptureShared::checkForCaptureTrigger()
 {
-    // If the capture trigger has not been set, move on
-    if (mCaptureTrigger == 0)
-    {
-        return;
-    }
-
-    // Otherwise, poll the value for a change
+    // Determine if trigger has changed
     std::string captureTriggerStr = GetCaptureTrigger();
     if (captureTriggerStr.empty())
     {
@@ -8037,11 +8090,8 @@ void FrameCaptureShared::checkForCaptureTrigger()
     }
 
     // If the value has changed, use the original value as the frame count
-    // TODO (anglebug.com/42263521): Improve capture at unknown frame time. It is good to
-    // avoid polling if the feature is not enabled, but not entirely intuitive to set
-    // a value to zero when you want to trigger it.
     uint32_t captureTrigger = atoi(captureTriggerStr.c_str());
-    if (captureTrigger != mCaptureTrigger)
+    if ((mCaptureTrigger > 0) && (captureTrigger == 0))
     {
         // Start mid-execution capture for the current frame
         mCaptureStartFrame = mFrameIndex + 1;
@@ -8054,6 +8104,11 @@ void FrameCaptureShared::checkForCaptureTrigger()
 
         // Stop polling
         mCaptureTrigger = 0;
+    }
+    else if (captureTrigger > 0)
+    {
+        // Update number of frames to capture in MEC
+        mCaptureTrigger = captureTrigger;
     }
 }
 
@@ -8166,6 +8221,12 @@ void FrameCaptureShared::onEndFrame(gl::Context *context)
     {
         setCaptureInactive();
         mCoherentBufferTracker.onEndFrame();
+        if (enabled())
+        {
+            resetMidExecutionCapture(context);
+        }
+        resetCaptureStartEndFrames();
+        mFrameIndex++;
         return;
     }
 
@@ -8189,12 +8250,15 @@ void FrameCaptureShared::onEndFrame(gl::Context *context)
 
     // On Android, we can trigger a capture during the run
     checkForCaptureTrigger();
+    checkForCaptureEnd();
 
     // Check for MEC. Done after checkForCaptureTrigger(), since that can modify mCaptureStartFrame.
     if (mFrameIndex < mCaptureStartFrame)
     {
         if (mFrameIndex == mCaptureStartFrame - 1)
         {
+            // Update output directory location
+            getOutputDirectory();
             // Trigger MEC.
             runMidExecutionCapture(context);
         }
@@ -8534,8 +8598,16 @@ void ResourceTracker::onShaderProgramAccess(gl::ShaderProgramID shaderProgramID)
 // ... etc ...
 void FrameCaptureShared::writeJSON(const gl::Context *context)
 {
+    SurfaceParams noSurface;
+    noSurface.extents.width  = 16;
+    noSurface.extents.height = 9;
+    noSurface.colorSpace     = egl::ColorSpace::sRGB;
+
     const gl::ContextID contextId           = context->id();
-    const SurfaceParams &surfaceParams      = mDrawSurfaceParams.at(contextId);
+    const SurfaceParams &surfaceParams =
+        mDrawSurfaceParams.find(contextId) != mDrawSurfaceParams.end()
+            ? mDrawSurfaceParams.at(contextId)
+            : noSurface;
     const gl::State &glState                = context->getState();
     const egl::Config *config               = context->getConfig();
     const egl::AttributeMap &displayAttribs = context->getDisplay()->getAttributeMap();
@@ -8545,8 +8617,8 @@ void FrameCaptureShared::writeJSON(const gl::Context *context)
     JsonSerializer json;
     json.startGroup("TraceMetadata");
     json.addScalar("CaptureRevision", GetANGLERevision());
-    json.addScalar("ContextClientMajorVersion", context->getClientMajorVersion());
-    json.addScalar("ContextClientMinorVersion", context->getClientMinorVersion());
+    json.addScalar("ContextClientMajorVersion", context->getClientVersion().getMajor());
+    json.addScalar("ContextClientMinorVersion", context->getClientVersion().getMinor());
     json.addHexValue("DisplayPlatformType", displayAttribs.getAsInt(EGL_PLATFORM_ANGLE_TYPE_ANGLE));
     json.addHexValue("DisplayDeviceType",
                      displayAttribs.getAsInt(EGL_PLATFORM_ANGLE_DEVICE_TYPE_ANGLE));

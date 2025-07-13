@@ -32,17 +32,11 @@ egl::Error SurfaceImpl::prepareSwap(const gl::Context *)
 
 egl::Error SurfaceImpl::swapWithDamage(const gl::Context *context,
                                        const EGLint *rects,
-                                       EGLint n_rects)
+                                       EGLint n_rects,
+                                       SurfaceSwapFeedback *feedback)
 {
     UNREACHABLE();
     return egl::Error(EGL_BAD_SURFACE, "swapWithDamage implementation missing.");
-}
-
-egl::Error SurfaceImpl::swapWithFrameToken(const gl::Context *context,
-                                           EGLFrameTokenANGLE frameToken)
-{
-    UNREACHABLE();
-    return egl::Error(EGL_BAD_DISPLAY);
 }
 
 egl::Error SurfaceImpl::postSubBuffer(const gl::Context *context,
@@ -94,7 +88,7 @@ void SurfaceImpl::setTimestampsEnabled(bool enabled)
     UNREACHABLE();
 }
 
-const angle::Format *SurfaceImpl::getD3DTextureColorFormat() const
+const angle::Format *SurfaceImpl::getClientBufferTextureColorFormat() const
 {
     UNREACHABLE();
     return nullptr;
@@ -193,6 +187,11 @@ EGLint SurfaceImpl::getCompressionRate(const egl::Display *display) const
 {
     UNREACHABLE();
     return EGL_SURFACE_COMPRESSION_FIXED_RATE_NONE_EXT;
+}
+
+bool SurfaceImpl::supportsSingleRenderBuffer() const
+{
+    return false;
 }
 
 }  // namespace rx
