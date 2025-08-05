@@ -10,3 +10,6 @@ angle_enable_d3d11 = false
 angle_enable_null = false
 angle_enable_metal = false
 angle_expose_non_conformant_extensions_and_versions = true
+jobs = 4
+enable_iterator_debugging = false
+symbol_level = 0
