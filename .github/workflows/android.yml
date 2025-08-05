@@ -37,6 +37,7 @@ jobs:
         shell: bash
         run: |
           export PATH=`pwd`/depot_tools:$PATH
+          echo $PATH
           cd angle
           
           # 仅同步必要的依赖（跳过bootstrap.py，因为配置已存在）
