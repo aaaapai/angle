@@ -15,12 +15,6 @@ jobs:
 
     steps:
 
-      - name: Setup CCache
-        uses: Chocobo1/setup-ccache-action@master
-        with:
-          ccache_options: |
-            compression=false
-          
       - name: Cache depot_tools and dependencies
         uses: actions/cache@main
         with:
