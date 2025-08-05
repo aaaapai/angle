@@ -20,41 +20,36 @@ jobs:
         with:
           path: |
             depot_tools
-            angle/third_party
-            angle/.cipd
-            angle/.gclient
+            third_party
+            .cipd
+            .gclient
           key: ${{ runner.os }}-angle-deps-${{ hashFiles('angle/DEPS') }}
 
-      - name: Get ANGLE (shallow clone)
-        uses: actions/checkout@main
-        with:
-          path: 'angle'
-          fetch-depth: 1
-        
-      - name: Setup depot_tools and run gclient sync
+      - name: Setup depot_tools
         if: steps.cache-deps.outputs.cache-hit != 'true'
+        shell: bash
         run: |
           git clone --depth 1 https://chromium.googlesource.com/chromium/tools/depot_tools.git
           echo "DEPOT_TOOLS_COMMIT=$(git -C depot_tools rev-parse HEAD)" >> $GITHUB_ENV
           export PATH=`pwd`/depot_tools:$PATH
           echo $PATH
-          cd angle
           python scripts/bootstrap.py
 
       - name: Run gclient sync
+        shell: bash
         run:  |
            echo "DEPOT_TOOLS_COMMIT=$(git -C depot_tools rev-parse HEAD)" >> $GITHUB_ENV
            export PATH=`pwd`/depot_tools:$PATH
            echo $PATH
-           cd angle
            gclient sync --no-history --shallow --reset --force
         
       - name: Build ANGLE
-        env:
-          PATH: ${{ github.workspace }}/depot_tools:$PATH
+        shell: bash
         run: |
-          cd angle
-          # 使用现有配置直接构建
+          echo "DEPOT_TOOLS_COMMIT=$(git -C depot_tools rev-parse HEAD)" >> $GITHUB_ENV
+          export PATH=`pwd`/depot_tools:$PATH
+          echo $PATH
+          gn gen out/Android-${{matrix.arch}}
           autoninja -C out/Android-${{matrix.arch}} -j $(nproc)
 
       - name: Upload artifacts
