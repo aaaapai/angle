@@ -1,15 +1,13 @@
 name: ANGLE
 
 on:
-  push:
-  pull_request:
   workflow_dispatch:
 
 jobs:
   build:
     strategy:
       matrix:
-        arch: [ "arm64", "arm", "x86", "x64" ]
+        arch: [ "arm64" ]
       fail-fast: false
 
     name: "Build for Android ${{matrix.arch}}"
@@ -17,7 +15,7 @@ jobs:
 
     steps:
       - name: Get ANGLE
-        uses: actions/checkout@v4
+        uses: actions/checkout@main
         with:
           path: 'angle'
 
@@ -33,10 +31,9 @@ jobs:
           gn gen out/Android-${{matrix.arch}}
           autoninja -C out/Android-${{matrix.arch}}
       - name: Upload ANGLE
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@main
         with:
           name: angle-libs-${{matrix.arch}}
           path: |
-            angle/out/Android-${{matrix.arch}}/libGLESv1_CM_angle.so
             angle/out/Android-${{matrix.arch}}/libGLESv2_angle.so
             angle/out/Android-${{matrix.arch}}/libEGL_angle.so
