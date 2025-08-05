@@ -81,8 +81,8 @@ jobs:
         shell: bash
         run: |
           find out/Android-${{matrix.arch}} -name "siso_output" -exec cat {} \;
-          chmod +x ./out/Android-arm64/siso_failed_commands.sh
-          ./out/Android-arm64/siso_failed_commands.sh
+          chmod +x ./out/${{matrix.arch}}/siso_failed_commands.sh
+          ./out/${{matrix.arch}}/siso_failed_commands.sh
 
       - name: Upload artifacts
         uses: actions/upload-artifact@main
