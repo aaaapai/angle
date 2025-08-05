@@ -13,3 +13,5 @@ angle_expose_non_conformant_extensions_and_versions = true
 jobs = 4
 enable_iterator_debugging = false
 symbol_level = 0
+android_use_chromium_linker = false
+use_goma = false
