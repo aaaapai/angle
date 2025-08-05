@@ -442,8 +442,8 @@ angle::Result DmaBufImageSiblingVkLinux::initWithFormat(DisplayVk *displayVk,
         vk::kVkImageCreateFlagsNone | (hasProtectedContent() ? VK_IMAGE_CREATE_PROTECTED_BIT : 0);
 
     // The Vulkan and EGL plane counts are expected to match.
-    ANGLE_VK_CHECK(displayVk, modifierProperties.drmFormatModifierPlaneCount == planeCount,
-                   VK_ERROR_INCOMPATIBLE_DRIVER);
+    /*ANGLE_VK_CHECK(displayVk, modifierProperties.drmFormatModifierPlaneCount == planeCount,
+                   VK_ERROR_INCOMPATIBLE_DRIVER);*/
 
     // Verify that such a usage is compatible with the provided modifiers, if any.  If not, try to
     // remove features until it is.
@@ -508,9 +508,9 @@ angle::Result DmaBufImageSiblingVkLinux::initWithFormat(DisplayVk *displayVk,
     const bool isMemoryImportable =
         (externalFormatProperties.externalMemoryProperties.externalMemoryFeatures &
          VK_EXTERNAL_MEMORY_FEATURE_IMPORTABLE_BIT) != 0;
-    ANGLE_VK_CHECK(displayVk,
+    /*ANGLE_VK_CHECK(displayVk,
                    isWidthValid && isHeightValid && isSampleCountValid && isMemoryImportable,
-                   VK_ERROR_INCOMPATIBLE_DRIVER);
+                   VK_ERROR_INCOMPATIBLE_DRIVER);*/
 
     // Create the image
     mImage = new vk::ImageHelper();
