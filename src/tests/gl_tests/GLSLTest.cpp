@@ -4123,6 +4123,37 @@ void main() {
     ASSERT_GL_NO_ERROR();
 }
 
+// Test that using a varying matrix is supported.
+TEST_P(GLSLTest, VaryingMatrix)
+{
+    constexpr char kVS[] =
+        "uniform vec2 u_a1;\n"
+        "attribute vec4 a_position;\n"
+        "varying mat2 v_mat;\n"
+        "void main() {\n"
+        "    v_mat = mat2(u_a1, 0.0, 0.0);\n"
+        "    gl_Position = a_position;\n"
+        "}";
+
+    constexpr char kFS[] =
+        "precision mediump float;\n"
+        "varying mat2 v_mat;\n"
+        "void main(void)\n"
+        "{\n"
+        "    gl_FragColor = vec4(v_mat[0].x, v_mat[0].y, v_mat[0].x, 1.0);\n"
+        "}";
+
+    ANGLE_GL_PROGRAM(program, kVS, kFS);
+
+    GLint oneIndex = glGetUniformLocation(program, "u_a1");
+    ASSERT_NE(-1, oneIndex);
+    glUseProgram(program);
+    glUniform2f(oneIndex, 0.25f, 0.5f);
+
+    drawQuad(program, "a_position", 0.5f);
+    EXPECT_PIXEL_COLOR_NEAR(0, 0, GLColor(63, 128, 63, 255), 1.0);
+}
+
 // Test that using a varying matrix array is supported.
 TEST_P(GLSLTest, VaryingMatrixArray)
 {
@@ -4442,6 +4473,37 @@ TEST_P(GLSLTest_ES3, NestedDynamicIndexingInLValue)
     ANGLE_GL_PROGRAM(program, essl3_shaders::vs::Simple(), kFS);
     drawQuad(program, essl3_shaders::PositionAttrib(), 0.5f);
     EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
+}
+
+// Test that an inout value in a location beyond the MaxDrawBuffer limit when using the shader
+// framebuffer fetch extension results in a compilation error.
+// (Based on a fuzzer-discovered issue)
+TEST_P(GLSLTest_ES3, CompileFSWithInoutLocBeyondMaxDrawBuffers)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_shader_framebuffer_fetch"));
+
+    GLint maxDrawBuffers;
+    glGetIntegerv(GL_MAX_DRAW_BUFFERS, &maxDrawBuffers);
+
+    const std::string fs = R"(#version 300 es
+#extension GL_EXT_shader_framebuffer_fetch : require
+precision highp float;
+layout(location = )" + std::to_string(maxDrawBuffers) +
+                           R"() inout vec4 inoutArray[1];
+void main()
+{
+    vec4 val = inoutArray[0];
+    inoutArray[0] = val + vec4(0.1, 0.2, 0.3, 0.4);
+})";
+
+    GLuint shader              = glCreateShader(GL_FRAGMENT_SHADER);
+    const char *sourceArray[1] = {fs.c_str()};
+    glShaderSource(shader, 1, sourceArray, nullptr);
+    glCompileShader(shader);
+
+    GLint compileResult;
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &compileResult);
+    EXPECT_EQ(compileResult, 0);
 }
 
 class WebGLGLSLTest : public GLSLTest
@@ -11035,7 +11097,7 @@ bool SubrectEquals(const std::vector<GLColor> &bigArray,
     return badPixels == 0;
 }
 
-// Tests that FragCoord behaves the same betweeen a user FBO and the back buffer.
+// Tests that FragCoord behaves the same between a user FBO and the back buffer.
 TEST_P(GLSLTest, FragCoordConsistency)
 {
     constexpr char kFragCoordShader[] = R"(uniform mediump vec2 viewportSize;
@@ -21312,7 +21374,7 @@ void main() {
 }
 }  // anonymous namespace
 
-ANGLE_INSTANTIATE_TEST_ES2_AND_ES3_AND(
+ANGLE_INSTANTIATE_TEST_ES2_AND_ES3_AND_ES31_AND_ES32(
     GLSLTest,
     ES3_OPENGL().enable(Feature::ForceInitShaderVariables),
     ES3_OPENGL().enable(Feature::ScalarizeVecAndMatConstructorArgs),
