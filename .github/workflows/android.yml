@@ -14,42 +14,39 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Cache depot_tools
-        id: cache-depot-tools
+      - name: Cache depot_tools and dependencies
         uses: actions/cache@main
         with:
-          path: depot_tools
-          key: ${{ runner.os }}-depot-tools-1
+          path: |
+            depot_tools
+            angle/third_party
+          key: ${{ runner.os }}-angle-deps-${{ hashFiles('angle/DEPS') }}
 
-      - name: Get ANGLE (shallow clone)
-        uses: actions/checkout@main
-        with:
-          path: 'angle'
-          fetch-depth: 1
-
-      - name: Get depot_tools if not cached
-        if: steps.cache-depot-tools.outputs.cache-hit != 'true'
-        shell: bash
+      - name: Setup depot_tools
+        if: steps.cache-deps.outputs.cache-hit != 'true'
         run: |
           git clone --depth 1 https://chromium.googlesource.com/chromium/tools/depot_tools.git
+          echo "DEPOT_TOOLS_COMMIT=$(git -C depot_tools rev-parse HEAD)" >> $GITHUB_ENV
 
-      - name: Set up environment and build
-        shell: bash
+      - name: Run gclient sync (cached)
+        env:
+          PATH: ${{ github.workspace }}/depot_tools:$PATH
         run: |
-          export PATH=`pwd`/depot_tools:$PATH
-          echo $PATH
           cd angle
-          
-          # 仅同步必要的依赖（跳过bootstrap.py，因为配置已存在）
-          gclient sync --no-history --shallow --reset
-          
-          # 直接构建，跳过gn gen步骤
+          # 创建最小化 .gclient 文件避免交互式配置
+          echo 'solutions = [{"name": ".", "url": "file://$PWD"}]' > .gclient
+          gclient sync --no-history --shallow --reset --force
+
+      - name: Build ANGLE
+        env:
+          PATH: ${{ github.workspace }}/depot_tools:$PATH
+        run: |
+          cd angle
+          # 使用现有配置直接构建
           autoninja -C out/Android-${{matrix.arch}} -j $(nproc)
 
-      - name: Upload ANGLE artifacts
+      - name: Upload artifacts
         uses: actions/upload-artifact@main
         with:
-          name: angle-libs-${{matrix.arch}}
-          path: |
-            angle/out/Android-${{matrix.arch}}/libGLESv2_angle.so
-            angle/out/Android-${{matrix.arch}}/libEGL_angle.so
+          name: angle-${{matrix.arch}}-${{ github.run_number }}
+          path: angle/out/Android-${{matrix.arch}}/*.so
