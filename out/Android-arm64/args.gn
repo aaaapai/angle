@@ -17,7 +17,6 @@ use_goma = false
 dcheck_always_on = false
 angle_assert_always_on = false
 is_clang = true
-cc_wrapper=\"env CCACHE_SLOPPINESS=time_macros ccache\"
 android32_ndk_api_level = 29
 android64_ndk_api_level = 29
 strip_debug_info = true
