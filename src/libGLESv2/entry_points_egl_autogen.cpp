@@ -111,23 +111,36 @@ EGLContext EGLAPIENTRY EGL_CreateContext(EGLDisplay dpy,
                                          EGLContext share_context,
                                          const EGLint *attrib_list)
 {
-    ANGLE_SCOPED_GLOBAL_LOCK();
-    EGL_EVENT(CreateContext,
-              "dpy = 0x%016" PRIxPTR ", config = 0x%016" PRIxPTR ", share_context = 0x%016" PRIxPTR
-              ", attrib_list = 0x%016" PRIxPTR "",
-              (uintptr_t)dpy, (uintptr_t)config, (uintptr_t)share_context, (uintptr_t)attrib_list);
 
     Thread *thread = egl::GetCurrentThread();
+    EGLContext returnValue;
+    {
+        ANGLE_SCOPED_GLOBAL_LOCK();
+        EGL_EVENT(CreateContext,
+                  "dpy = 0x%016" PRIxPTR ", config = 0x%016" PRIxPTR
+                  ", share_context = 0x%016" PRIxPTR ", attrib_list = 0x%016" PRIxPTR "",
+                  (uintptr_t)dpy, (uintptr_t)config, (uintptr_t)share_context,
+                  (uintptr_t)attrib_list);
 
-    egl::Display *dpyPacked               = PackParam<egl::Display *>(dpy);
-    Config *configPacked                  = PackParam<Config *>(config);
-    gl::Context *share_contextPacked      = PackParam<gl::Context *>(share_context);
-    const AttributeMap &attrib_listPacked = PackParam<const AttributeMap &>(attrib_list);
+        egl::Display *dpyPacked               = PackParam<egl::Display *>(dpy);
+        egl::Config *configPacked             = PackParam<egl::Config *>(config);
+        gl::ContextID share_contextPacked     = PackParam<gl::ContextID>(share_context);
+        const AttributeMap &attrib_listPacked = PackParam<const AttributeMap &>(attrib_list);
 
-    ANGLE_EGL_VALIDATE(thread, CreateContext, GetDisplayIfValid(dpyPacked), EGLContext, dpyPacked,
-                       configPacked, share_contextPacked, attrib_listPacked);
+        {
+            ANGLE_EGL_SCOPED_CONTEXT_LOCK(CreateContext, thread, dpyPacked, share_contextPacked);
+  
+                ANGLE_EGL_VALIDATE(thread, CreateContext, GetDisplayIfValid(dpyPacked), EGLContext,
+                                   dpyPacked, configPacked, share_contextPacked, attrib_listPacked);
 
-    return CreateContext(thread, dpyPacked, configPacked, share_contextPacked, attrib_listPacked);
+            returnValue = CreateContext(thread, dpyPacked, configPacked, share_contextPacked,
+                                        attrib_listPacked);
+        }
+
+        ANGLE_CAPTURE_EGL(CreateContext, true, thread, dpyPacked, configPacked, share_contextPacked,
+                          attrib_listPacked, returnValue);
+    }
+    return returnValue;
 }
 
 EGLSurface EGLAPIENTRY EGL_CreatePbufferSurface(EGLDisplay dpy,
