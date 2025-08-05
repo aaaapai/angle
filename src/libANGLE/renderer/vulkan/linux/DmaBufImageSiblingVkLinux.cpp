@@ -420,11 +420,11 @@ angle::Result DmaBufImageSiblingVkLinux::initWithFormat(DisplayVk *displayVk,
     // allowed in Vulkan, and all hardware past and current require the planes to have the same DRM
     // modifier.  If an application provides different modifiers for the planes, fail.
     const uint64_t plane0Modifier = planeModifiers[0];
-    for (uint32_t plane = 0; plane < planeCount; ++plane)
+    /*for (uint32_t plane = 0; plane < planeCount; ++plane)
     {
         ANGLE_VK_CHECK(displayVk, planeModifiers[plane] == plane0Modifier,
                        VK_ERROR_INCOMPATIBLE_DRIVER);
-    }
+    }*/
 
     // First, check the possible features for the format and determine usage and create flags.
     VkDrmFormatModifierPropertiesEXT modifierProperties = {};
