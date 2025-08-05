@@ -38,9 +38,9 @@ jobs:
 
       - name: Run gclient sync (cached)
         run: |
-          cd angle
           export PATH=`pwd`/depot_tools:$PATH
           echo $PATH
+          cd angle
           echo 'solutions = [{"name": ".", "url": "file://$PWD"}]' > .gclient
           gclient sync --no-history --shallow --reset --force
 
