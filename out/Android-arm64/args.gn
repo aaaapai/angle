@@ -1,0 +1,12 @@
+target_os = "android"
+target_cpu = "arm64"
+is_component_build = false
+is_debug = false
+angle_build_all = false
+angle_enable_gl = false
+angle_enable_vulkan = true
+angle_enable_d3d9 = false
+angle_enable_d3d11 = false
+angle_enable_null = false
+angle_enable_metal = false
+angle_expose_non_conformant_extensions_and_versions = true

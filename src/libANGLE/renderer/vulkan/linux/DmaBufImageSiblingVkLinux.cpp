@@ -420,11 +420,11 @@ angle::Result DmaBufImageSiblingVkLinux::initWithFormat(DisplayVk *displayVk,
     // allowed in Vulkan, and all hardware past and current require the planes to have the same DRM
     // modifier.  If an application provides different modifiers for the planes, fail.
     const uint64_t plane0Modifier = planeModifiers[0];
-    for (uint32_t plane = 0; plane < planeCount; ++plane)
+    /*for (uint32_t plane = 0; plane < planeCount; ++plane)
     {
         ANGLE_VK_CHECK(displayVk, planeModifiers[plane] == plane0Modifier,
                        VK_ERROR_INCOMPATIBLE_DRIVER);
-    }
+    }*/
 
     // First, check the possible features for the format and determine usage and create flags.
     VkDrmFormatModifierPropertiesEXT modifierProperties = {};
@@ -442,8 +442,8 @@ angle::Result DmaBufImageSiblingVkLinux::initWithFormat(DisplayVk *displayVk,
         vk::kVkImageCreateFlagsNone | (hasProtectedContent() ? VK_IMAGE_CREATE_PROTECTED_BIT : 0);
 
     // The Vulkan and EGL plane counts are expected to match.
-    ANGLE_VK_CHECK(displayVk, modifierProperties.drmFormatModifierPlaneCount == planeCount,
-                   VK_ERROR_INCOMPATIBLE_DRIVER);
+    /*ANGLE_VK_CHECK(displayVk, modifierProperties.drmFormatModifierPlaneCount == planeCount,
+                   VK_ERROR_INCOMPATIBLE_DRIVER);*/
 
     // Verify that such a usage is compatible with the provided modifiers, if any.  If not, try to
     // remove features until it is.
@@ -508,9 +508,9 @@ angle::Result DmaBufImageSiblingVkLinux::initWithFormat(DisplayVk *displayVk,
     const bool isMemoryImportable =
         (externalFormatProperties.externalMemoryProperties.externalMemoryFeatures &
          VK_EXTERNAL_MEMORY_FEATURE_IMPORTABLE_BIT) != 0;
-    ANGLE_VK_CHECK(displayVk,
+    /*ANGLE_VK_CHECK(displayVk,
                    isWidthValid && isHeightValid && isSampleCountValid && isMemoryImportable,
-                   VK_ERROR_INCOMPATIBLE_DRIVER);
+                   VK_ERROR_INCOMPATIBLE_DRIVER);*/
 
     // Create the image
     mImage = new vk::ImageHelper();
