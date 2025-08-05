@@ -5,6 +5,9 @@ on:
 
 jobs:
   build:
+    permissions:
+      id-token: write
+      contents: read
     strategy:
       matrix:
         arch: ["arm64"]
