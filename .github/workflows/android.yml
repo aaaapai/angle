@@ -33,7 +33,9 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@main
-        
+        with:
+           fetch-depth: 1
+          
       - name: Setup depot_tools
         if: steps.cache-deps.outputs.cache-hit != 'true'
         shell: bash
@@ -42,7 +44,7 @@ jobs:
           echo "DEPOT_TOOLS_COMMIT=$(git -C depot_tools rev-parse HEAD)" >> $GITHUB_ENV
           export PATH=`pwd`/depot_tools:$PATH
           echo $PATH
-          python scripts/bootstrap.py
+          vpython3 scripts/bootstrap.py
 
       - name: Run gclient sync
         shell: bash
