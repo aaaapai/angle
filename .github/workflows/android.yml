@@ -64,7 +64,8 @@ jobs:
           sudo rm -rf /usr/local/share/chromedriver-linux64
           sudo rm -rf /usr/local/share/gecko_driver
           sudo rm -rf /usr/share/java/selenium-server.jar
-          gn gen out/Android-${{matrix.arch}}
+          gn gen out/Android-${{matrix.arch}} --threads=$(nproc)
+          gn args out/Android-${{ matrix.arch }} --list --short
           autoninja -C out/Android-${{matrix.arch}} -j $(nproc)
 
       - name: Upload artifacts
