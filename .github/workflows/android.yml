@@ -25,6 +25,9 @@ jobs:
             .gclient
           key: ${{ runner.os }}-angle-deps-${{ hashFiles('angle/DEPS') }}
 
+      - name: Checkout
+        uses: actions/checkout@main
+        
       - name: Setup depot_tools
         if: steps.cache-deps.outputs.cache-hit != 'true'
         shell: bash
