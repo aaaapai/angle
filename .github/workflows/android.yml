@@ -59,6 +59,9 @@ jobs:
           export PATH=`pwd`/depot_tools:$PATH
           echo $PATH
           sudo rm -rf build/linux/debian_bullseye_i386-sysroot
+          sudo rm -rf /usr/local/share/chromedriver-linux64
+          sudo rm -rf /usr/local/share/gecko_driver
+          sudo rm -rf /usr/share/java/selenium-server.jar
           gn gen out/Android-${{matrix.arch}}
           autoninja -C out/Android-${{matrix.arch}} -j $(nproc)
 
