@@ -22,6 +22,7 @@ jobs:
             depot_tools
             angle/third_party
             angle/.cipd
+            angle/.gclient
           key: ${{ runner.os }}-angle-deps-${{ hashFiles('angle/DEPS') }}
 
       - name: Get ANGLE (shallow clone)
@@ -30,20 +31,24 @@ jobs:
           path: 'angle'
           fetch-depth: 1
         
-      - name: Setup depot_tools
+      - name: Setup depot_tools and run gclient sync
         if: steps.cache-deps.outputs.cache-hit != 'true'
         run: |
           git clone --depth 1 https://chromium.googlesource.com/chromium/tools/depot_tools.git
           echo "DEPOT_TOOLS_COMMIT=$(git -C depot_tools rev-parse HEAD)" >> $GITHUB_ENV
-
-      - name: Run gclient sync (cached)
-        run: |
           export PATH=`pwd`/depot_tools:$PATH
           echo $PATH
           cd angle
-          echo 'solutions = [{"name": ".", "url": "file://$PWD"}]' > .gclient
-          gclient sync --no-history --shallow --reset --force
+          python scripts/bootstrap.py
 
+      - name: Run gclient sync
+        run:  |
+           echo "DEPOT_TOOLS_COMMIT=$(git -C depot_tools rev-parse HEAD)" >> $GITHUB_ENV
+           export PATH=`pwd`/depot_tools:$PATH
+           echo $PATH
+           cd angle
+           gclient sync --no-history --shallow --reset --force
+        
       - name: Build ANGLE
         env:
           PATH: ${{ github.workspace }}/depot_tools:$PATH
