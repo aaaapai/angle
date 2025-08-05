@@ -15,6 +15,12 @@ jobs:
 
     steps:
 
+      - name: Setup CCache
+        uses: Chocobo1/setup-ccache-action@master
+        with:
+          ccache_options: |
+            compression=false
+          
       - name: Cache depot_tools and dependencies
         uses: actions/cache@main
         with:
@@ -52,6 +58,7 @@ jobs:
           echo "DEPOT_TOOLS_COMMIT=$(git -C depot_tools rev-parse HEAD)" >> $GITHUB_ENV
           export PATH=`pwd`/depot_tools:$PATH
           echo $PATH
+          sudo rm -rf build/linux/debian_bullseye_i386-sysroot
           gn gen out/Android-${{matrix.arch}}
           autoninja -C out/Android-${{matrix.arch}} -j $(nproc)
 
@@ -59,4 +66,4 @@ jobs:
         uses: actions/upload-artifact@main
         with:
           name: angle-${{matrix.arch}}-${{ github.run_number }}
-          path: angle/out/Android-${{matrix.arch}}/*.so
+          path: out/Android-${{matrix.arch}}/*.so
