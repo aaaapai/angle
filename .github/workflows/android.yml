@@ -14,12 +14,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
+      - name: Setup CCache
+        uses: Chocobo1/setup-ccache-action@master
+        with:
+          ccache_options: |
+            compression=false
+          
       - name: Cache depot_tools and dependencies
         uses: actions/cache@main
         with:
           path: |
             depot_tools
             angle/third_party
+            angle/.cipd
           key: ${{ runner.os }}-angle-deps-${{ hashFiles('angle/DEPS') }}
 
       - name: Get ANGLE (shallow clone)
@@ -35,11 +43,10 @@ jobs:
           echo "DEPOT_TOOLS_COMMIT=$(git -C depot_tools rev-parse HEAD)" >> $GITHUB_ENV
 
       - name: Run gclient sync (cached)
-        env:
-          PATH: ${{ github.workspace }}/depot_tools:$PATH
         run: |
           cd angle
-          # 创建最小化 .gclient 文件避免交互式配置
+          export PATH=`pwd`/depot_tools:$PATH
+          echo $PATH
           echo 'solutions = [{"name": ".", "url": "file://$PWD"}]' > .gclient
           gclient sync --no-history --shallow --reset --force
 
