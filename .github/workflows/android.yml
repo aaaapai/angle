@@ -75,6 +75,11 @@ jobs:
           gn args out/Android-${{ matrix.arch }} --list --short
           autoninja -C out/Android-${{matrix.arch}} -j $(nproc)
 
+      - name: Dump logs on failure
+        if: failure()
+        run: |
+          find out/Android-${{matrix.arch}} -name "*.log" -exec cat {} \;
+
       - name: Upload artifacts
         uses: actions/upload-artifact@main
         with:
