@@ -2331,11 +2331,11 @@ angle::Result Renderer::initialize(vk::ErrorContext *context,
         }
     }
 
-    if (mInstanceVersion < angle::vk::kMinimumVulkanAPIVersion)
+    /*if (mInstanceVersion < angle::vk::kMinimumVulkanAPIVersion)
     {
         WARN() << "ANGLE Requires a minimum Vulkan instance version of 1.1";
         ANGLE_VK_TRY(context, VK_ERROR_INCOMPATIBLE_DRIVER);
-    }
+    }*/
 
     const UseVulkanSwapchain useVulkanSwapchain = wsiExtension != nullptr || wsiLayer != nullptr
                                                       ? UseVulkanSwapchain::Yes
@@ -2463,11 +2463,11 @@ angle::Result Renderer::initialize(vk::ErrorContext *context,
     // the highest it's allowed to use.
     mDeviceVersion = std::min(mPhysicalDeviceProperties.apiVersion, highestApiVersion);
 
-    if (mDeviceVersion < angle::vk::kMinimumVulkanAPIVersion)
+    /*if (mDeviceVersion < angle::vk::kMinimumVulkanAPIVersion)
     {
         WARN() << "ANGLE Requires a minimum Vulkan device version of 1.1";
         ANGLE_VK_TRY(context, VK_ERROR_INCOMPATIBLE_DRIVER);
-    }
+    }*/
 
     mGarbageCollectionFlushThreshold =
         static_cast<uint32_t>(mPhysicalDeviceProperties.limits.maxMemoryAllocationCount *
