@@ -2876,73 +2876,11 @@ bool ValidateCreateContext(const ValidationContext *val,
             switch (clientMajorVersion)
             {
                 case 1:
-                    if (clientMinorVersion != 0 && clientMinorVersion != 1)
-                    {
-                        val->setError(EGL_BAD_MATCH);
-                        return false;
-                    }
-                    if (configuration == EGL_NO_CONFIG_KHR)
-                    {
-                        val->setError(EGL_BAD_MATCH);
-                        return false;
-                    }
-                    if ((configuration != EGL_NO_CONFIG_KHR) &&
-                        !(configuration->renderableType & EGL_OPENGL_ES_BIT))
-                    {
-                        val->setError(EGL_BAD_MATCH);
-                        return false;
-                    }
                     break;
 
                 case 2:
-                    if (clientMinorVersion != 0)
-                    {
-                        val->setError(EGL_BAD_MATCH);
-                        return false;
-                    }
-                    if ((configuration != EGL_NO_CONFIG_KHR) &&
-                        !(configuration->renderableType & EGL_OPENGL_ES2_BIT))
-                    {
-                        val->setError(EGL_BAD_MATCH);
-                        return false;
-                    }
                     break;
                 case 3:
-                    if (clientMinorVersion < 0 || clientMinorVersion > 2)
-                    {
-                        val->setError(EGL_BAD_MATCH);
-                        return false;
-                    }
-                    if ((configuration != EGL_NO_CONFIG_KHR) &&
-                        !(configuration->renderableType & EGL_OPENGL_ES3_BIT))
-                    {
-                        val->setError(EGL_BAD_MATCH);
-                        return false;
-                    }
-                    if (display->getMaxSupportedESVersion() <
-                        gl::Version(static_cast<uint8_t>(clientMajorVersion),
-                                    static_cast<uint8_t>(clientMinorVersion)))
-                    {
-                        gl::Version max = display->getMaxSupportedESVersion();
-                        val->setError(EGL_BAD_MATCH,
-                                      "Requested GLES version (%" PRIxPTR ".%" PRIxPTR
-                                      ") is greater than "
-                                      "max supported (%d.%d).",
-                                      clientMajorVersion, clientMinorVersion, max.getMajor(),
-                                      max.getMinor());
-                        return false;
-                    }
-                    if ((attributes.get(EGL_CONTEXT_WEBGL_COMPATIBILITY_ANGLE, EGL_FALSE) ==
-                         EGL_TRUE) &&
-                        (clientMinorVersion > 1))
-                    {
-                        val->setError(EGL_BAD_MATCH,
-                                      "Requested GLES version (%" PRIxPTR ".%" PRIxPTR
-                                      ") is greater than "
-                                      "max supported 3.1 for WebGL.",
-                                      clientMajorVersion, clientMinorVersion);
-                        return false;
-                    }
                     break;
                 default:
                     val->setError(EGL_BAD_MATCH);
