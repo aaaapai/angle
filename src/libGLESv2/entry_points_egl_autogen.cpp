@@ -131,13 +131,13 @@ EGLContext EGLAPIENTRY EGL_CreateContext(EGLDisplay dpy,
         {
             ANGLE_EGL_SCOPED_CONTEXT_LOCK(CreateContext, thread, dpyPacked, share_contextPacked);
 
-        //if (IsEGLValidationEnabled())
-        //{
-                //ANGLE_EGL_VALIDATE(thread, CreateContext, GetDisplayIfValid(dpyPacked), EGLContext,
-                                   //dpyPacked, configPacked, share_contextPacked, attrib_listPacked);
-        //} else {
+        if (IsEGLValidationEnabled())
+        {
+                ANGLE_EGL_VALIDATE(thread, CreateContext, GetDisplayIfValid(dpyPacked), EGLContext,
+                                   dpyPacked, configPacked, share_contextPacked, attrib_listPacked);
+        } else {
                 attrib_listPacked.initializeWithoutValidation();
-        //}
+        }
 
             returnValue = CreateContext(thread, dpyPacked, configPacked, share_contextPacked,
                                         attrib_listPacked);
