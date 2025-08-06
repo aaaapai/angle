@@ -2093,7 +2093,7 @@ void Context::getIntegervImpl(GLenum pname, GLint *params) const
         case GL_CONTEXT_FLAGS:
         {
 
-            ASSERT(getClientType() == EGL_OPENGL_API);
+            ASSERT(getenv("ANGLE_USE_EGL_OPENGL_API") != NULL && strcmp(getenv("ANGLE_USE_EGL_OPENGL_API"), "1") == 0);
             GLint contextFlags = 0;
             if (mState.hasProtectedContent())
             {
@@ -2113,7 +2113,7 @@ void Context::getIntegervImpl(GLenum pname, GLint *params) const
         }
         break;
         case GL_CONTEXT_PROFILE_MASK:
-            ASSERT(getClientType() == EGL_OPENGL_API);
+            ASSERT(getenv("ANGLE_USE_EGL_OPENGL_API") != NULL && strcmp(getenv("ANGLE_USE_EGL_OPENGL_API"), "1") == 0);
             *params = GL_CONTEXT_COMPATIBILITY_PROFILE_BIT;
         break;
 
@@ -3188,11 +3188,6 @@ bool Context::isResetNotificationEnabled() const
     return mErrors.getResetStrategy() == GL_LOSE_CONTEXT_ON_RESET_EXT;
 }
 
-EGLenum Context::getClientType() const
-{
-    return mState.getClientType();
-}
-
 EGLenum Context::getRenderBuffer() const
 {
     const Framebuffer *framebuffer =
@@ -4192,7 +4187,7 @@ void Context::initCaps()
     *extensions            = mSupportedExtensions;
 
     // GLES1 emulation: Initialize caps (Table 6.20 / 6.22 in the ES 1.1 spec)
-    if (getClientType() == EGL_OPENGL_API || getClientVersion() < Version(2, 0))
+    if ((getenv("ANGLE_USE_EGL_OPENGL_API") != NULL && strcmp(getenv("ANGLE_USE_EGL_OPENGL_API"), "1") == 0) || getClientVersion() < Version(2, 0))
     {
         caps->maxMultitextureUnits          = 4;
         caps->maxClipPlanes                 = 6;
@@ -9186,7 +9181,7 @@ GLenum Context::getConvertedRenderbufferFormat(GLenum internalformat) const
     {
         return GL_DEPTH24_STENCIL8;
     }
-    if (getClientType() == EGL_OPENGL_API && internalformat == GL_DEPTH_COMPONENT)
+    if ((getenv("ANGLE_USE_EGL_OPENGL_API") != NULL && strcmp(getenv("ANGLE_USE_EGL_OPENGL_API"), "1") == 0) && internalformat == GL_DEPTH_COMPONENT)
     {
         return GL_DEPTH_COMPONENT24;
     }
