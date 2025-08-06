@@ -3693,7 +3693,7 @@ bool GetQueryParameterInfo(const State &glState,
             return true;
     }
 
-    if (glState.getClientType() == EGL_OPENGL_API)
+    if (getenv("ANGLE_USE_EGL_OPENGL_API") != NULL && strcmp(getenv("ANGLE_USE_EGL_OPENGL_API"), "1") == 0)
     {
         switch (pname)
         {
