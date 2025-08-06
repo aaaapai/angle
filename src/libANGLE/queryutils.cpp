@@ -9,6 +9,7 @@
 #include "libANGLE/queryutils.h"
 
 #include <algorithm>
+#include <cstdlib>
 
 #include "common/utilities.h"
 
@@ -3693,7 +3694,7 @@ bool GetQueryParameterInfo(const State &glState,
             return true;
     }
 
-    if (getenv("ANGLE_USE_EGL_OPENGL_API") != NULL && strcmp(getenv("ANGLE_USE_EGL_OPENGL_API"), "1") == 0)
+    if (std::getenv("ANGLE_USE_EGL_OPENGL_API"))
     {
         switch (pname)
         {
