@@ -605,7 +605,6 @@ class Context final : public egl::LabeledObject, angle::NonCopyable, public angl
             egl::ContextMutex *sharedContextMutex,
             MemoryProgramCache *memoryProgramCache,
             MemoryShaderCache *memoryShaderCache,
-            const EGLenum clientType,
             const egl::AttributeMap &attribs,
             const egl::DisplayExtensions &displayExtensions,
             const egl::ClientExtensions &clientExtensions);
@@ -711,7 +710,6 @@ class Context final : public egl::LabeledObject, angle::NonCopyable, public angl
     bool isRobustnessEnabled() const { return mState.hasRobustAccess(); }
 
     const egl::Config *getConfig() const { return mConfig; }
-    EGLenum getClientType() const;
     EGLenum getRenderBuffer() const;
     EGLenum getContextPriority() const;
 
