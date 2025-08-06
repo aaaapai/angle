@@ -19,6 +19,7 @@ jobs:
     steps:
  
       - name: Cache depot_tools and dependencies
+        id: cache-deps
         uses: actions/cache@main
         with:
           path: |
