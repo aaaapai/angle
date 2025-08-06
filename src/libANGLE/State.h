@@ -788,6 +788,7 @@ class State : angle::NonCopyable
           SemaphoreManager *shareSemaphores,
           egl::ContextMutex *contextMutex,
           const OverlayType *overlay,
+          const EGLenum clientType,
           const Version &clientVersion,
           bool debug,
           bool bindGeneratesResourceCHROMIUM,
