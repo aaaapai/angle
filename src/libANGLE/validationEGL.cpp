@@ -2875,7 +2875,7 @@ bool ValidateCreateContext(const ValidationContext *val,
     switch (api)
     {
         case EGL_OPENGL_API:
-            setenv("ANGLE_USE_EGL_OPENGL_API", "1", 1);
+            std::setenv("ANGLE_USE_EGL_OPENGL_API", "1", 1);
             break;
         case EGL_OPENGL_ES_API:
             switch (clientMajorVersion)
