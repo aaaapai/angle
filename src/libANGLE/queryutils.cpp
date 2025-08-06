@@ -3693,6 +3693,20 @@ bool GetQueryParameterInfo(const State &glState,
             return true;
     }
 
+    if (glState.getClientType() == EGL_OPENGL_API)
+    {
+        switch (pname)
+        {
+            case GL_CONTEXT_FLAGS:
+            case GL_CONTEXT_PROFILE_MASK:
+            {
+                *type      = GL_INT;
+                *numParams = 1;
+                return true;
+            }
+        }
+    }
+
     if (glState.getClientVersion() >= Version(3, 2))
     {
         switch (pname)
