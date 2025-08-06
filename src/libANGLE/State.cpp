@@ -474,7 +474,7 @@ void PrivateState::initialize(Context *context)
     mNoUnclampedBlendColor = context->getLimitations().noUnclampedBlendColor;
 
     // GLES1 emulation: Initialize state for GLES1 if version applies
-    if (context->getClientVersion() < Version(2, 0) || mClientType == EGL_OPENGL_API)
+    if (context->getClientVersion() < Version(2, 0) || (getenv("ANGLE_USE_EGL_OPENGL_API") != NULL && strcmp(getenv("ANGLE_USE_EGL_OPENGL_API"), "1") == 0))
     {
         mGLES1State.initialize(context, this);
     }
