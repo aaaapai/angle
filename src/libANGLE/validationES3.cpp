@@ -230,6 +230,33 @@ bool ValidateColorMaskForSharedExponentColorBuffer(const Context *context,
 }
 }  // anonymous namespace
 
+int main() {
+    
+        printf("USE_EGL_OPENGL_API 环境变量已设置为1，将使用OpenGL API\n");
+        
+        // 初始化EGL
+        EGLDisplay display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+        eglInitialize(display, NULL, NULL);
+        
+        // 绑定OpenGL API
+        if (eglBindAPI(EGL_OPENGL_API)) {
+            printf("成功绑定OpenGL API\n");
+            
+            // 这里可以继续你的OpenGL初始化代码...
+            
+        } else {
+            printf("绑定OpenGL API失败\n");
+            // 处理错误情况
+        }
+        
+        eglTerminate(display);
+    } else {
+        printf("USE_EGL_OPENGL_API 未设置或不为1，使用其他API\n");
+        // 这里可以处理其他API的情况
+    }
+    
+    return 0;
+}
 bool ValidateTexImageFormatCombination(const Context *context,
                                        angle::EntryPoint entryPoint,
                                        TextureType target,
@@ -240,7 +267,7 @@ bool ValidateTexImageFormatCombination(const Context *context,
     // The type and format are valid if any supported internal format has that type and format.
     // ANGLE_texture_external_yuv_sampling extension adds support for YUV formats
 
-    if (context->getClientType() == EGL_OPENGL_API)
+    if (getenv("ANGLE_USE_EGL_OPENGL_API") != NULL && strcmp(getenv("USE_EGL_OPENGL_API"), "1") == 0)
     {
         // The type and format are valid if any supported internal format has that type and format
         if (!ValidDesktopFormat(format))
