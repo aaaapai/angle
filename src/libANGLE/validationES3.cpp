@@ -242,7 +242,7 @@ bool ValidateTexImageFormatCombination(const Context *context,
     // The type and format are valid if any supported internal format has that type and format.
     // ANGLE_texture_external_yuv_sampling extension adds support for YUV formats
 
-    if (getenv("ANGLE_USE_EGL_OPENGL_API") != NULL && strcmp(getenv("ANGLE_USE_EGL_OPENGL_API"), "1") == 0)
+    if (std::getenv("ANGLE_USE_EGL_OPENGL_API"))
     {
         // The type and format are valid if any supported internal format has that type and format
         if (!ValidDesktopFormat(format))
