@@ -2872,6 +2872,7 @@ bool ValidateCreateContext(const ValidationContext *val,
 
     switch (api)
     {
+        case EGL_OPENGL_API:
         case EGL_OPENGL_ES_API:
             switch (clientMajorVersion)
             {
@@ -2887,11 +2888,6 @@ bool ValidateCreateContext(const ValidationContext *val,
                     return false;
             }
             break;
-
-        case EGL_OPENGL_API:
-            // Desktop GL is not supported by ANGLE.
-            val->setError(EGL_BAD_CONFIG);
-            return false;
 
         default:
             val->setError(EGL_BAD_MATCH, "Unsupported API.");
