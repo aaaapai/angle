@@ -2092,6 +2092,8 @@ void Context::getIntegervImpl(GLenum pname, GLint *params) const
         // GLES3.2 client flags
         case GL_CONTEXT_FLAGS:
         {
+
+            ASSERT(getClientType() == EGL_OPENGL_API);
             GLint contextFlags = 0;
             if (mState.hasProtectedContent())
             {
@@ -2109,6 +2111,10 @@ void Context::getIntegervImpl(GLenum pname, GLint *params) const
             }
             *params = contextFlags;
         }
+        break;
+        case GL_CONTEXT_PROFILE_MASK:
+            ASSERT(getClientType() == EGL_OPENGL_API);
+            *params = GL_CONTEXT_COMPATIBILITY_PROFILE_BIT;
         break;
 
         // GL_ANGLE_request_extension
@@ -9174,6 +9180,10 @@ GLenum Context::getConvertedRenderbufferFormat(GLenum internalformat) const
     if (isWebGL1() && internalformat == GL_DEPTH_STENCIL)
     {
         return GL_DEPTH24_STENCIL8;
+    }
+    if (getClientType() == EGL_OPENGL_API && internalformat == GL_DEPTH_COMPONENT)
+    {
+        return GL_DEPTH_COMPONENT24;
     }
     return internalformat;
 }
