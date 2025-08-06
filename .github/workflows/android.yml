@@ -33,13 +33,10 @@ jobs:
            fetch-depth: 1
           
       - name: Setup depot_tools
+        if: steps.cache-deps.outputs.cache-hit != 'true'
         shell: bash
         run: |
           git clone --depth 1 https://chromium.googlesource.com/chromium/tools/depot_tools.git
-          echo "DEPOT_TOOLS_COMMIT=$(git -C depot_tools rev-parse HEAD)" >> $GITHUB_ENV
-          export PATH=`pwd`/depot_tools:$PATH
-          echo $PATH
-          vpython3 scripts/bootstrap.py
 
       - name: Run gclient sync
         shell: bash
@@ -47,6 +44,7 @@ jobs:
            echo "DEPOT_TOOLS_COMMIT=$(git -C depot_tools rev-parse HEAD)" >> $GITHUB_ENV
            export PATH=`pwd`/depot_tools:$PATH
            echo $PATH
+           vpython3 scripts/bootstrap.py
            gclient sync --no-history --shallow --reset --force
         
       - name: Build ANGLE
