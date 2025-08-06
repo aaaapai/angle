@@ -5377,6 +5377,7 @@ bool ValidateBindAPI(const ValidationContext *val, const EGLenum api)
 {
     switch (api)
     {
+        case EGL_OPENGL_API:
         case EGL_OPENGL_ES_API:
             break;
         case EGL_OPENVG_API:
