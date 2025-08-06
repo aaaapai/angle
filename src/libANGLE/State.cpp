@@ -10,6 +10,7 @@
 
 #include <string.h>
 #include <limits>
+#include <cstdlib>
 
 #include "common/bitset_utils.h"
 #include "common/mathutil.h"
