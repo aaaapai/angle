@@ -788,7 +788,6 @@ class State : angle::NonCopyable
           SemaphoreManager *shareSemaphores,
           egl::ContextMutex *contextMutex,
           const OverlayType *overlay,
-          const EGLenum clientType,
           const Version &clientVersion,
           bool debug,
           bool bindGeneratesResourceCHROMIUM,
@@ -807,7 +806,6 @@ class State : angle::NonCopyable
 
     // Getters
     ContextID getContextID() const { return mID; }
-    EGLenum getClientType() const { return mClientType; }
     EGLenum getContextPriority() const { return mContextPriority; }
     bool hasRobustAccess() const { return mHasRobustAccess; }
     bool hasProtectedContent() const { return mHasProtectedContent; }
@@ -1591,7 +1589,6 @@ class State : angle::NonCopyable
 
     ContextID mID;
 
-    EGLenum mClientType;
     EGLenum mContextPriority;
     bool mHasRobustAccess;
     bool mHasProtectedContent;
