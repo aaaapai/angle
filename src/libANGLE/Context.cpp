@@ -15,6 +15,7 @@
 #include <iterator>
 #include <sstream>
 #include <vector>
+#include <cstdlib>
 
 #include "common/PackedEnums.h"
 #include "common/angle_version_info.h"
