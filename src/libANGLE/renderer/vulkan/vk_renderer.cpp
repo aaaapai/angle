@@ -15,6 +15,7 @@
 
 #include <EGL/eglext.h>
 #include <fstream>
+#include <iostream>
 
 #include "common/debug.h"
 #include "common/platform.h"
@@ -4592,7 +4593,9 @@ gl::Version Renderer::getMaxSupportedESVersion() const
     }
     if (!CanSupportGLES32(mNativeExtensions))
     {
-        maxVersion = LimitVersionTo(maxVersion, {3, 1});
+        //maxVersion = LimitVersionTo(maxVersion, {3, 1});
+        std::cout << "Warning: Incomplete GLES3.2 support because your Vulkan driver is insufficient to support OpenGL ES3.2!\n";
+        return maxVersion;
     }
 
     // Limit to ES3.0 if there are any blockers for 3.1.
