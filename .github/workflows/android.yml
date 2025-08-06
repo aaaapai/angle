@@ -23,7 +23,6 @@ jobs:
         uses: actions/cache@main
         with:
           path: |
-            depot_tools
             third_party
             .cipd
           key: ${{ runner.os }}-angle-deps-${{ hashFiles('angle/DEPS') }}
@@ -34,7 +33,6 @@ jobs:
            fetch-depth: 1
           
       - name: Setup depot_tools
-        if: steps.cache-deps.outputs.cache-hit != 'true'
         shell: bash
         run: |
           git clone --depth 1 https://chromium.googlesource.com/chromium/tools/depot_tools.git
