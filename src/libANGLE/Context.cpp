@@ -2094,7 +2094,6 @@ void Context::getIntegervImpl(GLenum pname, GLint *params) const
         case GL_CONTEXT_FLAGS:
         {
 
-            ASSERT(getenv("ANGLE_USE_EGL_OPENGL_API") != NULL && strcmp(getenv("ANGLE_USE_EGL_OPENGL_API"), "1") == 0);
             GLint contextFlags = 0;
             if (mState.hasProtectedContent())
             {
@@ -2114,7 +2113,6 @@ void Context::getIntegervImpl(GLenum pname, GLint *params) const
         }
         break;
         case GL_CONTEXT_PROFILE_MASK:
-            ASSERT(getenv("ANGLE_USE_EGL_OPENGL_API") != NULL && strcmp(getenv("ANGLE_USE_EGL_OPENGL_API"), "1") == 0);
             *params = GL_CONTEXT_COMPATIBILITY_PROFILE_BIT;
         break;
 
