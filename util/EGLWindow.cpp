@@ -460,95 +460,34 @@ EGLContext EGLWindow::createContext(EGLContext share, EGLint *extraAttributes)
 
     // EGL_KHR_create_context is required to request a ES3+ context.
     bool hasKHRCreateContext = strstr(displayExtensions, "EGL_KHR_create_context") != nullptr;
-    if (mClientMajorVersion > 2 && !(mEGLMajorVersion > 1 || mEGLMinorVersion >= 5) &&
-        !hasKHRCreateContext)
-    {
-        fprintf(stderr, "EGL_KHR_create_context incompatibility.\n");
-        return EGL_NO_CONTEXT;
-    }
 
     // EGL_CONTEXT_OPENGL_DEBUG is only valid as of EGL 1.5.
     bool hasDebug = mEGLMinorVersion >= 5;
-    if (mConfigParams.debug && !hasDebug)
-    {
-        fprintf(stderr, "EGL 1.5 is required for EGL_CONTEXT_OPENGL_DEBUG.\n");
-        return EGL_NO_CONTEXT;
-    }
 
     bool hasWebGLCompatibility =
         strstr(displayExtensions, "EGL_ANGLE_create_context_webgl_compatibility") != nullptr;
-    if (mConfigParams.webGLCompatibility && !hasWebGLCompatibility)
-    {
-        fprintf(stderr, "EGL_ANGLE_create_context_webgl_compatibility missing.\n");
-        return EGL_NO_CONTEXT;
-    }
 
     bool hasCreateContextExtensionsEnabled =
         strstr(displayExtensions, "EGL_ANGLE_create_context_extensions_enabled") != nullptr;
-    if (!mConfigParams.extensionsEnabled && !hasCreateContextExtensionsEnabled)
-    {
-        fprintf(stderr, "EGL_ANGLE_create_context_extensions_enabled missing.\n");
-        return EGL_NO_CONTEXT;
-    }
 
     bool hasRobustness = strstr(displayExtensions, "EGL_EXT_create_context_robustness") != nullptr;
-    if ((mConfigParams.robustAccess ||
-         mConfigParams.resetStrategy != EGL_NO_RESET_NOTIFICATION_EXT) &&
-        !hasRobustness)
-    {
-        fprintf(stderr, "EGL_EXT_create_context_robustness missing.\n");
-        return EGL_NO_CONTEXT;
-    }
 
     bool hasBindGeneratesResource =
         strstr(displayExtensions, "EGL_CHROMIUM_create_context_bind_generates_resource") != nullptr;
-    if (!mConfigParams.bindGeneratesResource && !hasBindGeneratesResource)
-    {
-        // Non-default state requested without the extension present
-        fprintf(stderr, "EGL_CHROMIUM_create_context_bind_generates_resource missing.\n");
-        return EGL_NO_CONTEXT;
-    }
 
     bool hasClientArraysExtension =
         strstr(displayExtensions, "EGL_ANGLE_create_context_client_arrays") != nullptr;
-    if (!mConfigParams.clientArraysEnabled && !hasClientArraysExtension)
-    {
-        // Non-default state requested without the extension present
-        fprintf(stderr, "EGL_ANGLE_create_context_client_arrays missing.\n");
-        return EGL_NO_CONTEXT;
-    }
 
     bool hasProgramCacheControlExtension =
         strstr(displayExtensions, "EGL_ANGLE_program_cache_control ") != nullptr;
-    if (!mConfigParams.contextProgramCacheEnabled && !hasProgramCacheControlExtension)
-    {
-        // Non-default state requested without the extension present
-        fprintf(stderr, "EGL_ANGLE_program_cache_control missing.\n");
-        return EGL_NO_CONTEXT;
-    }
 
     bool hasKHRCreateContextNoError =
         strstr(displayExtensions, "EGL_KHR_create_context_no_error") != nullptr;
-    if (mConfigParams.noError && !hasKHRCreateContextNoError)
-    {
-        fprintf(stderr, "EGL_KHR_create_context_no_error missing.\n");
-        return EGL_NO_CONTEXT;
-    }
 
     bool hasRobustResourceInit =
         strstr(displayExtensions, "EGL_ANGLE_robust_resource_initialization") != nullptr;
-    if (mConfigParams.robustResourceInit && !hasRobustResourceInit)
-    {
-        fprintf(stderr, "EGL_ANGLE_robust_resource_initialization missing.\n");
-        return EGL_NO_CONTEXT;
-    }
 
     eglBindAPI(EGL_OPENGL_ES_API);
-    if (eglGetError() != EGL_SUCCESS)
-    {
-        fprintf(stderr, "Error on eglBindAPI.\n");
-        return EGL_NO_CONTEXT;
-    }
 
     std::vector<EGLint> contextAttributes;
     for (EGLint *extraAttrib = extraAttributes;
@@ -640,11 +579,6 @@ EGLContext EGLWindow::createContext(EGLContext share, EGLint *extraAttributes)
     contextAttributes.push_back(EGL_NONE);
 
     EGLContext context = eglCreateContext(mDisplay, mConfig, share, &contextAttributes[0]);
-    if (context == EGL_NO_CONTEXT)
-    {
-        fprintf(stderr, "eglCreateContext failed: 0x%X\n", eglGetError());
-        return EGL_NO_CONTEXT;
-    }
 
     return context;
 }
