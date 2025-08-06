@@ -1590,6 +1590,7 @@ class State : angle::NonCopyable
 
     ContextID mID;
 
+    EGLenum mClientType;
     EGLenum mContextPriority;
     bool mHasRobustAccess;
     bool mHasProtectedContent;
