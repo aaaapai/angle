@@ -239,6 +239,24 @@ bool ValidateTexImageFormatCombination(const Context *context,
 {
     // The type and format are valid if any supported internal format has that type and format.
     // ANGLE_texture_external_yuv_sampling extension adds support for YUV formats
+
+    if (context->getClientType() == EGL_OPENGL_API)
+    {
+        // The type and format are valid if any supported internal format has that type and format
+        if (!ValidDesktopFormat(format))
+        {
+            context->validationError(GL_INVALID_ENUM, kInvalidFormat);
+            return false;
+        }
+
+        if (!ValidDesktopType(type))
+        {
+            context->validationError(GL_INVALID_ENUM, kInvalidType);
+            return false;
+        }
+    }
+    else
+    {
     if (gl::IsYuvFormat(format))
     {
         if (!context->getExtensions().yuvInternalFormatANGLE)
@@ -260,6 +278,7 @@ bool ValidateTexImageFormatCombination(const Context *context,
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidType);
         return false;
+    }
     }
 
     // For historical reasons, glTexImage2D and glTexImage3D pass in their internal format as a
