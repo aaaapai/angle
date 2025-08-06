@@ -4186,7 +4186,7 @@ void Context::initCaps()
     *extensions            = mSupportedExtensions;
 
     // GLES1 emulation: Initialize caps (Table 6.20 / 6.22 in the ES 1.1 spec)
-    if ((getenv("ANGLE_USE_EGL_OPENGL_API") != NULL && strcmp(getenv("ANGLE_USE_EGL_OPENGL_API"), "1") == 0) || getClientVersion() < Version(2, 0))
+    if (std::getenv("ANGLE_USE_EGL_OPENGL_API") || getClientVersion() < Version(2, 0))
     {
         caps->maxMultitextureUnits          = 4;
         caps->maxClipPlanes                 = 6;
@@ -9180,7 +9180,7 @@ GLenum Context::getConvertedRenderbufferFormat(GLenum internalformat) const
     {
         return GL_DEPTH24_STENCIL8;
     }
-    if ((getenv("ANGLE_USE_EGL_OPENGL_API") != NULL && strcmp(getenv("ANGLE_USE_EGL_OPENGL_API"), "1") == 0) && internalformat == GL_DEPTH_COMPONENT)
+    if (std::getenv("ANGLE_USE_EGL_OPENGL_API") && internalformat == GL_DEPTH_COMPONENT)
     {
         return GL_DEPTH_COMPONENT24;
     }
