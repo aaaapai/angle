@@ -4965,6 +4965,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     if (!isImmediateModeRenderer && !isTileBasedRenderer && !isMockICDEnabled())
     {
         WARN() << "Unknown GPU architecture";
+        isTileBasedRenderer = true;
     }
 
     ANGLE_FEATURE_CONDITION(&mFeatures, appendAliasedMemoryDecorations, true);
