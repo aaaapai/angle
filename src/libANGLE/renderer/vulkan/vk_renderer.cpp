@@ -2308,11 +2308,10 @@ angle::Result Renderer::initialize(vk::ErrorContext *context,
         }
     }
 
-    /*if (mInstanceVersion < angle::vk::kMinimumVulkanAPIVersion)
+    if (mInstanceVersion < angle::vk::kMinimumVulkanAPIVersion)
     {
-        WARN() << "ANGLE Requires a minimum Vulkan instance version of 1.1";
-        ANGLE_VK_TRY(context, VK_ERROR_INCOMPATIBLE_DRIVER);
-    }*/
+        std::cout << "Warning: ANGLE Requires a minimum Vulkan instance version of 1.1.But perhaps the Vulkan version of this device is 1.1+?\n";
+    }
 
     const UseVulkanSwapchain useVulkanSwapchain = wsiExtension != nullptr || wsiLayer != nullptr
                                                       ? UseVulkanSwapchain::Yes
@@ -2440,11 +2439,10 @@ angle::Result Renderer::initialize(vk::ErrorContext *context,
     // the highest it's allowed to use.
     mDeviceVersion = std::min(mPhysicalDeviceProperties.apiVersion, highestApiVersion);
 
-    /*if (mDeviceVersion < angle::vk::kMinimumVulkanAPIVersion)
+    if (mDeviceVersion < angle::vk::kMinimumVulkanAPIVersion)
     {
-        WARN() << "ANGLE Requires a minimum Vulkan device version of 1.1";
-        ANGLE_VK_TRY(context, VK_ERROR_INCOMPATIBLE_DRIVER);
-    }*/
+        std::cout << "ANGLE Requires a minimum Vulkan device version of 1.1.But perhaps the Vulkan version of this device is 1.1+?\n";
+    }
 
     mGarbageCollectionFlushThreshold =
         static_cast<uint32_t>(mPhysicalDeviceProperties.limits.maxMemoryAllocationCount *
@@ -4594,7 +4592,7 @@ gl::Version Renderer::getMaxSupportedESVersion() const
     if (!CanSupportGLES32(mNativeExtensions))
     {
         //maxVersion = LimitVersionTo(maxVersion, {3, 1});
-        std::cout << "Warning: Incomplete GLES3.2 support because your Vulkan driver is insufficient to support OpenGL ES3.2!\n";
+        std::cout << "Warning: Incomplete OpenGL ES 3.2 support because your Vulkan driver is insufficient to support OpenGL ES 3.2!\n";
         return maxVersion;
     }
 
