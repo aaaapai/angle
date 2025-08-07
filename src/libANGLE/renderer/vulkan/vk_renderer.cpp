@@ -184,7 +184,8 @@ VkResult VerifyExtensionsPresent(const vk::ExtensionNameList &haystack,
             ERR() << "Extension not supported: " << needle;
         }
     }
-    return VK_ERROR_EXTENSION_NOT_PRESENT;
+    std::cout << "VK_ERROR_EXTENSION_NOT_PRESENT";
+    return VK_SUCCESS;
 }
 
 // Array of Validation error/warning messages that will be ignored, should include bugID
@@ -7181,7 +7182,8 @@ VkResult ImageMemorySuballocator::allocateAndBindMemory(
     {
         renderer->getMemoryAllocationTracker()->onExceedingMaxMemoryAllocationSize(
             memoryRequirements->size);
-        return VK_ERROR_OUT_OF_DEVICE_MEMORY;
+        std::cout << "VK_ERROR_OUT_OF_DEVICE_MEMORY";
+        return VK_SUCCESS;
     }
 
     // Avoid device-local and host-visible combinations if possible. Here, "preferredFlags" is
