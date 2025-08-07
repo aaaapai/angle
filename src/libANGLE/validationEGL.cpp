@@ -2878,18 +2878,6 @@ bool ValidateCreateContext(const ValidationContext *val,
             setenv("ANGLE_USE_EGL_OPENGL_API", "1", 1);
             break;
         case EGL_OPENGL_ES_API:
-            switch (clientMajorVersion)
-            {
-                case 1:
-                    break;
-                case 2:
-                    break;
-                case 3:
-                    break;
-                default:
-                    val->setError(EGL_BAD_MATCH);
-                    return false;
-            }
             break;
 
         default:
