@@ -51,6 +51,11 @@ VersionInfo ParseArmVulkanDriverVersion(uint32_t driverVersion)
     return ParseGenericDriverVersion(driverVersion);
 }
 
+VersionInfo ParseMaleoonVulkanDriverVersion(uint32_t driverVersion)
+{
+    return ParseGenericDriverVersion(driverVersion);
+}
+
 VersionInfo ParseBroadcomVulkanDriverVersion(uint32_t driverVersion)
 {
     return ParseGenericDriverVersion(driverVersion);
