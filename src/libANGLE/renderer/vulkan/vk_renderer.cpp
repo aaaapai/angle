@@ -4881,6 +4881,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     const bool isAMD      = IsAMD(mPhysicalDeviceProperties.vendorID);
     const bool isApple    = IsAppleGPU(mPhysicalDeviceProperties.vendorID);
     const bool isARM      = IsARM(mPhysicalDeviceProperties.vendorID);
+    const bool isMaleoon  = IsMaleoon(mPhysicalDeviceProperties.vendorID);
     const bool isIntel    = IsIntel(mPhysicalDeviceProperties.vendorID);
     const bool isNvidia   = IsNvidia(mPhysicalDeviceProperties.vendorID);
     const bool isPowerVR  = IsPowerVR(mPhysicalDeviceProperties.vendorID);
@@ -4908,6 +4909,9 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     bool isMaliJobManagerBasedGPU =
         isARM && getPhysicalDeviceProperties().limits.maxDrawIndirectCount <= 1;
 
+    bool isMaleoonJobManagerBasedGPU =
+        isMaleoon && getPhysicalDeviceProperties().limits.maxDrawIndirectCount <= 1;
+
     // Distinguish between the mesa and proprietary drivers
     const bool isRADV = IsRADV(mPhysicalDeviceProperties.vendorID, mDriverProperties.driverID,
                                mPhysicalDeviceProperties.deviceName);
@@ -4916,6 +4920,11 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     if (isARM)
     {
         driverVersion = angle::ParseArmVulkanDriverVersion(mPhysicalDeviceProperties.driverVersion);
+    }
+    else if (isARM)
+    {
+        driverVersion =
+            angle::ParseMaleoonVulkanDriverVersion(mPhysicalDeviceProperties.driverVersion);
     }
     else if (isQualcommProprietary)
     {
@@ -4959,7 +4968,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // the device architecture for optimal performance on both.
     const bool isImmediateModeRenderer =
         isNvidia || isAMD || isIntel || isSamsung || isSoftwareRenderer;
-    const bool isTileBasedRenderer = isARM || isPowerVR || isQualcomm || isBroadcom || isApple;
+    const bool isTileBasedRenderer = isARM || isMaleoon || isPowerVR || isQualcomm || isBroadcom || isApple;
 
     // Make sure all known architectures are accounted for.
     if (!isImmediateModeRenderer && !isTileBasedRenderer && !isMockICDEnabled())
@@ -4994,7 +5003,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsProtectedMemory,
         mProtectedMemoryFeatures.protectedMemory == VK_TRUE &&
-            (!isARM || mPipelineProtectedAccessFeatures.pipelineProtectedAccess == VK_TRUE) &&
+            (!isARM || !isMaleoon || mPipelineProtectedAccessFeatures.pipelineProtectedAccess == VK_TRUE) &&
             !isIntel);
 
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsHostQueryReset,
@@ -5010,8 +5019,10 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // outweigh framebuffer compression on sampled textures on the following GPUs:
     //
     // - ARM
+    //- Maleoon?
     ANGLE_FEATURE_CONDITION(&mFeatures, forceHostImageCopyForLuma, isARM);
-
+    ANGLE_FEATURE_CONDITION(&mFeatures, forceHostImageCopyForLuma, isMaleoon);
+    
     // VK_EXT_pipeline_creation_feedback is promoted to core in Vulkan 1.3.
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsPipelineCreationFeedback,
@@ -5221,7 +5232,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // framebuffer.
     ANGLE_FEATURE_CONDITION(&mFeatures, preferMSRTSSFlagByDefault,
                             mFeatures.supportsMultisampledRenderToSingleSampled.enabled &&
-                                (isARM || (isQualcommProprietary &&
+                                (isARM || isMaleoon || (isQualcommProprietary &&
                                            driverVersion >= angle::VersionTriple(512, 777, 0))));
 
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsImage2dViewOf3d,
@@ -5291,6 +5302,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // prevents vertex shader to overlap with fragment shader on job manager based architecture. For
     // now we always choose CPU to do copy on ARM job manager based GPU.
     ANGLE_FEATURE_CONDITION(&mFeatures, preferCPUForBufferSubData, isARM);
+    ANGLE_FEATURE_CONDITION(&mFeatures, preferCPUForBufferSubData, isMaleoon);
 
     // On android, we usually are GPU limited, we try to use CPU to do data copy when other
     // conditions are the same. Set to zero will use GPU to do copy. This is subject to further
@@ -5341,7 +5353,9 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // thread on ARM.
     ANGLE_FEATURE_CONDITION(&mFeatures, asyncCommandBufferReset,
                             mFeatures.asyncGarbageCleanup.enabled && !isARM);
-
+    ANGLE_FEATURE_CONDITION(&mFeatures, asyncCommandBufferReset,
+                            mFeatures.asyncGarbageCleanup.enabled && !isMaleoon);
+    
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsYUVSamplerConversion,
                             mSamplerYcbcrConversionFeatures.samplerYcbcrConversion != VK_FALSE);
 
