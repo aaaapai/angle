@@ -2262,6 +2262,7 @@ void InitializeFeatures(const FunctionsGL *functions, angle::FeaturesGL *feature
     bool isVMWare   = IsVMWare(vendor);
     bool hasAMD     = systemInfo.hasAMDGPU();
     bool isMali     = IsARM(vendor);
+    bool isMaleoon  = IsMaleoon(vendor);
 
     std::array<int, 3> mesaVersion = {0, 0, 0};
     bool isMesa                    = IsMesa(functions, &mesaVersion);
