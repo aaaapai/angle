@@ -4593,7 +4593,7 @@ gl::Version Renderer::getMaxSupportedESVersion() const
     if (!CanSupportGLES32(mNativeExtensions))
     {
         //maxVersion = LimitVersionTo(maxVersion, {3, 1});
-        std::cout << "Warning: Incomplete OpenGL ES 3.2 support because your Vulkan driver is insufficient to support OpenGL ES 3.2!\n";
+        //std::cout << "Warning: Incomplete OpenGL ES 3.2 support because your Vulkan driver is insufficient to support OpenGL ES 3.2!\n"; //烦人的
         return maxVersion;
     }
 
@@ -5018,9 +5018,8 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // outweigh framebuffer compression on sampled textures on the following GPUs:
     //
     // - ARM
-    //- Maleoon?
-    ANGLE_FEATURE_CONDITION(&mFeatures, forceHostImageCopyForLuma, isARM);
-    ANGLE_FEATURE_CONDITION(&mFeatures, forceHostImageCopyForLuma, isMaleoon);
+    // - Maleoon?
+    ANGLE_FEATURE_CONDITION(&mFeatures, forceHostImageCopyForLuma, isARM || isMaleoon);
     
     // VK_EXT_pipeline_creation_feedback is promoted to core in Vulkan 1.3.
     ANGLE_FEATURE_CONDITION(
@@ -5159,9 +5158,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
         ExtensionFound(VK_EXT_LOAD_STORE_OP_NONE_EXTENSION_NAME, deviceExtensionNames));
 
     ANGLE_FEATURE_CONDITION(&mFeatures, disallowMixedDepthStencilLoadOpNoneAndLoad,
-                            isARM && driverVersion < angle::VersionTriple(38, 1, 0));
-    ANGLE_FEATURE_CONDITION(&mFeatures, disallowMixedDepthStencilLoadOpNoneAndLoad,
-                            isMaleoon && driverVersion < angle::VersionTriple(38, 1, 0));
+                            (isARM || isMaleoon) && driverVersion < angle::VersionTriple(38, 1, 0));
 
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsRenderPassStoreOpNone,
@@ -5302,8 +5299,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // ARM does buffer copy on geometry pipeline, which may create a GPU pipeline bubble that
     // prevents vertex shader to overlap with fragment shader on job manager based architecture. For
     // now we always choose CPU to do copy on ARM job manager based GPU.
-    ANGLE_FEATURE_CONDITION(&mFeatures, preferCPUForBufferSubData, isARM);
-    ANGLE_FEATURE_CONDITION(&mFeatures, preferCPUForBufferSubData, isMaleoon);
+    ANGLE_FEATURE_CONDITION(&mFeatures, preferCPUForBufferSubData, isARM || isMaleoon);
 
     // On android, we usually are GPU limited, we try to use CPU to do data copy when other
     // conditions are the same. Set to zero will use GPU to do copy. This is subject to further
@@ -5353,9 +5349,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // main thread gets blocked by command pool lock. FOr now dont call reset in garbage clean up
     // thread on ARM.
     ANGLE_FEATURE_CONDITION(&mFeatures, asyncCommandBufferReset,
-                            mFeatures.asyncGarbageCleanup.enabled && !isARM);
-    ANGLE_FEATURE_CONDITION(&mFeatures, asyncCommandBufferReset,
-                            mFeatures.asyncGarbageCleanup.enabled && !isMaleoon);
+                            mFeatures.asyncGarbageCleanup.enabled && !isARM && !isMaleoon);
     
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsYUVSamplerConversion,
                             mSamplerYcbcrConversionFeatures.samplerYcbcrConversion != VK_FALSE);
@@ -5961,17 +5955,14 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // discard or alpha to coverage, if the static state provided when creating the pipeline has a
     // value of 0.
     ANGLE_FEATURE_CONDITION(&mFeatures, useNonZeroStencilWriteMaskStaticState,
-                            isARM && driverVersion < angle::VersionTriple(43, 0, 0));
-    ANGLE_FEATURE_CONDITION(&mFeatures, useNonZeroStencilWriteMaskStaticState,
-                            isMaleoon && driverVersion < angle::VersionTriple(43, 0, 0));
+                            (isARM || isMaleoon) && driverVersion < angle::VersionTriple(43, 0, 0));
 
     // On some vendors per-sample shading is not enabled despite the presence of a Sample
     // decoration. Guard against this by parsing shader for "sample" decoration and explicitly
     // enabling per-sample shading pipeline state.
     ANGLE_FEATURE_CONDITION(&mFeatures, explicitlyEnablePerSampleShading, !isQualcommProprietary);
 
-    ANGLE_FEATURE_CONDITION(&mFeatures, explicitlyCastMediumpFloatTo16Bit, isARM);
-    ANGLE_FEATURE_CONDITION(&mFeatures, explicitlyCastMediumpFloatTo16Bit, isMaleoon);
+    ANGLE_FEATURE_CONDITION(&mFeatures, explicitlyCastMediumpFloatTo16Bit, isARM || isMaleoon);
 
     // Force to create swapchain with continuous refresh on shared present. Disabled by default.
     // Only enable it on integrations without EGL_FRONT_BUFFER_AUTO_REFRESH_ANDROID passthrough.
