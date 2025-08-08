@@ -3,7 +3,7 @@ target_cpu = "arm64"
 is_component_build = false
 is_debug = true
 angle_build_all = false
-angle_enable_gl = true
+angle_enable_gl = false
 angle_enable_vulkan = true
 angle_enable_d3d9 = false
 angle_enable_d3d11 = false
@@ -37,13 +37,11 @@ cflags = [
   "-Wno-unused-variable",
   "-Wno-error=unused-variable",
   "-Wno-error",
-  "-g3",
 ]
 cflags_cc = [
   "-Wno-unused-variable",
   "-Wno-error=unused-variable",
   "-Wno-error",
-  "-g3",
   "-stdlib=libc++",
 ]
 ldflags = [
