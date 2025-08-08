@@ -117,6 +117,20 @@ int getMaliTNumber(const FunctionsGL *functions)
     return number;
 }
 
+int getMaleoonNumber(const FunctionsGL *functions)
+{
+    static int number = -1;
+    if (number == -1)
+    {
+        const char *nativeGLRenderer = GetString(functions, GL_RENDERER);
+        if (std::sscanf(nativeGLRenderer, "Maleoon %d", &number) < 1)
+        {
+            number = 0;
+        }
+    }
+    return number;
+}
+
 int getMaliGNumber(const FunctionsGL *functions)
 {
     static int number = -1;
