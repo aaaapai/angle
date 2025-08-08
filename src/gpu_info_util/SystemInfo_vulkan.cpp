@@ -593,6 +593,10 @@ bool GetSystemInfoVulkanWithICD(SystemInfo *info, vk::ICD preferredICD)
                 gpu.driverVendor                = "Arm Holdings";
                 gpu.detailedDriverVersion = ParseArmVulkanDriverVersion(properties.driverVersion);
                 break;
+            case kVendorID_Maleoon:
+                gpu.driverVendor                = "Huawei";
+                gpu.detailedDriverVersion = ParseMaleoonVulkanDriverVersion(properties.driverVersion);
+                break;
             case kVendorID_Broadcom:
                 gpu.driverVendor                = "Broadcom";
                 gpu.detailedDriverVersion =
