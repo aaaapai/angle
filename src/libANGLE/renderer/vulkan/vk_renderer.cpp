@@ -5683,7 +5683,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // http://issuetracker.google.com/336411904
     const bool isExtendedDynamicStateBuggy =
         ((isARM || isMaleoon) && driverVersion < angle::VersionTriple(44, 1, 0)) ||
-        (isMaliJobManagerBasedGPU && driverVersion >= angle::VersionTriple(46, 0, 0) ||
+        (isMaliJobManagerBasedGPU && driverVersion >= angle::VersionTriple(46, 0, 0)) ||
         (isMaleoonJobManagerBasedGPU && driverVersion >= angle::VersionTriple(46, 0, 0));
 
     // Vertex input binding stride is buggy for Windows/Intel drivers before 100.9684.
@@ -6157,7 +6157,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
             !emulatesMultisampledRenderToTexture &&
             !(isARM && driverVersion < angle::VersionTriple(52, 0, 0)) &&
             !(isQualcommProprietary && driverVersion < angle::VersionTriple(512, 801, 0)) &&
-            !isPowerVR && !(isMaleoon && driverVersion < angle::VersionTriple(52, 0, 0));
+            !isPowerVR && !(isMaleoon && driverVersion < angle::VersionTriple(52, 0, 0)));
 
     // On tile-based renderers, breaking the render pass is costly.  Changing into and out of
     // framebuffer fetch causes the render pass to break so that the layout of the color attachments
