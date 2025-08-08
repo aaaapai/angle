@@ -264,6 +264,10 @@ VendorID GetVendorID(const FunctionsGL *functions)
     {
         return VENDOR_ID_ARM;
     }
+    else if (nativeVendorString.find("Maleoon") != std::string::npos)
+    {
+        return VENDOR_ID_Maleoon;
+    }
     else
     {
         return VENDOR_ID_UNKNOWN;
