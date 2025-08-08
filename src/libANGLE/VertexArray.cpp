@@ -315,12 +315,12 @@ ANGLE_INLINE void VertexArray::updateCachedMappedArrayBuffersBinding(size_t bind
                                          binding.getBoundAttributesMask());
 }
 
-ANGLE_INLINE void VertexArrayPrivate::updateCachedTransformFeedbackBindingValidation(
-    size_t bindingIndex,
-    const Buffer *buffer)
+ANGLE_INLINE void VertexArray::updateCachedTransformFeedbackBindingValidation(size_t bindingIndex)
 {
-    const bool hasConflict = buffer && buffer->hasWebGLXFBBindingConflict(true);
-    mCachedTransformFeedbackConflictedBindingsMask.set(bindingIndex, hasConflict);
+    const Buffer *buffer = mVertexArrayBuffers[bindingIndex].get();
+    ASSERT(buffer != nullptr);
+    const bool hasConflict = buffer->hasWebGLXFBBindingConflict(true);
+    mCachedBufferPropertyTransformFeedbackConflict.set(bindingIndex, hasConflict);
 }
 
 void VertexArray::bindElementBuffer(const Context *context, Buffer *boundBuffer)
@@ -369,48 +369,54 @@ ANGLE_INLINE VertexArray::DirtyBindingBits VertexArray::bindVertexBufferImpl(con
     Buffer *oldBuffer = mVertexArrayBuffers[bindingIndex].get();
 
     DirtyBindingBits dirtyBindingBits;
-    // Even if we are rebinding the same buffer, buffer could have been changed in another context.
-    // We must dirty it so that buffer will be checked again.
-    dirtyBindingBits.set(DIRTY_BINDING_BUFFER, true);
+    dirtyBindingBits.set(DIRTY_BINDING_BUFFER, oldBuffer != boundBuffer);
     dirtyBindingBits.set(DIRTY_BINDING_STRIDE, static_cast<GLuint>(stride) != binding->getStride());
     dirtyBindingBits.set(DIRTY_BINDING_OFFSET, offset != binding->getOffset());
 
-    // Several nullptr checks are combined here for optimization purposes.
-    if (oldBuffer)
+    if (dirtyBindingBits.none())
     {
-        oldBuffer->onNonTFBindingChanged(-1);
-        oldBuffer->removeVertexArrayBinding(context, bindingIndex);
-        oldBuffer->release(context);
-        mBufferBindingMask.reset(bindingIndex);
+        return dirtyBindingBits;
     }
 
-    mVertexArrayBuffers[bindingIndex].assign(boundBuffer);
+    if (boundBuffer != oldBuffer)
+    {
+        // Several nullptr checks are combined here for optimization purposes.
+        if (oldBuffer)
+        {
+            oldBuffer->onNonTFBindingChanged(-1);
+            oldBuffer->removeVertexArrayBinding(context, bindingIndex);
+            oldBuffer->release(context);
+            mBufferBindingMask.reset(bindingIndex);
+        }
 
-    // Update client memory attribute pointers. Affects all bound attributes.
-    if (boundBuffer)
-    {
-        boundBuffer->addRef();
-        boundBuffer->onNonTFBindingChanged(1);
-        boundBuffer->addVertexArrayBinding(context, bindingIndex);
-        if (context->isWebGL())
+        mVertexArrayBuffers[bindingIndex].assign(boundBuffer);
+
+        // Update client memory attribute pointers. Affects all bound attributes.
+        if (boundBuffer)
         {
-            mCachedTransformFeedbackConflictedBindingsMask.set(
-                bindingIndex, boundBuffer->hasWebGLXFBBindingConflict(true));
+            boundBuffer->addRef();
+            boundBuffer->onNonTFBindingChanged(1);
+            boundBuffer->addVertexArrayBinding(context, bindingIndex);
+            if (context->isWebGL())
+            {
+                mCachedBufferPropertyTransformFeedbackConflict.set(
+                    bindingIndex, boundBuffer->hasWebGLXFBBindingConflict(true));
+            }
+            mBufferBindingMask.set(bindingIndex);
+            mState.mClientMemoryAttribsMask &= ~binding->getBoundAttributesMask();
+            updateCachedMappedArrayBuffersBinding(bindingIndex);
         }
-        mBufferBindingMask.set(bindingIndex);
-        mState.mClientMemoryAttribsMask &= ~binding->getBoundAttributesMask();
-        updateCachedMappedArrayBuffersBinding(bindingIndex);
-    }
-    else
-    {
-        if (context->isWebGL())
+        else
         {
-            mCachedTransformFeedbackConflictedBindingsMask.set(bindingIndex, false);
+            if (context->isWebGL())
+            {
+                mCachedBufferPropertyTransformFeedbackConflict.set(bindingIndex, false);
+            }
+            mState.mClientMemoryAttribsMask |= binding->getBoundAttributesMask();
+            mCachedBufferPropertyMapped.set(bindingIndex, false);
+            mCachedBufferPropertyMutableOrImpersistent.set(bindingIndex, false);
+            updateCachedArrayBuffersMasks(false, false, false, binding->getBoundAttributesMask());
         }
-        mState.mClientMemoryAttribsMask |= binding->getBoundAttributesMask();
-        mCachedBufferPropertyMapped.set(bindingIndex, false);
-        mCachedBufferPropertyMutableOrImpersistent.set(bindingIndex, false);
-        updateCachedArrayBuffersMasks(false, false, false, binding->getBoundAttributesMask());
     }
 
     binding->setOffset(offset);
@@ -703,8 +709,7 @@ void VertexArray::onBind(const Context *context)
     {
         for (size_t bindingIndex : bufferBindingMask)
         {
-            Buffer *bufferGL = mVertexArrayBuffers[bindingIndex].get();
-            updateCachedTransformFeedbackBindingValidation(bindingIndex, bufferGL);
+            updateCachedTransformFeedbackBindingValidation(bindingIndex);
         }
     }
 
@@ -778,7 +783,7 @@ void VertexArray::setDependentDirtyBits(bool contentsChanged,
 bool VertexArrayPrivate::hasTransformFeedbackBindingConflict(const Context *context) const
 {
     // Fast check first.
-    if (!mCachedTransformFeedbackConflictedBindingsMask.any())
+    if (!mCachedBufferPropertyTransformFeedbackConflict.any())
     {
         return false;
     }
@@ -789,7 +794,7 @@ bool VertexArrayPrivate::hasTransformFeedbackBindingConflict(const Context *cont
     for (size_t attribIndex : activeAttribues)
     {
         const VertexAttribute &attrib = mState.mVertexAttributes[attribIndex];
-        if (mCachedTransformFeedbackConflictedBindingsMask[attrib.bindingIndex])
+        if (mCachedBufferPropertyTransformFeedbackConflict[attrib.bindingIndex])
         {
             return true;
         }
@@ -827,11 +832,13 @@ void VertexArray::onBufferChanged(const Context *context,
             break;
 
         case angle::SubjectMessage::BindingChanged:
-            bufferBindingMask.reset(kElementArrayBufferIndex);
-            for (size_t bindingIndex : bufferBindingMask)
+            if (context->isWebGL())
             {
-                const Buffer *buffer = mVertexArrayBuffers[bindingIndex].get();
-                updateCachedTransformFeedbackBindingValidation(bindingIndex, buffer);
+                bufferBindingMask.reset(kElementArrayBufferIndex);
+                for (size_t bindingIndex : bufferBindingMask)
+                {
+                    updateCachedTransformFeedbackBindingValidation(bindingIndex);
+                }
             }
             break;
 
