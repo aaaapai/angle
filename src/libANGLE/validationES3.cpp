@@ -247,13 +247,13 @@ bool ValidateTexImageFormatCombination(const Context *context,
         // The type and format are valid if any supported internal format has that type and format
         if (!ValidDesktopFormat(format))
         {
-            context->validationError(GL_INVALID_ENUM, kInvalidFormat);
+            errors->validationError(GL_INVALID_ENUM, kInvalidFormat);
             return false;
         }
 
         if (!ValidDesktopType(type))
         {
-            context->validationError(GL_INVALID_ENUM, kInvalidType);
+            errors->validationError(GL_INVALID_ENUM, kInvalidType);
             return false;
         }
     }
