@@ -244,9 +244,8 @@ bool ValidateTexImageFormatCombination(const Context *context,
 
     if (std::getenv("ANGLE_USE_EGL_OPENGL_API"))
     {
-        std::cout << "ValidateTexImageFormatCombination for EGL_OPENGL_API I never to do.";
         // The type and format are valid if any supported internal format has that type and format
-        /*if (!ValidDesktopFormat(format))
+        if (!ValidDesktopFormat(format))
         {
             context->validationError(GL_INVALID_ENUM, kInvalidFormat);
             return false;
@@ -256,7 +255,7 @@ bool ValidateTexImageFormatCombination(const Context *context,
         {
             context->validationError(GL_INVALID_ENUM, kInvalidType);
             return false;
-        }*/
+        }
     }
     else
     {
