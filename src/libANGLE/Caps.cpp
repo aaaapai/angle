@@ -1082,14 +1082,14 @@ Caps GenerateMinimumCaps(const Version &clientVersion, const Extensions &extensi
     {
         // Table 6.28
         caps.maxElementIndex       = (1 << 24) - 1;
-        caps.max3DTextureSize      = 256;
+        caps.max3DTextureSize      = 2048;
         caps.max2DTextureSize      = 2048;
-        caps.maxArrayTextureLayers = 256;
+        caps.maxArrayTextureLayers = 2048;
         caps.maxLODBias            = 2.0f;
         caps.maxCubeMapTextureSize = 2048;
         caps.maxRenderbufferSize   = 2048;
-        caps.maxDrawBuffers        = 4;
-        caps.maxColorAttachments   = 4;
+        caps.maxDrawBuffers        = 8;
+        caps.maxColorAttachments   = 8;
         caps.maxViewportWidth      = caps.max2DTextureSize;
         caps.maxViewportHeight     = caps.max2DTextureSize;
 
