@@ -840,12 +840,12 @@ void GenerateCaps(const FunctionsGL *functions,
         functions->isAtLeastGLES(gl::Version(3, 0)))
     {
         caps->maxRenderbufferSize = QuerySingleGLInt(functions, GL_MAX_RENDERBUFFER_SIZE);
-        caps->maxColorAttachments = QuerySingleGLInt(functions, GL_MAX_COLOR_ATTACHMENTS);
+        caps->maxColorAttachments = 8;
     }
     else if (functions->isAtLeastGLES(gl::Version(2, 0)))
     {
         caps->maxRenderbufferSize = QuerySingleGLInt(functions, GL_MAX_RENDERBUFFER_SIZE);
-        caps->maxColorAttachments = 1;
+        caps->maxColorAttachments = 8;
     }
     else
     {
