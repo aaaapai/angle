@@ -3694,8 +3694,6 @@ bool GetQueryParameterInfo(const State &glState,
             return true;
     }
 
-    if (std::getenv("ANGLE_USE_EGL_OPENGL_API"))
-    {
         switch (pname)
         {
             case GL_CONTEXT_FLAGS:
@@ -3705,8 +3703,7 @@ bool GetQueryParameterInfo(const State &glState,
                 *numParams = 1;
                 return true;
             }
-        }
-    }
+        } //For DesktopGL
 
     if (glState.getClientVersion() >= Version(3, 2))
     {
