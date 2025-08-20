@@ -342,11 +342,11 @@ bool ValidateTexImageFormatCombination(const Context *context,
         }
     }
 
-    const InternalFormat &formatInfo = GetInternalFormatInfo(internalFormat, type);
+    // const InternalFormat &formatInfo = GetInternalFormatInfo(internalFormat, type);
     /*if (!formatInfo.textureSupport(context->getClientVersion(), context->getExtensions()))
     {
-        /*ANGLE_VALIDATION_ERRORF(GL_INVALID_OPERATION, kInvalidInternalFormat, internalFormat);
-        return false;*/
+        ANGLE_VALIDATION_ERRORF(GL_INVALID_OPERATION, kInvalidInternalFormat, internalFormat);
+        return false;
     }*/
 
     return true;
