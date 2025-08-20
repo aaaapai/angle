@@ -43,7 +43,7 @@ vars = {
   'checkout_angle_mesa': False,
 
   # Version of Chromium our Chromium-based DEPS are mirrored from.
-  'chromium_revision': 'e6155ca57dc6fdbbd597d16f92f7cdf961f4f2b7',
+  'chromium_revision': 'a7c02b33f4faf303990171b3cbae2822d0518a35',
   # We never want to checkout chromium,
   # but need a dummy DEPS entry for the autoroller
   'dummy_checkout_chromium': False,
@@ -88,7 +88,7 @@ vars = {
   # Three lines of non-changing comments so that
   # the commit queue can handle CLs rolling catapult
   # and whatever else without interference from each other.
-  'catapult_revision': '4cf600c459a016ebb9ac253cff23462c5b7873ef',
+  'catapult_revision': '8dc29cff6c1fcc0c05a9e2d6958bd9edab9900a6',
 
   # the commit queue can handle CLs rolling Fuchsia sdk
   # and whatever else without interference from each other.
@@ -258,6 +258,7 @@ vars = {
   'checkout_angle_restricted_trace_five_nights_at_freddys': 'checkout_angle_restricted_traces',
   'checkout_angle_restricted_trace_free_fire': 'checkout_angle_restricted_traces',
   'checkout_angle_restricted_trace_free_fire_max': 'checkout_angle_restricted_traces',
+  'checkout_angle_restricted_trace_frost_and_flame': 'checkout_angle_restricted_traces',
   'checkout_angle_restricted_trace_gacha_club': 'checkout_angle_restricted_traces',
   'checkout_angle_restricted_trace_gacha_life': 'checkout_angle_restricted_traces',
   'checkout_angle_restricted_trace_gangstar_vegas': 'checkout_angle_restricted_traces',
@@ -466,7 +467,7 @@ vars = {
 deps = {
 
   'build': {
-    'url': Var('chromium_git') + '/chromium/src/build.git@94272db917de8b29db2132531c111aa1ebbfb993',
+    'url': Var('chromium_git') + '/chromium/src/build.git@54b614ad1758d3dc998a9893a1e2fd8654e26abe',
     'condition': 'not build_with_chromium',
   },
 
@@ -525,7 +526,7 @@ deps = {
   },
 
   'testing': {
-    'url': '{chromium_git}/chromium/src/testing@5f342e9223c965f7a934a6edd66a88d12a215144',
+    'url': '{chromium_git}/chromium/src/testing@fb889d036366c9b464783a7ed25828b61d1b0cfe',
     'condition': 'not build_with_chromium',
   },
 
@@ -576,7 +577,7 @@ deps = {
       'packages': [
           {
                'package': 'chromium/third_party/android_build_tools/error_prone',
-               'version': '56Xo0VEDkKxzOr5L7pafI6SaIY2S7wnOOcgy4CNSANEC',
+               'version': 'wQ_Wsj0aINAwt4LrHHM6IEnMhVEAdvQtBFtLv7YL4PoC',
           },
       ],
       'condition': 'checkout_android and not build_with_chromium',
@@ -598,7 +599,7 @@ deps = {
       'packages': [
           {
                'package': 'chromium/third_party/android_build_tools/lint',
-               'version': 'VZgk5wz1BPF6SWy4Z3CMhSYeolfmz7D8QoXkNgimoXoC',
+               'version': 'XO6ykSsPN632w1Hwz4YCLW0qC1KhVCn53F8FdJeuhKUC',
           },
       ],
       'condition': 'checkout_android and not build_with_chromium',
@@ -628,7 +629,7 @@ deps = {
   },
 
   'third_party/android_deps': {
-    'url': Var('chromium_git') + '/chromium/src/third_party/android_deps@47abf5682504489b2ffb8c8bdbf06bc76ae352a8',
+    'url': Var('chromium_git') + '/chromium/src/third_party/android_deps@973ea8c7c62f382a308b0452b95f48591a661467',
     'condition': 'checkout_android and not build_with_chromium',
   },
 
@@ -864,7 +865,7 @@ deps = {
   },
 
   'third_party/llvm-libc/src': {
-    'url': Var('chromium_git') + '/external/github.com/llvm/llvm-project/libc.git@af814cb1fe5438fbb7438a90a4c777e1956da50b',
+    'url': Var('chromium_git') + '/external/github.com/llvm/llvm-project/libc.git@82c07b9654a51406155dab28e779f9a21b2f73a0',
     'condition': 'not build_with_chromium',
   },
 
@@ -1013,7 +1014,7 @@ deps = {
   },
 
   'third_party/SwiftShader': {
-    'url': Var('swiftshader_git') + '/SwiftShader@1a72692154ccbbdcb01c7567239eca64018b64f5',
+    'url': Var('swiftshader_git') + '/SwiftShader@a1b94a283161e1c88e2dfa07f366394aea6ada9e',
     'condition': 'not build_with_chromium',
   },
   'third_party/turbine/cipd': {
@@ -1032,17 +1033,17 @@ deps = {
   },
 
   'third_party/vulkan-deps': {
-    'url': Var('chromium_git') + '/vulkan-deps@588672b6b2e5cd87fe1eec2f0ac9e70a6b343cac',
+    'url': Var('chromium_git') + '/vulkan-deps@6ab6cf8994f3b3ad8a6b2189986bd38e668e2fb1',
     'condition': 'not build_with_chromium',
   },
 
   'third_party/glslang/src': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/glslang@0d614c24699d986afd590b93a8c0f0946e997919',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/glslang@fcf4e9296fa400e2b03c34e23b261e0c8a0ac34d',
     'condition': 'not build_with_chromium',
   },
 
   'third_party/lunarg-vulkantools/src': {
-    'url': '{chromium_git}/external/github.com/LunarG/VulkanTools@7d91d6f4df4e32fda3021e2923be7f92140d31c4',
+    'url': '{chromium_git}/external/github.com/LunarG/VulkanTools@68daa9bc0602e057a36c83fe4dcc441c9bd38447',
     'condition': 'not build_with_chromium',
   },
 
@@ -1052,37 +1053,37 @@ deps = {
   },
 
   'third_party/spirv-headers/src': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/SPIRV-Headers@a7361efd139bf65de0e86d43b01b01e0b34d387f',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/SPIRV-Headers@a8637796c28386c3cf3b4e8107020fbb52c46f3f',
     'condition': 'not build_with_chromium',
   },
 
   'third_party/spirv-tools/src': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/SPIRV-Tools@b8b90dba56eb8c75050a712188d662fd51c953df',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/SPIRV-Tools@a2834ad28b4fdeef23d130a53b58a6d4b69ea149',
     'condition': 'not build_with_chromium',
   },
 
   'third_party/vulkan-headers/src': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-Headers@a01329f307fa6067da824de9f587f292d761680b',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-Headers@2efaa559ff41655ece68b2e904e2bb7e7d55d265',
     'condition': 'not build_with_chromium',
   },
 
   'third_party/vulkan-loader/src': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-Loader@07aa86589862b3888c3f09a11bbb34243f1efc13',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-Loader@484f3cd7dfb13f63a8b8930cb0397e9b849ab076',
     'condition': 'not build_with_chromium',
   },
 
   'third_party/vulkan-tools/src': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-Tools@f766b30b2de3ffe2cf6b656d943720882617ec58',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-Tools@0eb12b4ea70b15be6a10f6212c1633e5c9ce0cca',
     'condition': 'not build_with_chromium',
   },
 
   'third_party/vulkan-utility-libraries/src': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-Utility-Libraries@b149d5c52c06836ab333ba571791f79a9fb8eb50',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-Utility-Libraries@4f4c0b6c61223b703f1c753a404578d7d63932ad',
     'condition': 'not build_with_chromium',
   },
 
   'third_party/vulkan-validation-layers/src': {
-    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-ValidationLayers@438279c224e786e44aa1027fff9b51b3b1ba8520',
+    'url': '{chromium_git}/external/github.com/KhronosGroup/Vulkan-ValidationLayers@9000c2f6eef9f5b7bfa7b43d13fd73b4893644da',
     'condition': 'not build_with_chromium',
   },
 
@@ -1107,7 +1108,7 @@ deps = {
   },
 
   'tools/clang': {
-    'url': Var('chromium_git') + '/chromium/src/tools/clang.git@4ed4c20a21a0df894f5253c8e0c97b84981a9f33',
+    'url': Var('chromium_git') + '/chromium/src/tools/clang.git@9d91ec919b70e38c877744345b83ea7b4b4d6490',
     'condition': 'not build_with_chromium',
   },
 
@@ -1157,7 +1158,7 @@ deps = {
   },
 
   'tools/perf': {
-    'url': Var('chromium_git') + '/chromium/src/tools/perf@eeae4c63916853f2acb4ba06e62feb10bd1fca19',
+    'url': Var('chromium_git') + '/chromium/src/tools/perf@c1a26b544f45a8ec5e790b902522c2b0532665db',
     'condition': 'not build_with_chromium',
   },
 
@@ -2265,6 +2266,16 @@ deps = {
       ],
       'dep_type': 'cipd',
       'condition': 'checkout_angle_restricted_trace_free_fire_max',
+  },
+  'src/tests/restricted_traces/frost_and_flame': {
+      'packages': [
+        {
+            'package': 'angle/traces/frost_and_flame',
+            'version': 'version:1',
+        },
+      ],
+      'dep_type': 'cipd',
+      'condition': 'checkout_angle_restricted_trace_frost_and_flame',
   },
   'src/tests/restricted_traces/gacha_club': {
       'packages': [
