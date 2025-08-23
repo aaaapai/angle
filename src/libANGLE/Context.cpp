@@ -9146,10 +9146,10 @@ GLenum Context::getConvertedRenderbufferFormat(GLenum internalformat) const
     {
         return GL_DEPTH24_STENCIL8;
     }
-    /*if (std::getenv("ANGLE_USE_EGL_OPENGL_API") && internalformat == GL_DEPTH_COMPONENT)
+    if (internalformat == GL_DEPTH_COMPONENT)
     {
         return GL_DEPTH_COMPONENT24;
-    }*/
+    }
     return internalformat;
 }
 
