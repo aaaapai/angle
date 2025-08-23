@@ -1,5 +1,5 @@
 target_os = "android"
-target_cpu = "arm64"
+target_cpu = "arm"
 is_component_build = false
 is_debug = false
 angle_build_all = false
