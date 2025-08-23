@@ -173,8 +173,8 @@ CLDeviceImpl::Info CLDeviceVk::createInfo(cl::DeviceType type) const
     info.image3D_MaxWidth  = properties.limits.maxImageDimension3D;
     info.image3D_MaxHeight = properties.limits.maxImageDimension3D;
     info.image3D_MaxDepth  = properties.limits.maxImageDimension3D;
-    // TODO (http://anglebug.com/379669750) For now set it minimum requirement.
-    info.imageMaxBufferSize        = 65536;
+    // Max number of pixels for a 1D image created from a buffer object.
+    info.imageMaxBufferSize        = properties.limits.maxTexelBufferElements;
     info.imageMaxArraySize         = properties.limits.maxImageArrayLayers;
     info.imagePitchAlignment       = 0u;
     info.imageBaseAddressAlignment = 0u;
@@ -211,7 +211,16 @@ CLDeviceImpl::Info CLDeviceVk::createInfo(cl::DeviceType type) const
                         .name    = "cl_khr_local_int32_extended_atomics"},
     };
 
+    CLExtensions::ExternalMemoryHandleBitset supportedHandles;
+    supportedHandles.set(cl::ExternalMemoryHandle::OpaqueFd, supportsExternalMemoryFd());
+    supportedHandles.set(cl::ExternalMemoryHandle::DmaBuf, supportsExternalMemoryDmaBuf());
+
     // Populate other extensions based on feature support
+    if (info.populateSupportedExternalMemoryHandleTypes(supportedHandles))
+    {
+        versionedExtensionList.push_back(
+            cl_name_version{.version = CL_MAKE_VERSION(1, 0, 0), .name = "cl_khr_external_memory"});
+    }
     if (mRenderer->getFeatures().supportsShaderFloat16.enabled)
     {
         versionedExtensionList.push_back(
@@ -226,6 +235,11 @@ CLDeviceImpl::Info CLDeviceVk::createInfo(cl::DeviceType type) const
     {
         versionedExtensionList.push_back(
             cl_name_version{.version = CL_MAKE_VERSION(1, 0, 0), .name = "cl_khr_3d_image_writes"});
+    }
+    if (mRenderer->getQueueFamilyProperties().queueCount > 1)
+    {
+        versionedExtensionList.push_back(
+            cl_name_version{.version = CL_MAKE_VERSION(1, 0, 0), .name = "cl_khr_priority_hints"});
     }
 
     info.integerDotProductCapabilities = getIntegerDotProductCapabilities();
@@ -324,6 +338,16 @@ angle::Result CLDeviceVk::getInfoString(cl::DeviceInfo name, size_t size, char *
         return angle::Result::Continue;
     }
     ANGLE_CL_RETURN_ERROR(CL_INVALID_VALUE);
+}
+
+bool CLDeviceVk::supportsExternalMemoryFd() const
+{
+    return mRenderer->getFeatures().supportsExternalMemoryFd.enabled;
+}
+
+bool CLDeviceVk::supportsExternalMemoryDmaBuf() const
+{
+    return mRenderer->getFeatures().supportsExternalMemoryDmaBuf.enabled;
 }
 
 angle::Result CLDeviceVk::createSubDevices(const cl_device_partition_property *properties,
@@ -431,4 +455,5 @@ CLDeviceVk::getIntegerDotProductAccelerationProperties4x8BitPacked() const
 
     return integerDotProductAccelerationProperties;
 }
+
 }  // namespace rx
