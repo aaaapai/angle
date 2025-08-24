@@ -4650,7 +4650,7 @@ gl::Version Renderer::getMaxSupportedESVersion() const
     {
         //maxVersion = LimitVersionTo(maxVersion, {3, 1});
         //std::cout << "Warning: Incomplete OpenGL ES 3.2 support because your Vulkan driver is insufficient to support OpenGL ES 3.2!\n"; //烦人的
-        return maxVersion;
+        maxVersion = LimitVersionTo(maxVersion, {3, 1});
     }
 
     // Limit to ES3.0 if there are any blockers for 3.1.
@@ -4665,7 +4665,7 @@ gl::Version Renderer::getMaxSupportedESVersion() const
     if (mPhysicalDeviceProperties.limits.maxPerStageDescriptorStorageBuffers <
         kMinimumStorageBuffersForES31)
     {
-        maxVersion = LimitVersionTo(maxVersion, {3, 0});
+        return maxVersion;
     }
 
     // ES3.1 requires at least a maximum offset of at least 2047.
