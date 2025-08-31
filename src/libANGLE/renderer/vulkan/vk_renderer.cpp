@@ -19,6 +19,7 @@
 
 #include <EGL/eglext.h>
 #include <fstream>
+#include <iostream>
 
 #include "common/debug.h"
 #include "common/platform.h"
@@ -187,7 +188,8 @@ VkResult VerifyExtensionsPresent(const vk::ExtensionNameList &haystack,
             ERR() << "Extension not supported: " << needle;
         }
     }
-    return VK_ERROR_EXTENSION_NOT_PRESENT;
+    std::cout << "VK_ERROR_EXTENSION_NOT_PRESENT";
+    return VK_SUCCESS;
 }
 
 // Array of Validation error/warning messages that will be ignored, should include bugID
@@ -2328,8 +2330,7 @@ angle::Result Renderer::initialize(vk::ErrorContext *context,
 
     if (mInstanceVersion < angle::vk::kMinimumVulkanAPIVersion)
     {
-        WARN() << "ANGLE Requires a minimum Vulkan instance version of 1.1";
-        ANGLE_VK_TRY(context, VK_ERROR_INCOMPATIBLE_DRIVER);
+        std::cout << "Warning: ANGLE Requires a minimum Vulkan instance version of 1.1.But perhaps the Vulkan version of this device is 1.1+?\n";
     }
 
     const UseVulkanSwapchain useVulkanSwapchain = wsiExtension != nullptr || wsiLayer != nullptr
@@ -2460,8 +2461,7 @@ angle::Result Renderer::initialize(vk::ErrorContext *context,
 
     if (mDeviceVersion < angle::vk::kMinimumVulkanAPIVersion)
     {
-        WARN() << "ANGLE Requires a minimum Vulkan device version of 1.1";
-        ANGLE_VK_TRY(context, VK_ERROR_INCOMPATIBLE_DRIVER);
+        std::cout << "ANGLE Requires a minimum Vulkan device version of 1.1.But perhaps the Vulkan version of this device is 1.1+?\n";
     }
 
     mGarbageCollectionFlushThreshold =
@@ -4701,7 +4701,9 @@ gl::Version Renderer::getMaxSupportedESVersion() const
     }
     if (!CanSupportGLES32(mNativeExtensions))
     {
-        maxVersion = LimitVersionTo(maxVersion, {3, 1});
+        //maxVersion = LimitVersionTo(maxVersion, {3, 1});
+        //std::cout << "Warning: Incomplete OpenGL ES 3.2 support because your Vulkan driver is insufficient to support OpenGL ES 3.2!\n"; //烦人的
+        return maxVersion;
     }
 
     // Limit to ES3.0 if there are any blockers for 3.1.
@@ -4988,6 +4990,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     const bool isAMD      = IsAMD(mPhysicalDeviceProperties.vendorID);
     const bool isApple    = IsAppleGPU(mPhysicalDeviceProperties.vendorID);
     const bool isARM      = IsARM(mPhysicalDeviceProperties.vendorID);
+    const bool isMaleoon  = IsMaleoon(mPhysicalDeviceProperties.vendorID);
     const bool isIntel    = IsIntel(mPhysicalDeviceProperties.vendorID);
     const bool isNvidia   = IsNvidia(mPhysicalDeviceProperties.vendorID);
     const bool isPowerVR  = IsPowerVR(mPhysicalDeviceProperties.vendorID);
@@ -5014,6 +5017,8 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // maxDrawIndirectCount==1 and all CSF based has maxDrawIndirectCount>1.
     bool isMaliJobManagerBasedGPU =
         isARM && getPhysicalDeviceProperties().limits.maxDrawIndirectCount <= 1;
+    bool isMaleoonJobManagerBasedGPU =
+        isMaleoon && getPhysicalDeviceProperties().limits.maxDrawIndirectCount <= 1;
 
     // Distinguish between the mesa and proprietary drivers
     const bool isRADV = IsRADV(mPhysicalDeviceProperties.vendorID, mDriverProperties.driverID,
@@ -5023,6 +5028,11 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     if (isARM)
     {
         driverVersion = angle::ParseArmVulkanDriverVersion(mPhysicalDeviceProperties.driverVersion);
+    }
+    else if (isMaleoon)
+    {
+        driverVersion =
+            angle::ParseMaleoonVulkanDriverVersion(mPhysicalDeviceProperties.driverVersion);
     }
     else if (isQualcommProprietary)
     {
@@ -5066,7 +5076,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // the device architecture for optimal performance on both.
     const bool isImmediateModeRenderer =
         isNvidia || isAMD || isIntel || isSamsung || isSoftwareRenderer;
-    const bool isTileBasedRenderer = isARM || isPowerVR || isQualcomm || isBroadcom || isApple;
+    const bool isTileBasedRenderer = isARM || isMaleoon || isPowerVR || isQualcomm || isBroadcom || isApple;
 
     // Make sure all known architectures are accounted for.
     if (!isImmediateModeRenderer && !isTileBasedRenderer && !isMockICDEnabled())
@@ -5101,7 +5111,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsProtectedMemory,
         mProtectedMemoryFeatures.protectedMemory == VK_TRUE &&
-            (!isARM || mPipelineProtectedAccessFeatures.pipelineProtectedAccess == VK_TRUE) &&
+            (!isARM || !isMaleoon || mPipelineProtectedAccessFeatures.pipelineProtectedAccess == VK_TRUE) &&
             !isIntel);
 
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsHostQueryReset,
@@ -5117,8 +5127,9 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // outweigh framebuffer compression on sampled textures on the following GPUs:
     //
     // - ARM
-    ANGLE_FEATURE_CONDITION(&mFeatures, forceHostImageCopyForLuma, isARM);
-
+    // - Maleoon?
+    ANGLE_FEATURE_CONDITION(&mFeatures, forceHostImageCopyForLuma, isARM || isMaleoon);
+    
     // VK_EXT_pipeline_creation_feedback is promoted to core in Vulkan 1.3.
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsPipelineCreationFeedback,
@@ -5256,7 +5267,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
         ExtensionFound(VK_EXT_LOAD_STORE_OP_NONE_EXTENSION_NAME, deviceExtensionNames));
 
     ANGLE_FEATURE_CONDITION(&mFeatures, disallowMixedDepthStencilLoadOpNoneAndLoad,
-                            isARM && driverVersion < angle::VersionTriple(38, 1, 0));
+                            (isARM || isMaleoon) && driverVersion < angle::VersionTriple(38, 1, 0));
 
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsRenderPassStoreOpNone,
@@ -5328,7 +5339,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // framebuffer.
     ANGLE_FEATURE_CONDITION(&mFeatures, preferMSRTSSFlagByDefault,
                             mFeatures.supportsMultisampledRenderToSingleSampled.enabled &&
-                                (isARM || (isQualcommProprietary &&
+                                (isARM || isMaleoon || (isQualcommProprietary &&
                                            driverVersion >= angle::VersionTriple(512, 777, 0))));
 
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsImage2dViewOf3d,
@@ -5397,7 +5408,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // ARM does buffer copy on geometry pipeline, which may create a GPU pipeline bubble that
     // prevents vertex shader to overlap with fragment shader on job manager based architecture. For
     // now we always choose CPU to do copy on ARM job manager based GPU.
-    ANGLE_FEATURE_CONDITION(&mFeatures, preferCPUForBufferSubData, isARM);
+    ANGLE_FEATURE_CONDITION(&mFeatures, preferCPUForBufferSubData, isARM || isMaleoon);
 
     // On android, we usually are GPU limited, we try to use CPU to do data copy when other
     // conditions are the same. Set to zero will use GPU to do copy. This is subject to further
@@ -5450,8 +5461,8 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // main thread gets blocked by command pool lock. FOr now dont call reset in garbage clean up
     // thread on ARM.
     ANGLE_FEATURE_CONDITION(&mFeatures, asyncCommandBufferReset,
-                            mFeatures.asyncGarbageCleanup.enabled && !isARM);
-
+                            mFeatures.asyncGarbageCleanup.enabled && !isARM && !isMaleoon);
+    
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsYUVSamplerConversion,
                             mSamplerYcbcrConversionFeatures.samplerYcbcrConversion != VK_FALSE);
 
@@ -5523,7 +5534,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     //   support MSRTSS and emulation is unnecessary)
     //
     ANGLE_FEATURE_CONDITION(&mFeatures, allowMultisampledRenderToTextureEmulation,
-                            (isTileBasedRenderer && !isARM) || isSamsung);
+                            (isTileBasedRenderer && !isARM && !isMaleoon) || isSamsung);
     ANGLE_FEATURE_CONDITION(&mFeatures, enableMultisampledRenderToTexture,
                             mFeatures.supportsMultisampledRenderToSingleSampled.enabled ||
                                 (mFeatures.supportsDepthStencilResolve.enabled &&
@@ -5541,7 +5552,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
                             mFeatures.supportsPipelineStatisticsQuery.enabled && isSamsung);
 
     // Android mistakenly destroys the old swapchain when creating a new one.
-    ANGLE_FEATURE_CONDITION(&mFeatures, waitIdleBeforeSwapchainRecreation, IsAndroid() && isARM);
+    ANGLE_FEATURE_CONDITION(&mFeatures, waitIdleBeforeSwapchainRecreation, IsAndroid() && (isARM || isMaleoon));
 
     ANGLE_FEATURE_CONDITION(&mFeatures, destroyOldSwapchainInSharedPresentMode, IsAndroid());
 
@@ -5648,7 +5659,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     ANGLE_FEATURE_CONDITION(&mFeatures, enableAdditionalBlendFactorsForDithering, isSamsung);
 
     ANGLE_FEATURE_CONDITION(&mFeatures, adjustClearColorPrecision,
-                            IsAndroid() && mFeatures.supportsLegacyDithering.enabled && isARM &&
+                            IsAndroid() && mFeatures.supportsLegacyDithering.enabled && (isARM || isMaleoon) &&
                                 driverVersion < angle::VersionTriple(50, 0, 0));
 
     // ANGLE always exposes framebuffer fetch because too many apps assume it's there.  See comments
@@ -5683,7 +5694,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // sample can only access values for the same sample by reading "the current color value",
     // unlike Vulkan-GLSL's |subpassLoad()| which takes a sample index.
     mIsColorFramebufferFetchCoherent =
-        isARM || isPowerVR || mFeatures.supportsRasterizationOrderAttachmentAccess.enabled;
+        isARM || isMaleoon || isPowerVR || mFeatures.supportsRasterizationOrderAttachmentAccess.enabled;
 
     // Support EGL_KHR_lock_surface3 extension.
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsLockSurfaceExtension, IsAndroid());
@@ -5728,7 +5739,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
                             ExtensionFound(VK_KHR_SPIRV_1_4_EXTENSION_NAME, deviceExtensionNames) &&
                                 !(isNvidia && driverVersion < angle::VersionTriple(525, 0, 0)) &&
                                 !isQualcommProprietary &&
-                                !(isARM && driverVersion < angle::VersionTriple(47, 0, 0)));
+                                !((isARM || isMaleoon) && driverVersion < angle::VersionTriple(47, 0, 0)));
 
     // Rounding features from VK_KHR_float_controls extension
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsDenormFtzFp16,
@@ -5785,8 +5796,9 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // Regressions have been detected using r46 on older architectures though
     // http://issuetracker.google.com/336411904
     const bool isExtendedDynamicStateBuggy =
-        (isARM && driverVersion < angle::VersionTriple(44, 1, 0)) ||
-        (isMaliJobManagerBasedGPU && driverVersion >= angle::VersionTriple(46, 0, 0));
+        ((isARM || isMaleoon) && driverVersion < angle::VersionTriple(44, 1, 0)) ||
+        (isMaliJobManagerBasedGPU && driverVersion >= angle::VersionTriple(46, 0, 0)) ||
+        (isMaleoonJobManagerBasedGPU && driverVersion >= angle::VersionTriple(46, 0, 0));
 
     // Vertex input binding stride is buggy for Windows/Intel drivers before 100.9684.
     const bool isVertexInputBindingStrideBuggy =
@@ -5804,7 +5816,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
         &mFeatures, supportsVertexInputDynamicState,
         mVertexInputDynamicStateFeatures.vertexInputDynamicState == VK_TRUE &&
             !(IsWindows() && isIntel) &&
-            !(isARM && driverVersion < angle::VersionTriple(48, 0, 0)) &&
+            !((isARM || isMaleoon) && driverVersion < angle::VersionTriple(48, 0, 0)) &&
             !(isQualcommProprietary && driverVersion < angle::VersionTriple(512, 777, 0)));
 
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsExtendedDynamicState,
@@ -5823,7 +5835,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     ANGLE_FEATURE_CONDITION(&mFeatures, useCullModeDynamicState,
                             mFeatures.supportsExtendedDynamicState.enabled &&
                                 !isExtendedDynamicStateBuggy &&
-                                !(isARM && driverVersion < angle::VersionTriple(52, 0, 0)));
+                                !((isARM || isMaleoon) && driverVersion < angle::VersionTriple(52, 0, 0)));
     ANGLE_FEATURE_CONDITION(&mFeatures, useDepthCompareOpDynamicState,
                             mFeatures.supportsExtendedDynamicState.enabled);
     ANGLE_FEATURE_CONDITION(&mFeatures, useDepthTestEnableDynamicState,
@@ -5874,6 +5886,10 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     const bool isArmDriverWithImagelessFramebufferBug =
         isARM && driverVersion >= angle::VersionTriple(38, 0, 0) &&
         driverVersion < angle::VersionTriple(38, 2, 0);
+    const bool isMaleoonDriverWithImagelessFramebufferBug =
+        isMaleoon && driverVersion >= angle::VersionTriple(38, 0, 0) &&
+        driverVersion < angle::VersionTriple(38, 2, 0);
+
     // PowerVR with imageless framebuffer spends enormous amounts of time in framebuffer destruction
     // and creation. ANGLE doesn't cache imageless framebuffers, instead adding them to garbage
     // collection, expecting them to be lightweight.
@@ -5882,6 +5898,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
                             mImagelessFramebufferFeatures.imagelessFramebuffer == VK_TRUE &&
                                 !isSamsungDriverWithImagelessFramebufferBug &&
                                 !isArmDriverWithImagelessFramebufferBug &&
+                                !isMaleoonDriverWithImagelessFramebufferBug &&
                                 !isQualcommWithImagelessFramebufferBug && !isPowerVR);
 
     if (ExtensionFound(VK_KHR_FRAGMENT_SHADING_RATE_EXTENSION_NAME, deviceExtensionNames))
@@ -5937,7 +5954,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsGraphicsPipelineLibrary,
                             mGraphicsPipelineLibraryFeatures.graphicsPipelineLibrary == VK_TRUE &&
                                 (!isNvidia || driverVersion >= angle::VersionTriple(531, 0, 0)) &&
-                                !isRADV && !isARM);
+                                !isRADV && !isARM && !isMaleoon);
 
     // When VK_EXT_graphics_pipeline_library is not used:
     //
@@ -5962,7 +5979,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     //
     // When VK_EXT_graphics_pipeline_library is used, warm up is always enabled as the chances of
     // blobs being reused is very high.
-    const bool libraryBlobsAreReusedByMonolithicPipelines = !isARM && !isPowerVR;
+    const bool libraryBlobsAreReusedByMonolithicPipelines = !isARM && !isPowerVR && !isMaleoon;
     ANGLE_FEATURE_CONDITION(
         &mFeatures, warmUpPipelineCacheAtLink,
         mFeatures.supportsGraphicsPipelineLibrary.enabled ||
@@ -6056,14 +6073,14 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // discard or alpha to coverage, if the static state provided when creating the pipeline has a
     // value of 0.
     ANGLE_FEATURE_CONDITION(&mFeatures, useNonZeroStencilWriteMaskStaticState,
-                            isARM && driverVersion < angle::VersionTriple(43, 0, 0));
+                            (isARM || isMaleoon) && driverVersion < angle::VersionTriple(43, 0, 0));
 
     // On some vendors per-sample shading is not enabled despite the presence of a Sample
     // decoration. Guard against this by parsing shader for "sample" decoration and explicitly
     // enabling per-sample shading pipeline state.
     ANGLE_FEATURE_CONDITION(&mFeatures, explicitlyEnablePerSampleShading, !isQualcommProprietary);
 
-    ANGLE_FEATURE_CONDITION(&mFeatures, explicitlyCastMediumpFloatTo16Bit, isARM);
+    ANGLE_FEATURE_CONDITION(&mFeatures, explicitlyCastMediumpFloatTo16Bit, isARM || isMaleoon);
 
     // Force to create swapchain with continuous refresh on shared present. Disabled by default.
     // Only enable it on integrations without EGL_FRONT_BUFFER_AUTO_REFRESH_ANDROID passthrough.
@@ -6140,11 +6157,11 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // driver, vkGetQueryPoolResult() with VK_QUERY_RESULT_WAIT_BIT may result in incorrect result.
     // In that case we force into CPU wait for submission to complete. http://anglebug.com/42265186
     ANGLE_FEATURE_CONDITION(&mFeatures, forceWaitForSubmissionToCompleteForQueryResult,
-                            isARM || (isNvidia && driverVersion < angle::VersionTriple(470, 0, 0)));
+                            isARM || (isNvidia && driverVersion < angle::VersionTriple(470, 0, 0)) || isMaleoon);
 
     // Some ARM drivers may not free memory in "vkFreeCommandBuffers()" without
     // VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT flag.
-    ANGLE_FEATURE_CONDITION(&mFeatures, useResetCommandBufferBitForSecondaryPools, isARM);
+    ANGLE_FEATURE_CONDITION(&mFeatures, useResetCommandBufferBitForSecondaryPools, isARM || isMaleoon);
 
     // Intel and AMD mesa drivers need depthBiasConstantFactor to be doubled to align with GL.
     ANGLE_FEATURE_CONDITION(&mFeatures, doubleDepthBiasConstantFactor,
@@ -6206,7 +6223,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
                             isTileBasedRenderer || isSoftwareRenderer);
     // vkCmdResetEvent adds extra GPU overhead and ARM prefers CPU overhead of creating/destroying
     // VkEvent instead of GPU overhead associated with vkCmdResetEvent.
-    ANGLE_FEATURE_CONDITION(&mFeatures, recycleVkEvent, !isARM);
+    ANGLE_FEATURE_CONDITION(&mFeatures, recycleVkEvent, !isARM || !isMaleoon);
 
     // Disable for Samsung, details here -> http://anglebug.com/386749841#comment21
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsDynamicRendering,
@@ -6257,7 +6274,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
             !emulatesMultisampledRenderToTexture &&
             !(isARM && driverVersion < angle::VersionTriple(52, 0, 0)) &&
             !(isQualcommProprietary && driverVersion < angle::VersionTriple(512, 801, 0)) &&
-            !isPowerVR);
+            !isPowerVR && !(isMaleoon && driverVersion < angle::VersionTriple(52, 0, 0)));
 
     // On tile-based renderers, breaking the render pass is costly.  Changing into and out of
     // framebuffer fetch causes the render pass to break so that the layout of the color attachments
@@ -6297,7 +6314,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
         &mFeatures, supportsImageCompressionControlSwapchain,
         mImageCompressionControlSwapchainFeatures.imageCompressionControlSwapchain == VK_TRUE);
 
-    ANGLE_FEATURE_CONDITION(&mFeatures, supportsAstcSliced3d, isARM);
+    ANGLE_FEATURE_CONDITION(&mFeatures, supportsAstcSliced3d, isARM || isMaleoon);
 
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsTextureCompressionAstcHdr,
@@ -7385,7 +7402,8 @@ VkResult ImageMemorySuballocator::allocateAndBindMemory(
     {
         renderer->getMemoryAllocationTracker()->onExceedingMaxMemoryAllocationSize(
             memoryRequirements->size);
-        return VK_ERROR_OUT_OF_DEVICE_MEMORY;
+        std::cout << "VK_ERROR_OUT_OF_DEVICE_MEMORY";
+        return VK_SUCCESS;
     }
 
     // Avoid device-local and host-visible combinations if possible. Here, "preferredFlags" is

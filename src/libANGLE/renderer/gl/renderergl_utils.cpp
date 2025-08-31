@@ -121,6 +121,20 @@ int getMaliTNumber(const FunctionsGL *functions)
     return number;
 }
 
+int getMaleoonNumber(const FunctionsGL *functions)
+{
+    static int number = -1;
+    if (number == -1)
+    {
+        const char *nativeGLRenderer = GetString(functions, GL_RENDERER);
+        if (std::sscanf(nativeGLRenderer, "Maleoon %d", &number) < 1)
+        {
+            number = 0;
+        }
+    }
+    return number;
+}
+
 int getMaliGNumber(const FunctionsGL *functions)
 {
     static int number = -1;
@@ -253,6 +267,10 @@ VendorID GetVendorID(const FunctionsGL *functions)
     else if (nativeVendorString.find("Mali") != std::string::npos)
     {
         return VENDOR_ID_ARM;
+    }
+    else if (nativeVendorString.find("Maleoon") != std::string::npos)
+    {
+        return VENDOR_ID_Maleoon;
     }
     else
     {
@@ -2266,6 +2284,7 @@ void InitializeFeatures(const FunctionsGL *functions, angle::FeaturesGL *feature
     bool isVMWare   = IsVMWare(vendor);
     bool hasAMD     = systemInfo.hasAMDGPU();
     bool isMali     = IsARM(vendor);
+    bool isMaleoon  = IsMaleoon(vendor);
 
     std::array<int, 3> mesaVersion = {0, 0, 0};
     bool isMesa                    = IsMesa(functions, &mesaVersion);

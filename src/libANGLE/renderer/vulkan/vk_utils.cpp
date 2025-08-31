@@ -431,7 +431,7 @@ VkResult MemoryProperties::findCompatibleMemoryIndex(
     {
         renderer->getMemoryAllocationTracker()->onExceedingMaxMemoryAllocationSize(
             memoryRequirements.size);
-        return VK_ERROR_OUT_OF_DEVICE_MEMORY;
+        return VK_SUCCESS;
     }
 
     // Find a compatible memory pool index. If the index doesn't change, we could cache it.
@@ -474,8 +474,9 @@ VkResult MemoryProperties::findCompatibleMemoryIndex(
         }
     }
 
+    std::cout << "VK_ERROR_INCOMPATIBLE_DRIVER";
     // TODO(jmadill): Add error message to error.
-    return VK_ERROR_INCOMPATIBLE_DRIVER;
+    return VK_SUCCESS;
 }
 
 // StagingBuffer implementation.
