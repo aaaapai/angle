@@ -7,6 +7,10 @@
 //    Helper functions for the Vulkan Renderer.
 //
 
+#ifdef UNSAFE_BUFFERS_BUILD
+#    pragma allow_unsafe_buffers
+#endif
+
 #include "libANGLE/renderer/vulkan/vk_utils.h"
 
 #include "libANGLE/Context.h"
@@ -676,6 +680,65 @@ angle::Result InitExternalSharedFDMemory(
     return angle::Result::Continue;
 }
 
+angle::Result GetHostPointerMemoryRequirements(ErrorContext *context,
+                                               void *hostPtr,
+                                               VkMemoryRequirements &memRequirements,
+                                               Buffer *buffer)
+{
+    VkDevice device = context->getRenderer()->getDevice();
+    vkGetBufferMemoryRequirements(device, buffer->getHandle(), &memRequirements);
+
+    VkMemoryHostPointerPropertiesEXT externalMemoryHostProperties = {};
+    externalMemoryHostProperties.sType = VK_STRUCTURE_TYPE_MEMORY_HOST_POINTER_PROPERTIES_EXT;
+    externalMemoryHostProperties.pNext = nullptr;
+
+    // Get properties for external memory host pointer
+    vkGetMemoryHostPointerPropertiesEXT(device,
+                                        VK_EXTERNAL_MEMORY_HANDLE_TYPE_HOST_ALLOCATION_BIT_EXT,
+                                        hostPtr, &externalMemoryHostProperties);
+
+    // Buffer memory type bits should be compatible with host pointer memory type bits
+    memRequirements.memoryTypeBits =
+        externalMemoryHostProperties.memoryTypeBits & memRequirements.memoryTypeBits;
+    if (memRequirements.memoryTypeBits == 0)
+    {
+        ERR() << "Buffer memoryTypeBits are not compatible with hostPtr memoryTypeBits:"
+              << externalMemoryHostProperties.memoryTypeBits;
+        return angle::Result::Stop;
+    }
+
+    return angle::Result::Continue;
+}
+
+angle::Result InitExternalHostMemory(ErrorContext *context,
+                                     void *hostPtr,
+                                     VkMemoryPropertyFlags memoryProperties,
+                                     Buffer *buffer,
+                                     VkMemoryPropertyFlags *memoryPropertyFlagsOut,
+                                     uint32_t *memoryTypeIndexOut,
+                                     DeviceMemory *deviceMemoryOut,
+                                     VkDeviceSize *sizeOut)
+{
+    VkMemoryRequirements externalMemoryRequirements = {};
+    ANGLE_TRY(
+        GetHostPointerMemoryRequirements(context, hostPtr, externalMemoryRequirements, buffer));
+
+    // Import memory from a host pointer by using VK_EXT_external_memory_host extension
+    VkImportMemoryHostPointerInfoEXT importInfo = {};
+    importInfo.sType        = VK_STRUCTURE_TYPE_IMPORT_MEMORY_HOST_POINTER_INFO_EXT;
+    importInfo.handleType   = VK_EXTERNAL_MEMORY_HANDLE_TYPE_HOST_ALLOCATION_BIT_EXT;
+    importInfo.pHostPointer = hostPtr;
+
+    ANGLE_VK_TRY(context, AllocateBufferMemoryWithRequirements(
+                              context, MemoryAllocationType::BufferExternal, memoryProperties,
+                              externalMemoryRequirements, &importInfo, buffer,
+                              memoryPropertyFlagsOut, memoryTypeIndexOut, deviceMemoryOut));
+
+    *sizeOut = externalMemoryRequirements.size;
+
+    return angle::Result::Continue;
+}
+
 gl::TextureType Get2DTextureType(uint32_t layerCount, GLint samples)
 {
     if (layerCount > 1)
@@ -1085,6 +1148,9 @@ PFN_vkCmdWriteTimestamp2KHR vkCmdWriteTimestamp2KHR   = nullptr;
 PFN_vkGetMemoryFdKHR vkGetMemoryFdKHR                     = nullptr;
 PFN_vkGetMemoryFdPropertiesKHR vkGetMemoryFdPropertiesKHR = nullptr;
 
+// VK_EXT_external_memory_host
+PFN_vkGetMemoryHostPointerPropertiesEXT vkGetMemoryHostPointerPropertiesEXT = nullptr;
+
 void InitDebugUtilsEXTFunctions(VkInstance instance)
 {
     GET_INSTANCE_FUNC(vkCreateDebugUtilsMessengerEXT);
@@ -1246,6 +1312,11 @@ void InitExternalMemoryFdFunctions(VkDevice device)
     GET_DEVICE_FUNC(vkGetMemoryFdPropertiesKHR);
 }
 
+void InitExternalMemoryHostFunctions(VkDevice device)
+{
+    GET_DEVICE_FUNC(vkGetMemoryHostPointerPropertiesEXT);
+}
+
 #    undef GET_INSTANCE_FUNC
 #    undef GET_DEVICE_FUNC
 
@@ -1303,6 +1374,24 @@ GLenum CalculateGenerateMipmapFilter(ContextVk *contextVk, angle::FormatID forma
     const bool hintFastest = contextVk->getState().getGenerateMipmapHint() == GL_FASTEST;
 
     return formatSupportsLinearFiltering && !hintFastest ? GL_LINEAR : GL_NEAREST;
+}
+
+bool HasRequiredGlobalPriority(
+    const std::vector<VkQueueFamilyGlobalPriorityPropertiesEXT> &globalPriorityProperties,
+    VkQueueGlobalPriorityEXT requiredGlobalPriority)
+{
+    for (const auto &globalPriorityProperty : globalPriorityProperties)
+    {
+        for (uint32_t i = 0; i < globalPriorityProperty.priorityCount; i++)
+        {
+            if (globalPriorityProperty.priorities[i] == requiredGlobalPriority)
+            {
+                return true;
+            }
+        }
+    }
+
+    return false;
 }
 
 namespace gl_vk

@@ -7,6 +7,10 @@
 //    Implements the class methods for TextureVk.
 //
 
+#ifdef UNSAFE_BUFFERS_BUILD
+#    pragma allow_unsafe_buffers
+#endif
+
 #include "libANGLE/renderer/vulkan/TextureVk.h"
 #include <vulkan/vulkan.h>
 
@@ -2657,8 +2661,6 @@ angle::Result TextureVk::copyBufferDataToImage(ContextVk *contextVk,
 
 angle::Result TextureVk::generateMipmapsWithCompute(ContextVk *contextVk)
 {
-    vk::Renderer *renderer = contextVk->getRenderer();
-
     // Requires that the image:
     //
     // - is not sRGB
@@ -2688,7 +2690,8 @@ angle::Result TextureVk::generateMipmapsWithCompute(ContextVk *contextVk)
     vk::SharedSamplerPtr sampler;
     vk::SamplerDesc samplerDesc(contextVk, samplerState, false, nullptr,
                                 static_cast<angle::FormatID>(0));
-    ANGLE_TRY(renderer->getSamplerCache().getSampler(contextVk, samplerDesc, &sampler));
+    ANGLE_TRY(
+        contextVk->getShareGroup()->getSamplerCache().getSampler(contextVk, samplerDesc, &sampler));
 
     // If the image has more levels than supported, generate as many mips as possible at a time.
     const vk::LevelIndex maxGenerateLevels(UtilsVk::GetGenerateMipmapMaxLevels(contextVk));
@@ -3147,7 +3150,9 @@ angle::Result TextureVk::respecifyImageStorage(ContextVk *contextVk)
     else
     {
         const vk::Format &format = getBaseLevelFormat(contextVk->getRenderer());
-        if (mImage->getActualFormatID() != format.getActualImageFormatID(getRequiredImageAccess()))
+        if (mImage->getActualFormatID() !=
+                format.getActualImageFormatID(getRequiredImageAccess()) &&
+            mImage->getLevelCount() == getMipLevelCount(ImageMipLevels::EnabledLevels))
         {
             ANGLE_TRY(reinitImageAsRenderable(contextVk, format));
         }
@@ -3799,9 +3804,10 @@ angle::Result TextureVk::syncState(const gl::Context *context,
     vk::SamplerDesc samplerDescSamplerExternal2DY2YEXT(contextVk, mState.getSamplerState(),
                                                        mState.isStencilMode(), &y2yConversionDesc,
                                                        mImage->getIntendedFormatID());
-    ANGLE_TRY(renderer->getSamplerCache().getSampler(contextVk, samplerDesc, &mSampler));
-    ANGLE_TRY(renderer->getSamplerCache().getSampler(contextVk, samplerDescSamplerExternal2DY2YEXT,
-                                                     &mY2YSampler));
+    ANGLE_TRY(contextVk->getShareGroup()->getSamplerCache().getSampler(contextVk, samplerDesc,
+                                                                       &mSampler));
+    ANGLE_TRY(contextVk->getShareGroup()->getSamplerCache().getSampler(
+        contextVk, samplerDescSamplerExternal2DY2YEXT, &mY2YSampler));
 
     updateCachedImageViewSerials();
 
@@ -3900,7 +3906,7 @@ const vk::ImageView &TextureVk::getCopyImageView() const
     return imageViews.getLinearCopyImageView();
 }
 
-angle::Result TextureVk::getLevelLayerImageView(vk::ErrorContext *context,
+angle::Result TextureVk::getLevelLayerImageView(ContextVk *contextVk,
                                                 gl::LevelIndex level,
                                                 size_t layer,
                                                 const vk::ImageView **imageViewOut)
@@ -3911,15 +3917,15 @@ angle::Result TextureVk::getLevelLayerImageView(vk::ErrorContext *context,
     vk::LevelIndex levelVk = mImage->toVkLevel(levelGL);
     uint32_t nativeLayer   = getNativeImageLayer(static_cast<uint32_t>(layer));
 
-    return getImageViews().getLevelLayerDrawImageView(context, *mImage, levelVk, nativeLayer,
+    return getImageViews().getLevelLayerDrawImageView(contextVk, *mImage, levelVk, nativeLayer,
                                                       imageViewOut);
 }
 
-angle::Result TextureVk::getStorageImageView(vk::ErrorContext *context,
+angle::Result TextureVk::getStorageImageView(ContextVk *contextVk,
                                              const gl::ImageUnit &binding,
                                              const vk::ImageView **imageViewOut)
 {
-    vk::Renderer *renderer = context->getRenderer();
+    vk::Renderer *renderer = contextVk->getRenderer();
 
     angle::FormatID formatID = angle::Format::InternalFormatToID(binding.format);
     const vk::Format *format = &renderer->getFormat(formatID);
@@ -3937,7 +3943,7 @@ angle::Result TextureVk::getStorageImageView(vk::ErrorContext *context,
         uint32_t nativeLayer = getNativeImageLayer(static_cast<uint32_t>(binding.layer));
 
         return getImageViews().getLevelLayerStorageImageView(
-            context, *mImage, nativeLevelVk, nativeLayer,
+            contextVk, *mImage, nativeLevelVk, nativeLayer,
             VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
             format->getActualImageFormatID(getRequiredImageAccess()), imageViewOut);
     }
@@ -3945,7 +3951,7 @@ angle::Result TextureVk::getStorageImageView(vk::ErrorContext *context,
     uint32_t nativeLayer = getNativeImageLayer(0);
 
     return getImageViews().getLevelStorageImageView(
-        context, mState.getType(), *mImage, nativeLevelVk, nativeLayer,
+        contextVk, mState.getType(), *mImage, nativeLevelVk, nativeLayer,
         VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
         format->getActualImageFormatID(getRequiredImageAccess()), imageViewOut);
 }

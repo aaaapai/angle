@@ -6,6 +6,10 @@
 
 // validationEGL.cpp: Validation functions for generic EGL entry point parameters
 
+#ifdef UNSAFE_BUFFERS_BUILD
+#    pragma allow_unsafe_buffers
+#endif
+
 #include <cstdlib>
 #include <iostream>
 
@@ -2160,12 +2164,22 @@ bool ValidateCreateContextAttributeValue(const ValidationContext *val,
                 case EGL_CONTEXT_PRIORITY_MEDIUM_IMG:
                 case EGL_CONTEXT_PRIORITY_HIGH_IMG:
                     break;
+                case EGL_CONTEXT_PRIORITY_REALTIME_NV:
+                    if (!display->getExtensions().contextPriorityRealtimeNV)
+                    {
+                        val->setError(EGL_BAD_ATTRIBUTE,
+                                      "Attribute EGL_CONTEXT_PRIORITY_REALTIME_NV requires "
+                                      "extension EGL_NV_context_priority_realtime.");
+                        return false;
+                    }
+                    break;
                 default:
                     val->setError(EGL_BAD_ATTRIBUTE,
                                   "Attribute EGL_CONTEXT_PRIORITY_LEVEL_IMG "
                                   "must be one of: EGL_CONTEXT_PRIORITY_LOW_IMG, "
-                                  "EGL_CONTEXT_PRIORITY_MEDIUM_IMG, or "
-                                  "EGL_CONTEXT_PRIORITY_HIGH_IMG.");
+                                  "EGL_CONTEXT_PRIORITY_MEDIUM_IMG, "
+                                  "EGL_CONTEXT_PRIORITY_HIGH_IMG, or "
+                                  "EGL_CONTEXT_PRIORITY_REALTIME_NV.");
                     return false;
             }
             break;

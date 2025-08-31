@@ -4,8 +4,14 @@
 // found in the LICENSE file.
 //
 // CLDeviceVk.cpp: Implements the class methods for CLDeviceVk.
+//
+
+#ifdef UNSAFE_BUFFERS_BUILD
+#    pragma allow_unsafe_buffers
+#endif
 
 #include "libANGLE/renderer/vulkan/CLDeviceVk.h"
+#include "libANGLE/renderer/driver_utils.h"
 #include "libANGLE/renderer/vulkan/clspv_utils.h"
 #include "libANGLE/renderer/vulkan/vk_renderer.h"
 
@@ -129,16 +135,16 @@ CLDeviceVk::CLDeviceVk(const cl::Device &device, vk::Renderer *renderer)
         {cl::DeviceInfo::NativeVectorWidthInt, 1},
         {cl::DeviceInfo::NativeVectorWidthLong, 1},
         {cl::DeviceInfo::NativeVectorWidthFloat, 1},
-        {cl::DeviceInfo::NativeVectorWidthDouble, 1},
-        {cl::DeviceInfo::NativeVectorWidthHalf, 0},
+        {cl::DeviceInfo::NativeVectorWidthDouble, mRenderer->getNativeVectorWidthDouble()},
+        {cl::DeviceInfo::NativeVectorWidthHalf, mRenderer->getNativeVectorWidthHalf()},
         {cl::DeviceInfo::PartitionMaxSubDevices, 0},
+        {cl::DeviceInfo::PreferredVectorWidthChar, 4},
+        {cl::DeviceInfo::PreferredVectorWidthShort, 8},
         {cl::DeviceInfo::PreferredVectorWidthInt, 1},
         {cl::DeviceInfo::PreferredVectorWidthLong, 1},
-        {cl::DeviceInfo::PreferredVectorWidthChar, 4},
-        {cl::DeviceInfo::PreferredVectorWidthHalf, 0},
-        {cl::DeviceInfo::PreferredVectorWidthShort, 2},
         {cl::DeviceInfo::PreferredVectorWidthFloat, 1},
-        {cl::DeviceInfo::PreferredVectorWidthDouble, 0},
+        {cl::DeviceInfo::PreferredVectorWidthDouble, mRenderer->getPreferredVectorWidthDouble()},
+        {cl::DeviceInfo::PreferredVectorWidthHalf, mRenderer->getPreferredVectorWidthHalf()},
         {cl::DeviceInfo::PreferredLocalAtomicAlignment, 0},
         {cl::DeviceInfo::PreferredGlobalAtomicAlignment, 0},
         {cl::DeviceInfo::PreferredPlatformAtomicAlignment, 0},
@@ -362,7 +368,6 @@ angle::Result CLDeviceVk::createSubDevices(const cl_device_partition_property *p
 cl::WorkgroupSize CLDeviceVk::selectWorkGroupSize(const cl::NDRange &ndrange) const
 {
     // Limit total work-group size to the Vulkan device's limit
-    const VkPhysicalDeviceProperties &props = mRenderer->getPhysicalDeviceProperties();
     uint32_t maxSize = static_cast<uint32_t>(mInfoSizeT.at(cl::DeviceInfo::MaxWorkGroupSize));
     maxSize          = std::min(maxSize, 64u);
 
@@ -376,7 +381,7 @@ cl::WorkgroupSize CLDeviceVk::selectWorkGroupSize(const cl::NDRange &ndrange) co
             cl::WorkgroupSize newLocalSize = localSize;
             newLocalSize[i] *= 2;
 
-            if (newLocalSize[i] <= props.limits.maxComputeWorkGroupCount[i] &&
+            if (newLocalSize[i] <= ndrange.globalWorkSize[i] &&
                 newLocalSize[0] * newLocalSize[1] * newLocalSize[2] <= maxSize)
             {
                 localSize      = newLocalSize;

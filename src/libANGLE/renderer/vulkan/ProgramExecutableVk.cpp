@@ -5,6 +5,11 @@
 //
 // ProgramExecutableVk.cpp: Collects the information and interfaces common to both ProgramVks and
 // ProgramPipelineVks in order to execute/draw with either.
+//
+
+#ifdef UNSAFE_BUFFERS_BUILD
+#    pragma allow_unsafe_buffers
+#endif
 
 #include "libANGLE/renderer/vulkan/ProgramExecutableVk.h"
 
@@ -2186,7 +2191,7 @@ void ProgramExecutableVk::updateShaderResourcesWithSharedCacheKey(
 }
 
 angle::Result ProgramExecutableVk::updateShaderResourcesDescInfo(
-    vk::Context *context,
+    ContextVk *contextVk,
     vk::CommandBufferHelperCommon *commandBufferHelper,
     const FramebufferVk *framebufferVk,
     const gl::BufferVector &shaderStorageBufferBindings,
@@ -2226,14 +2231,14 @@ angle::Result ProgramExecutableVk::updateShaderResourcesDescInfo(
 
         // Update DescriptorSetDescBuilder with inputAttachments
         ANGLE_TRY(mShaderResourceDescriptorDescBuilder.updateInputAttachments(
-            context, *executable, mVariableInfoMap, framebufferVk,
+            contextVk, *executable, mVariableInfoMap, framebufferVk,
             mShaderResourceWriteDescriptorDescs));
     }
 
     if (hasStorageBuffers)
     {
         mShaderResourceDescriptorDescBuilder.updateStorageBuffers(
-            context, commandBufferHelper, *executable, shaderStorageBufferBindings,
+            contextVk, commandBufferHelper, *executable, shaderStorageBufferBindings,
             executable->getShaderStorageBlocks(), getStorageBufferDescriptorType(),
             limits.maxStorageBufferRange, emptyBuffer, mShaderResourceWriteDescriptorDescs,
             memoryBarrierBits);
@@ -2242,7 +2247,7 @@ angle::Result ProgramExecutableVk::updateShaderResourcesDescInfo(
     if (hasAtomicCounterBuffers)
     {
         mShaderResourceDescriptorDescBuilder.updateAtomicCounters(
-            context, commandBufferHelper, *executable, mVariableInfoMap,
+            contextVk, commandBufferHelper, *executable, mVariableInfoMap,
             atomicCounterBufferBindings, executable->getAtomicCounterBuffers(),
             limits.minStorageBufferOffsetAlignment, emptyBuffer,
             mShaderResourceWriteDescriptorDescs);
@@ -2251,7 +2256,7 @@ angle::Result ProgramExecutableVk::updateShaderResourcesDescInfo(
     if (hasImages)
     {
         ANGLE_TRY(mShaderResourceDescriptorDescBuilder.updateImages(
-            context, *executable, mVariableInfoMap, activeImages, imageUnits,
+            contextVk, *executable, mVariableInfoMap, activeImages, imageUnits,
             mShaderResourceWriteDescriptorDescs));
     }
 
@@ -2264,7 +2269,7 @@ angle::Result ProgramExecutableVk::updateShaderResourcesDescInfo(
 
     vk::SharedDescriptorSetCacheKey newSharedCacheKey;
     ANGLE_TRY(updateBuffersDescriptorSet(
-        context, currentFrameCount, mShaderResourceDescriptorDescBuilder,
+        contextVk, currentFrameCount, mShaderResourceDescriptorDescBuilder,
         mShaderResourceWriteDescriptorDescs, DescriptorSetIndex::ShaderResource, updateBuilder,
         &newSharedCacheKey));
 
