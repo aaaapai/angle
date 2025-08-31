@@ -60,6 +60,7 @@ cflags = [
   "-mllvm -polly-ast-use-context",
   "-mllvm -polly-parallel",
   "-DANGLE_ENABLE_GL_DESKTOP_BACKEND",
+  "-DUNSAFE_BUFFERS_BUILD",
 ]
 cflags_cc = [
   "-Wno-unused-variable",
@@ -88,6 +89,7 @@ cflags_cc = [
   "-mllvm -polly-parallel",
   "-stdlib=libc++",
   "-DANGLE_ENABLE_GL_DESKTOP_BACKEND",
+  "-DUNSAFE_BUFFERS_BUILD",
 ]
 ldflags = [
   "-fuse-ld=lld",
