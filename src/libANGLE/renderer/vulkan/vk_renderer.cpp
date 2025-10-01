@@ -4776,21 +4776,19 @@ std::string Renderer::getVersionString(bool includeFullVersion) const
 
 gl::Version Renderer::getMaxSupportedESVersion() const
 {
-    // Current highest supported version
-    gl::Version maxVersion = gl::Version(3, 2); // 默认值
+    gl::Version maxVersion(3, 2); // 默认值
 
-   const char* angle_gles_version = std::getenv("ANGLE_GLES_VERSION");
-   if (angle_gles_version != nullptr) {
+    const char* angle_gles_version = std::getenv("ANGLE_GLES_VERSION");
+    if (angle_gles_version != nullptr) {
         std::string version_str = angle_gles_version;
-     
-        // 也可以支持更灵活的格式，比如 "3.2"
+        
         if (version_str.find('.') != std::string::npos) {
-          int major = std::stoi(version_str.substr(0, version_str.find('.')));
-          int minor = std::stoi(version_str.substr(version_str.find('.') + 1));
-          maxVersion = LimitVersionTo(maxVersion, {major, minor});
+            int major = std::stoi(version_str.substr(0, version_str.find('.')));
+            int minor = std::stoi(version_str.substr(version_str.find('.') + 1));
+            maxVersion = LimitVersionTo(maxVersion, 
+                gl::Version(static_cast<uint8_t>(major), static_cast<uint8_t>(minor)));
         }
-
-   }
+    }
 
     // Early out without downgrading ES version if mock ICD enabled.
     // Mock ICD doesn't expose sufficient capabilities yet.
