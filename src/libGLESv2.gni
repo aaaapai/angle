@@ -599,6 +599,7 @@ libangle_sources += [
   "src/libANGLE/capture/capture_gles_3_0_autogen.h",
   "src/libANGLE/capture/capture_gles_3_1_autogen.h",
   "src/libANGLE/capture/capture_gles_3_2_autogen.h",
+  "src/libANGLE/format_map_desktop.cpp",
   "src/libANGLE/capture/capture_gles_ext_autogen.h",
   "src/libANGLE/capture/serialize.h",
 ]

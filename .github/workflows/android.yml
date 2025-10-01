@@ -1,0 +1,74 @@
+name: ANGLE
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    permissions:
+      id-token: write
+      contents: read
+    strategy:
+      matrix:
+        arch: ["arm64", "arm", "x64", "x86"]
+      fail-fast: false
+
+    name: "Build for Android ${{matrix.arch}}"
+    runs-on: ubuntu-latest
+
+    steps:
+ 
+      - name: Cache depot_tools and dependencies
+        id: cache-deps
+        uses: actions/cache@main
+        with:
+          path: |
+            third_party
+            .cipd
+          key: ${{ runner.os }}-angle-deps-${{ hashFiles('angle/DEPS') }}
+
+      - name: Checkout
+        uses: actions/checkout@main
+        with:
+           fetch-depth: 1
+          
+      - name: Setup depot_tools
+        shell: bash
+        run: |
+          git clone --depth 1 https://chromium.googlesource.com/chromium/tools/depot_tools.git
+
+      - name: Run gclient sync
+        shell: bash
+        run:  |
+           echo "DEPOT_TOOLS_COMMIT=$(git -C depot_tools rev-parse HEAD)" >> $GITHUB_ENV
+           export PATH=`pwd`/depot_tools:$PATH
+           echo $PATH
+           vpython3 scripts/bootstrap.py
+           gclient sync --no-history --shallow --reset --force
+        
+      - name: Build ANGLE
+        shell: bash
+        run: |
+          export ANDROID_NDK=$ANDROID_NDK_LATEST_HOME
+          export ANDROID_NDK_HOME=$ANDROID_NDK_LATEST_HOME
+          export ANDROID_NDK_ROOT=$ANDROID_NDK_LATEST_HOME
+          echo "DEPOT_TOOLS_COMMIT=$(git -C depot_tools rev-parse HEAD)" >> $GITHUB_ENV
+          export PATH=`pwd`/depot_tools:$PATH
+          echo $PATH
+          gn gen out/Android-${{matrix.arch}} --threads=$(nproc)
+          gn args out/Android-${{ matrix.arch }} --list --short
+          autoninja -C out/Android-${{matrix.arch}} -j $(nproc)
+
+      - name: Dump logs on failure
+        if: failure()
+        shell: bash
+        run: |
+          find out/Android-${{matrix.arch}} -name "siso_output" -exec cat {} \;
+          chmod +x ./out/Android-${{matrix.arch}}/siso_failed_commands.sh
+          ./out/Android-${{matrix.arch}}/siso_failed_commands.sh
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@main
+        with:
+          name: angle-${{matrix.arch}}-${{ github.run_number }}
+          path: out/Android-${{matrix.arch}}/*.so

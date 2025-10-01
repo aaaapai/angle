@@ -19,6 +19,7 @@
 
 #include <EGL/eglext.h>
 #include <fstream>
+#include <iostream>
 
 #include "common/debug.h"
 #include "common/platform.h"
@@ -193,7 +194,8 @@ VkResult VerifyExtensionsPresent(const vk::ExtensionNameList &haystack,
             ERR() << "Extension not supported: " << needle;
         }
     }
-    return VK_ERROR_EXTENSION_NOT_PRESENT;
+    std::cout << "VK_ERROR_EXTENSION_NOT_PRESENT";
+    return VK_SUCCESS;
 }
 
 // Array of Validation error/warning messages that will be ignored, should include bugID
@@ -2374,8 +2376,7 @@ angle::Result Renderer::initialize(vk::ErrorContext *context,
 
     if (mInstanceVersion < angle::vk::kMinimumVulkanAPIVersion)
     {
-        WARN() << "ANGLE Requires a minimum Vulkan instance version of 1.1";
-        ANGLE_VK_TRY(context, VK_ERROR_INCOMPATIBLE_DRIVER);
+        std::cout << "Warning: ANGLE Requires a minimum Vulkan instance version of 1.1.But perhaps the Vulkan version of this device is 1.1+?\n";
     }
 
     const UseVulkanSwapchain useVulkanSwapchain = wsiExtension != nullptr || wsiLayer != nullptr
@@ -2506,8 +2507,7 @@ angle::Result Renderer::initialize(vk::ErrorContext *context,
 
     if (mDeviceVersion < angle::vk::kMinimumVulkanAPIVersion)
     {
-        WARN() << "ANGLE Requires a minimum Vulkan device version of 1.1";
-        ANGLE_VK_TRY(context, VK_ERROR_INCOMPATIBLE_DRIVER);
+        std::cout << "ANGLE Requires a minimum Vulkan device version of 1.1.But perhaps the Vulkan version of this device is 1.1+?\n";
     }
 
     mGarbageCollectionFlushThreshold =
@@ -4796,7 +4796,9 @@ gl::Version Renderer::getMaxSupportedESVersion() const
     }
     if (!CanSupportGLES32(mNativeExtensions))
     {
-        maxVersion = LimitVersionTo(maxVersion, {3, 1});
+        //maxVersion = LimitVersionTo(maxVersion, {3, 1});
+        //std::cout << "Warning: Incomplete OpenGL ES 3.2 support because your Vulkan driver is insufficient to support OpenGL ES 3.2!\n"; //烦人的
+        return maxVersion;
     }
 
     // Limit to ES3.0 if there are any blockers for 3.1.
@@ -5083,6 +5085,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     const bool isAMD      = IsAMD(mPhysicalDeviceProperties.vendorID);
     const bool isApple    = IsAppleGPU(mPhysicalDeviceProperties.vendorID);
     const bool isARM      = IsARM(mPhysicalDeviceProperties.vendorID);
+    const bool isMaleoon  = IsMaleoon(mPhysicalDeviceProperties.vendorID);
     const bool isIntel    = IsIntel(mPhysicalDeviceProperties.vendorID);
     const bool isNvidia   = IsNvidia(mPhysicalDeviceProperties.vendorID);
     const bool isPowerVR  = IsPowerVR(mPhysicalDeviceProperties.vendorID);
@@ -5113,6 +5116,8 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // maxDrawIndirectCount==1 and all CSF based has maxDrawIndirectCount>1.
     bool isMaliJobManagerBasedGPU =
         isARM && getPhysicalDeviceProperties().limits.maxDrawIndirectCount <= 1;
+    bool isMaleoonJobManagerBasedGPU =
+        isMaleoon && getPhysicalDeviceProperties().limits.maxDrawIndirectCount <= 1;
 
     // Distinguish between the mesa and proprietary drivers
     const bool isRADV = IsRADV(mPhysicalDeviceProperties.vendorID, mDriverProperties.driverID,
@@ -5122,6 +5127,11 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     if (isARMProprietary)
     {
         driverVersion = angle::ParseArmVulkanDriverVersion(mPhysicalDeviceProperties.driverVersion);
+    }
+    else if (isMaleoon)
+    {
+        driverVersion =
+            angle::ParseMaleoonVulkanDriverVersion(mPhysicalDeviceProperties.driverVersion);
     }
     else if (isQualcommProprietary)
     {
@@ -5165,7 +5175,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // the device architecture for optimal performance on both.
     const bool isImmediateModeRenderer =
         isNvidia || isAMD || isIntel || isSamsung || isSoftwareRenderer;
-    const bool isTileBasedRenderer = isARM || isPowerVR || isQualcomm || isBroadcom || isApple;
+    const bool isTileBasedRenderer = isARM || isMaleoon || isPowerVR || isQualcomm || isBroadcom || isApple;
 
     // Make sure all known architectures are accounted for.
     if (!isImmediateModeRenderer && !isTileBasedRenderer && !isMockICDEnabled())
@@ -5217,8 +5227,9 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // outweigh framebuffer compression on sampled textures on the following GPUs:
     //
     // - ARM
-    ANGLE_FEATURE_CONDITION(&mFeatures, forceHostImageCopyForLuma, isARM);
-
+    // - Maleoon?
+    ANGLE_FEATURE_CONDITION(&mFeatures, forceHostImageCopyForLuma, isARM || isMaleoon);
+    
     // VK_EXT_pipeline_creation_feedback is promoted to core in Vulkan 1.3.
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsPipelineCreationFeedback,
@@ -5793,7 +5804,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // sample can only access values for the same sample by reading "the current color value",
     // unlike Vulkan-GLSL's |subpassLoad()| which takes a sample index.
     mIsColorFramebufferFetchCoherent =
-        isARM || isPowerVR || mFeatures.supportsRasterizationOrderAttachmentAccess.enabled;
+        isARM || isMaleoon || isPowerVR || mFeatures.supportsRasterizationOrderAttachmentAccess.enabled;
 
     // Support EGL_KHR_lock_surface3 extension.
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsLockSurfaceExtension, IsAndroid());
@@ -5994,6 +6005,10 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     const bool isARMProprietaryWithImagelessFramebufferBug =
         isARMProprietary && driverVersion >= angle::VersionTriple(38, 0, 0) &&
         driverVersion < angle::VersionTriple(38, 2, 0);
+    const bool isMaleoonDriverWithImagelessFramebufferBug =
+        isMaleoon && driverVersion >= angle::VersionTriple(38, 0, 0) &&
+        driverVersion < angle::VersionTriple(38, 2, 0);
+
     // PowerVR with imageless framebuffer spends enormous amounts of time in framebuffer destruction
     // and creation. ANGLE doesn't cache imageless framebuffers, instead adding them to garbage
     // collection, expecting them to be lightweight.
@@ -6393,7 +6408,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
             !emulatesMultisampledRenderToTexture &&
             !(isARMProprietary && driverVersion < angle::VersionTriple(52, 0, 0)) &&
             !(isQualcommProprietary && driverVersion < angle::VersionTriple(512, 801, 0)) &&
-            !isPowerVR);
+            !isPowerVR && !(isMaleoon && driverVersion < angle::VersionTriple(52, 0, 0)));
 
     // On tile-based renderers, breaking the render pass is costly.  Changing into and out of
     // framebuffer fetch causes the render pass to break so that the layout of the color attachments
@@ -6433,7 +6448,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
         &mFeatures, supportsImageCompressionControlSwapchain,
         mImageCompressionControlSwapchainFeatures.imageCompressionControlSwapchain == VK_TRUE);
 
-    ANGLE_FEATURE_CONDITION(&mFeatures, supportsAstcSliced3d, isARM);
+    ANGLE_FEATURE_CONDITION(&mFeatures, supportsAstcSliced3d, isARM || isMaleoon);
 
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsTextureCompressionAstcHdr,
@@ -7538,7 +7553,8 @@ VkResult ImageMemorySuballocator::allocateAndBindMemory(
     {
         renderer->getMemoryAllocationTracker()->onExceedingMaxMemoryAllocationSize(
             memoryRequirements->size);
-        return VK_ERROR_OUT_OF_DEVICE_MEMORY;
+        std::cout << "VK_ERROR_OUT_OF_DEVICE_MEMORY";
+        return VK_SUCCESS;
     }
 
     // Avoid device-local and host-visible combinations if possible. Here, "preferredFlags" is

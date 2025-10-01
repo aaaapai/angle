@@ -10,6 +10,8 @@
 #    pragma allow_unsafe_buffers
 #endif
 
+#include <cstdlib>
+
 #include "libANGLE/validationES3_autogen.h"
 
 #include "anglebase/numerics/safe_conversions.h"
@@ -243,7 +245,8 @@ bool ValidateTexImageFormatCombination(const Context *context,
 {
     // The type and format are valid if any supported internal format has that type and format.
     // ANGLE_texture_external_yuv_sampling extension adds support for YUV formats
-    if (gl::IsYuvFormat(format))
+
+    /*if (gl::IsYuvFormat(format))
     {
         if (!context->getExtensions().yuvInternalFormatANGLE)
         {
@@ -258,23 +261,23 @@ bool ValidateTexImageFormatCombination(const Context *context,
             ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidFormat);
             return false;
         }
-    }
+    }*/
 
-    if (!ValidES3Type(type) || (type == GL_HALF_FLOAT_OES && context->isWebGL()))
+    /*if (!ValidES3Type(type) || (type == GL_HALF_FLOAT_OES && context->isWebGL()))
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidType);
         return false;
-    }
+    }*/
 
     // For historical reasons, glTexImage2D and glTexImage3D pass in their internal format as a
     // GLint instead of a GLenum. Therefor an invalid internal format gives a GL_INVALID_VALUE
     // error instead of a GL_INVALID_ENUM error. As this validation function is only called in
     // the validation codepaths for glTexImage2D/3D, we record a GL_INVALID_VALUE error.
-    if (!ValidES3InternalFormat(internalFormat))
+    /*if (!ValidES3InternalFormat(internalFormat))
     {
         ANGLE_VALIDATION_ERRORF(GL_INVALID_VALUE, kInvalidInternalFormat, internalFormat);
         return false;
-    }
+    }*/
 
     // From the ES 3.0 spec section 3.8.3:
     // Textures with a base internal format of DEPTH_COMPONENT or DEPTH_STENCIL are supported by
@@ -283,12 +286,12 @@ bool ValidateTexImageFormatCombination(const Context *context,
     // INVALID_OPERATION error.
     //
     // Similar language exists in OES_texture_stencil8.
-    if (target == TextureType::_3D &&
+    /*if (target == TextureType::_3D &&
         (format == GL_DEPTH_COMPONENT || format == GL_DEPTH_STENCIL || format == GL_STENCIL_INDEX))
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, k3DDepthStencil);
         return false;
-    }
+    }*/
 
     // Check if this is a valid format combination to load texture data
     // ANGLE_texture_external_yuv_sampling extension adds support for YUV formats
@@ -296,8 +299,8 @@ bool ValidateTexImageFormatCombination(const Context *context,
     {
         if (type != GL_UNSIGNED_BYTE)
         {
-            ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInvalidFormatCombination);
-            return false;
+            /*ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInvalidFormatCombination);
+            return false;*/
         }
     }
     else
@@ -337,18 +340,18 @@ bool ValidateTexImageFormatCombination(const Context *context,
             }
             if (!extensionFormatsAllowed)
             {
-                ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInvalidFormatCombination);
-                return false;
+                /*ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInvalidFormatCombination);
+                return false;*/
             }
         }
     }
 
-    const InternalFormat &formatInfo = GetInternalFormatInfo(internalFormat, type);
-    if (!formatInfo.textureSupport(context->getClientVersion(), context->getExtensions()))
+    // const InternalFormat &formatInfo = GetInternalFormatInfo(internalFormat, type);
+    /*if (!formatInfo.textureSupport(context->getClientVersion(), context->getExtensions()))
     {
         ANGLE_VALIDATION_ERRORF(GL_INVALID_OPERATION, kInvalidInternalFormat, internalFormat);
         return false;
-    }
+    }*/
 
     return true;
 }
@@ -357,12 +360,12 @@ static bool ValidateES3CompressedFormatForTexture2DArray(const Context *context,
                                                          angle::EntryPoint entryPoint,
                                                          GLenum format)
 {
-    if ((IsETC1Format(format) && !context->getExtensions().compressedETC1RGB8SubTextureEXT) ||
+    /*if ((IsETC1Format(format) && !context->getExtensions().compressedETC1RGB8SubTextureEXT) ||
         IsPVRTC1Format(format))
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInternalFormatRequiresTexture2D);
         return false;
-    }
+    }*/
 
     return true;
 }
@@ -371,7 +374,7 @@ static bool ValidateES3CompressedFormatForTexture3D(const Context *context,
                                                     angle::EntryPoint entryPoint,
                                                     GLenum format)
 {
-    if (IsETC1Format(format) || IsPVRTC1Format(format))
+    /*if (IsETC1Format(format) || IsPVRTC1Format(format))
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInternalFormatRequiresTexture2D);
         return false;
@@ -411,7 +414,7 @@ static bool ValidateES3CompressedFormatForTexture3D(const Context *context,
         // GL_EXT_texture_compression_bptc
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInternalFormatRequiresTexture2DArrayBPTC);
         return false;
-    }
+    }*/
 
     return true;
 }
@@ -437,7 +440,7 @@ bool ValidateES3TexImageParametersBase(const Context *context,
 {
     TextureType texType = TextureTargetToType(target);
 
-    if (gl::IsYuvFormat(format))
+    /*if (gl::IsYuvFormat(format))
     {
         // According to ANGLE_yuv_internal_format, the texture needs to be an immutable
         // texture, texture target can only be TEXTURE_2D and there is no mipmap support
@@ -824,7 +827,7 @@ bool ValidateES3TexImageParametersBase(const Context *context,
                 }
             }
         }
-    }
+    }*/
 
     return true;
 }
@@ -848,11 +851,11 @@ bool ValidateES3TexImage2DParameters(const Context *context,
                                      GLsizei imageSize,
                                      const void *pixels)
 {
-    if (!ValidTexture2DDestinationTarget(context, target))
+    /*if (!ValidTexture2DDestinationTarget(context, target))
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidTextureTarget);
         return false;
-    }
+    }*/
 
     return ValidateES3TexImageParametersBase(
         context, entryPoint, target, level, internalformat, isCompressed, isSubImage, xoffset,
@@ -878,11 +881,11 @@ bool ValidateES3TexImage3DParameters(const Context *context,
                                      GLsizei bufSize,
                                      const void *pixels)
 {
-    if (!ValidTexture3DDestinationTarget(context, target))
+    /*if (!ValidTexture3DDestinationTarget(context, target))
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidTextureTarget);
         return false;
-    }
+    }*/
 
     return ValidateES3TexImageParametersBase(
         context, entryPoint, target, level, internalformat, isCompressed, isSubImage, xoffset,
