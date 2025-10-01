@@ -4784,7 +4784,7 @@ gl::Version Renderer::getMaxSupportedESVersion() const
         std::string version_str = angle_gles_version;
      
         // 也可以支持更灵活的格式，比如 "3.2"
-        else if (version_str.find('.') != std::string::npos) {
+        if (version_str.find('.') != std::string::npos) {
           int major = std::stoi(version_str.substr(0, version_str.find('.')));
           int minor = std::stoi(version_str.substr(version_str.find('.') + 1));
           maxVersion = LimitVersionTo(maxVersion, {major, minor});
