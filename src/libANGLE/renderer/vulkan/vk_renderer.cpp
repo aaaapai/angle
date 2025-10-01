@@ -4777,13 +4777,25 @@ std::string Renderer::getVersionString(bool includeFullVersion) const
 gl::Version Renderer::getMaxSupportedESVersion() const
 {
     // Current highest supported version
-    gl::Version maxVersion = gl::Version(3, 2);
+    gl::Version maxVersion = gl::Version(3, 2); // 默认值
+
+   const char* angle_gles_version = std::getenv("ANGLE_GLES_VERSION");
+   if (angle_gles_version != nullptr) {
+        std::string version_str = angle_gles_version;
+     
+        // 也可以支持更灵活的格式，比如 "3.2"
+        else if (version_str.find('.') != std::string::npos) {
+          int major = std::stoi(version_str.substr(0, version_str.find('.')));
+          int minor = std::stoi(version_str.substr(version_str.find('.') + 1));
+          maxVersion = LimitVersionTo(maxVersion, {major, minor});
+        }
+
+   }
 
     // Early out without downgrading ES version if mock ICD enabled.
     // Mock ICD doesn't expose sufficient capabilities yet.
     // https://github.com/KhronosGroup/Vulkan-Tools/issues/84
-    if (isMockICDEnabled())
-    {
+    if (isMockICDEnabled()) {
         return maxVersion;
     }
 
@@ -4794,12 +4806,12 @@ gl::Version Renderer::getMaxSupportedESVersion() const
     {
         return maxVersion;
     }
-    if (!CanSupportGLES32(mNativeExtensions))
+    /*if (!CanSupportGLES32(mNativeExtensions))
     {
         //maxVersion = LimitVersionTo(maxVersion, {3, 1});
         //std::cout << "Warning: Incomplete OpenGL ES 3.2 support because your Vulkan driver is insufficient to support OpenGL ES 3.2!\n"; //烦人的
         return maxVersion;
-    }
+    }*/
 
     // Limit to ES3.0 if there are any blockers for 3.1.
 
@@ -4807,27 +4819,27 @@ gl::Version Renderer::getMaxSupportedESVersion() const
     // Atomic counter buffers are emulated with storage buffers.  For simplicity, we always support
     // either none or IMPLEMENTATION_MAX_ATOMIC_COUNTER_BUFFERS atomic counter buffers.  So if
     // Vulkan doesn't support at least that many storage buffers in compute, we don't support 3.1.
-    const uint32_t kMinimumStorageBuffersForES31 =
+    /*const uint32_t kMinimumStorageBuffersForES31 =
         gl::limits::kMinimumComputeStorageBuffers +
-        gl::IMPLEMENTATION_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS;
-    if (mPhysicalDeviceProperties.limits.maxPerStageDescriptorStorageBuffers <
+        gl::IMPLEMENTATION_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS;*/
+    /*if (mPhysicalDeviceProperties.limits.maxPerStageDescriptorStorageBuffers <
         kMinimumStorageBuffersForES31)
     {
         maxVersion = LimitVersionTo(maxVersion, {3, 0});
-    }
+    }*/
 
     // ES3.1 requires at least a maximum offset of at least 2047.
     // If the Vulkan implementation can't support that, we cannot support 3.1.
-    if (mPhysicalDeviceProperties.limits.maxVertexInputAttributeOffset < 2047)
+    /*if (mPhysicalDeviceProperties.limits.maxVertexInputAttributeOffset < 2047)
     {
         maxVersion = LimitVersionTo(maxVersion, {3, 0});
-    }
+    }*/
 
     // SSO is in ES3.1 core, so we have to cap to ES3.0 for SSO disablement.
-    if (mFeatures.disableSeparateShaderObjects.enabled)
+    /*if (mFeatures.disableSeparateShaderObjects.enabled)
     {
         maxVersion = LimitVersionTo(maxVersion, {3, 0});
-    }
+    }*/
 
     // Limit to ES2.0 if there are any blockers for 3.0.
     // TODO: http://anglebug.com/42262611 Limit to GLES 2.0 if flat shading can't be emulated
@@ -4835,17 +4847,18 @@ gl::Version Renderer::getMaxSupportedESVersion() const
     // Multisample textures (ES3.1) and multisample renderbuffers (ES3.0) require the Vulkan driver
     // to support the standard sample locations (in order to pass dEQP tests that check these
     // locations).  If the Vulkan implementation can't support that, we cannot support 3.0/3.1.
-    if (mPhysicalDeviceProperties.limits.standardSampleLocations != VK_TRUE)
+    /*if (mPhysicalDeviceProperties.limits.standardSampleLocations != VK_TRUE)
     {
         maxVersion = LimitVersionTo(maxVersion, {2, 0});
-    }
+    }*/
 
     // If independentBlend is not supported, we can't have a mix of has-alpha and emulated-alpha
     // render targets in a framebuffer.  We also cannot perform masked clears of multiple render
     // targets.
     if (!mPhysicalDeviceFeatures.independentBlend)
     {
-        maxVersion = LimitVersionTo(maxVersion, {2, 0});
+        printf("[ANGLE] 糟糕的设备，官方版本ANGLE得降至GLES2.0，因为independentBlend都不支持\n");
+        //maxVersion = LimitVersionTo(maxVersion, {2, 0});
     }
 
     // If the Vulkan transform feedback extension is not present, we use an emulation path that
@@ -4854,7 +4867,8 @@ gl::Version Renderer::getMaxSupportedESVersion() const
     if (!vk::CanSupportTransformFeedbackExtension(mTransformFeedbackFeatures) &&
         !vk::CanSupportTransformFeedbackEmulation(mPhysicalDeviceFeatures))
     {
-        maxVersion = LimitVersionTo(maxVersion, {2, 0});
+        printf("[ANGLE] 糟糕的设备，官方版本ANGLE得降至GLES2.0，因为TransformFeedbackExtension和TransformFeedbackEmulation都不支持\n");
+        //maxVersion = LimitVersionTo(maxVersion, {2, 0});
     }
 
     // Limit to GLES 2.0 if maxPerStageDescriptorUniformBuffers is too low.
@@ -4867,7 +4881,8 @@ gl::Version Renderer::getMaxSupportedESVersion() const
         if (static_cast<GLuint>(getNativeCaps().maxShaderUniformBlocks[shaderType]) <
             gl::limits::kMinimumShaderUniformBlocks)
         {
-            maxVersion = LimitVersionTo(maxVersion, {2, 0});
+            printf("[ANGLE] 糟糕的设备，官方版本ANGLE得降至GLES2.0，因为maxShaderUniformBlocks太小\n");
+            //maxVersion = LimitVersionTo(maxVersion, {2, 0});
         }
     }
 
@@ -4878,7 +4893,8 @@ gl::Version Renderer::getMaxSupportedESVersion() const
     if (static_cast<GLuint>(getNativeCaps().maxVertexOutputComponents) <
         gl::limits::kMinimumVertexOutputComponents)
     {
-        maxVersion = LimitVersionTo(maxVersion, {2, 0});
+        printf("[ANGLE] 糟糕的设备，官方版本ANGLE得降至GLES2.0，因为maxVertexOutputComponents太低，最小值为64\n");
+        // maxVersion = LimitVersionTo(maxVersion, {2, 0});
     }
 
     return maxVersion;
