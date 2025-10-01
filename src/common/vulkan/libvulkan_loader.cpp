@@ -21,7 +21,8 @@ void *OpenLibVulkan()
 {
     if (std::getenv("VULKAN_PTR"))
         return (void*) std::strtoul(std::getenv("VULKAN_PTR"), NULL, 0x10);
- 
+
+    printf("[ANGLE] Warning: No environment variable VULKAN_PTR! Will load libvulkan.");
     constexpr const char *kLibVulkanNames[] = {
 #if defined(ANGLE_PLATFORM_WINDOWS)
         "vulkan-1.dll",
