@@ -346,7 +346,7 @@ bool ValidateTexImageFormatCombination(const Context *context,
         }
     }
 
-    // const InternalFormat &formatInfo = GetInternalFormatInfo(internalFormat, type);
+    const InternalFormat &formatInfo = GetInternalFormatInfo(internalFormat, type);
     if (!formatInfo.textureSupport(context->getClientVersion(), context->getExtensions()))
     {
         ANGLE_VALIDATION_ERRORF(GL_INVALID_OPERATION, kInvalidInternalFormat, internalFormat);
@@ -851,11 +851,11 @@ bool ValidateES3TexImage2DParameters(const Context *context,
                                      GLsizei imageSize,
                                      const void *pixels)
 {
-    /*if (!ValidTexture2DDestinationTarget(context, target))
+    if (!ValidTexture2DDestinationTarget(context, target))
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidTextureTarget);
         return false;
-    }*/
+    }
 
     return ValidateES3TexImageParametersBase(
         context, entryPoint, target, level, internalformat, isCompressed, isSubImage, xoffset,
