@@ -38,6 +38,7 @@ cflags = [
   "-Wno-error=unused-variable",
   "-Wno-error",
   "-DANGLE_ENABLE_DEBUG_ANNOTATIONS",
+  "-DANGLE_LOG_LEVEL=3",
 ]
 cflags_cc = [
   "-Wno-unused-variable",
@@ -45,6 +46,7 @@ cflags_cc = [
   "-Wno-error",
   "-stdlib=libc++",
   "-DANGLE_ENABLE_DEBUG_ANNOTATIONS",
+  "-DANGLE_LOG_LEVEL=3",
 ]
 ldflags = [
   "-fuse-ld=lld",
