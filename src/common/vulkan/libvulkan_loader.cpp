@@ -24,10 +24,9 @@ static void* vulkan_load_from_pojavexec() {
     }
 
     printf("[ANGLE] Try to dlopen libpojavexec.\n");
-    void* lib_handle = dlopen("libpojavexec.so", RTLD_NOLOAD);
+    void* lib_handle = dlopen("libpojavexec.so", RTLD_LOCAL|RTLD_LAZY);
     if (lib_handle == nullptr) {
-      printf("[ANGLE] Failed to dlopen libpojavexec, now try again.\n");
-      lib_handle = dlopen("libpojavexec.so", RTLD_LOCAL|RTLD_LAZY);
+      printf("[ANGLE] Warning: Failed to dlopen libpojavexec.\n");
     }
     
     // 获取 load_vulkan 函数
@@ -70,6 +69,8 @@ void *OpenLibVulkan()
 #endif
     };
 
+    const char *kLibVulkanName_env = std::getenv("ANGLE_LIBVULKAN_NAME");
+
     constexpr SearchType kSearchTypes[] = {
 // On Android and Fuchsia we use the system libvulkan.
 #if defined(ANGLE_USE_CUSTOM_LIBVULKAN)
@@ -83,7 +84,12 @@ void *OpenLibVulkan()
     {
         for (const char *libraryName : kLibVulkanNames)
         {
-            void *library = OpenSystemLibraryWithExtension(libraryName, searchType);
+            void *library = nullptr;
+            if (kLibVulkanName_env) {
+                library = OpenSystemLibraryWithExtension(kLibVulkanName_env, searchType);
+            } else {
+                library = OpenSystemLibraryWithExtension(libraryName, searchType);
+            }
             if (library)
             {
                 return library;
