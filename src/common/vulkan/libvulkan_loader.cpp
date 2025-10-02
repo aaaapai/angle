@@ -12,6 +12,7 @@
 #include "common/system_utils.h"
 
 #include <cstdlib>
+#include <dlfcn.h>
 
 namespace angle
 {
