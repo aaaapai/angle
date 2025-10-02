@@ -4870,28 +4870,28 @@ gl::Version Renderer::getMaxSupportedESVersion() const
     // If independentBlend is not supported, we can't have a mix of has-alpha and emulated-alpha
     // render targets in a framebuffer.  We also cannot perform masked clears of multiple render
     // targets.
-    if (!mPhysicalDeviceFeatures.independentBlend)
+    /*if (!mPhysicalDeviceFeatures.independentBlend)
     {
         printf("[ANGLE] 糟糕的设备，官方版本ANGLE得降至GLES2.0，因为independentBlend都不支持\n");
         //maxVersion = LimitVersionTo(maxVersion, {2, 0});
-    }
+    }*/
 
     // If the Vulkan transform feedback extension is not present, we use an emulation path that
     // requires the vertexPipelineStoresAndAtomics feature. Without the extension or this feature,
     // we can't currently support transform feedback.
-    if (!vk::CanSupportTransformFeedbackExtension(mTransformFeedbackFeatures) &&
+    /*if (!vk::CanSupportTransformFeedbackExtension(mTransformFeedbackFeatures) &&
         !vk::CanSupportTransformFeedbackEmulation(mPhysicalDeviceFeatures))
     {
         printf("[ANGLE] 糟糕的设备，官方版本ANGLE得降至GLES2.0，因为TransformFeedbackExtension和TransformFeedbackEmulation都不支持\n");
         //maxVersion = LimitVersionTo(maxVersion, {2, 0});
-    }
+    }*/
 
     // Limit to GLES 2.0 if maxPerStageDescriptorUniformBuffers is too low.
     // Table 6.31 MAX_VERTEX_UNIFORM_BLOCKS minimum value = 12
     // Table 6.32 MAX_FRAGMENT_UNIFORM_BLOCKS minimum value = 12
     // NOTE: We reserve some uniform buffers for emulation, so use the NativeCaps which takes this
     // into account, rather than the physical device maxPerStageDescriptorUniformBuffers limits.
-    for (gl::ShaderType shaderType : gl::AllShaderTypes())
+    /*for (gl::ShaderType shaderType : gl::AllShaderTypes())
     {
         if (static_cast<GLuint>(getNativeCaps().maxShaderUniformBlocks[shaderType]) <
             gl::limits::kMinimumShaderUniformBlocks)
@@ -4899,18 +4899,18 @@ gl::Version Renderer::getMaxSupportedESVersion() const
             printf("[ANGLE] 糟糕的设备，官方版本ANGLE得降至GLES2.0，因为maxShaderUniformBlocks太小\n");
             //maxVersion = LimitVersionTo(maxVersion, {2, 0});
         }
-    }
+    }*/
 
     // Limit to GLES 2.0 if maxVertexOutputComponents is too low.
     // Table 6.31 MAX VERTEX OUTPUT COMPONENTS minimum value = 64
     // NOTE: We reserve some vertex output components for emulation, so use the NativeCaps which
     // takes this into account, rather than the physical device maxVertexOutputComponents limits.
-    if (static_cast<GLuint>(getNativeCaps().maxVertexOutputComponents) <
+    /*if (static_cast<GLuint>(getNativeCaps().maxVertexOutputComponents) <
         gl::limits::kMinimumVertexOutputComponents)
     {
         printf("[ANGLE] 糟糕的设备，官方版本ANGLE得降至GLES2.0，因为maxVertexOutputComponents太低，最小值为64\n");
         // maxVersion = LimitVersionTo(maxVersion, {2, 0});
-    }
+    }*/
 
     return maxVersion;
 }
