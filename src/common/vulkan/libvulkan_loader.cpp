@@ -23,20 +23,22 @@ static void* vulkan_load_from_pojavexec() {
         return (void*)std::strtoul(vulkan_ptr_env, NULL, 0x10);
     }
 
-    void *lib_handle = dlopen("libpojavexec.so", RTLD_LOCAL|RTLD_LAZY);
-    
-    // 获取 load_vulkan 函数
-    void (*load_vulkan_func)() = reinterpret_cast<void(*)()>(dlsym(lib_handle, "maybe_load_vulkan"));
-    if (load_vulkan_func) {
-        // 调用 load_vulkan 函数
-        load_vulkan_func();
+    printf("[ANGLE] Try to dlopen libpojavexec.\n");
+    void* lib_handle = dlopen("libpojavexec.so", RTLD_NOLOAD);
+    if (lib_handle == nullptr) {
+      printf("[ANGLE] Failed to dlopen libpojavexec, now try again.\n");
+      lib_handle = dlopen("libpojavexec.so", RTLD_LOCAL|RTLD_LAZY);
     }
     
-    // 再次检查环境变量 VULKAN_PTR
-    vulkan_ptr_env = std::getenv("VULKAN_PTR");
-    if (vulkan_ptr_env) {
-        printf("[ANGLE] Use VULKAN_PTR = %s\n", vulkan_ptr_env);
-        return (void*)std::strtoul(vulkan_ptr_env, NULL, 0x10);
+    // 获取 load_vulkan 函数
+    void *load_vulkan_func = reinterpret_cast<void*(*)()>(dlsym(lib_handle, "maybe_load_vulkan"));
+    if (load_vulkan_func) {
+        // 调用 load_vulkan 函数
+        vulkan_ptr_env = std::getenv("VULKAN_PTR");
+        if (vulkan_ptr_env) {
+          printf("[ANGLE] Use VULKAN_PTR = %s\n", vulkan_ptr_env);
+        }
+        return load_vulkan_func();
     }
 
     return nullptr;
