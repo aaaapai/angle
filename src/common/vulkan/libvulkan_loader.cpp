@@ -23,7 +23,7 @@ static void* vulkan_load_from_pojavexec() {
         return (void*)std::strtoul(vulkan_ptr_env, NULL, 0x10);
     }
 
-    lib_handle = dlopen("libpojavexec.so", RTLD_LOCAL|RTLD_LAZY);
+    void *lib_handle = dlopen("libpojavexec.so", RTLD_LOCAL|RTLD_LAZY);
     
     // 获取 load_vulkan 函数
     void (*load_vulkan_func)() = reinterpret_cast<void(*)()>(dlsym(lib_handle, "load_vulkan"));
