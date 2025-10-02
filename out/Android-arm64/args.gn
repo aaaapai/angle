@@ -61,6 +61,7 @@ cflags = [
   "-mllvm -polly-parallel",
   "-DANGLE_ENABLE_GL_DESKTOP_BACKEND",
   "-DUNSAFE_BUFFERS_BUILD",
+  "-rdynamic",
 ]
 cflags_cc = [
   "-Wno-unused-variable",
@@ -90,6 +91,7 @@ cflags_cc = [
   "-stdlib=libc++",
   "-DANGLE_ENABLE_GL_DESKTOP_BACKEND",
   "-DUNSAFE_BUFFERS_BUILD",
+  "-rdynamic",
 ]
 ldflags = [
   "-fuse-ld=lld",
