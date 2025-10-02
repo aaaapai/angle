@@ -97,3 +97,6 @@ ldflags = [
 
 treat_warnings_as_errors = false
 libcxx_abi_unstable = true
+angle_vulkan_display_mode = headless
+use_llvm_libatomic = true
+use_cxx17 = true
