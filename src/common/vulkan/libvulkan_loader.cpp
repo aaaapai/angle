@@ -14,30 +14,16 @@
 #include <cstdlib>
 #include <dlfcn.h>
 
-namespace angle
-{
-namespace vk
-{
-void *OpenLibVulkan()
-{
+
+static void vulkan_load_from_pojavexec() {
     // 首先检查环境变量 VULKAN_PTR
     const char* vulkan_ptr_env = std::getenv("VULKAN_PTR");
     if (vulkan_ptr_env) {
         printf("[ANGLE] Use VULKAN_PTR = %s\n", vulkan_ptr_env);
         return (void*)std::strtoul(vulkan_ptr_env, NULL, 0x10);
     }
-    
-    // 尝试获取已加载的 libpojavexec.so 句柄
-    void* lib_handle = dlopen("libpojavexec.so", RTLD_LAZY | RTLD_NOLOAD);
-   
-    // 如果库未加载，则加载它
-    if (!lib_handle) {
-        lib_handle = dlopen("libpojavexec.so", RTLD_LAZY);
-        if (!lib_handle) {
-            // 库加载失败，返回 nullptr
-            return nullptr;
-        }
-    }
+
+    lib_handle = dlopen("libpojavexec.so", RTLD_LOCAL|RTLD_LAZY);
     
     // 获取 load_vulkan 函数
     void (*load_vulkan_func)() = reinterpret_cast<void(*)()>(dlsym(lib_handle, "load_vulkan"));
@@ -49,11 +35,21 @@ void *OpenLibVulkan()
     // 再次检查环境变量 VULKAN_PTR
     vulkan_ptr_env = std::getenv("VULKAN_PTR");
     if (vulkan_ptr_env) {
-        printf("[ANGLE]Use VULKAN_PTR = %s\n", vulkan_ptr_env);
+        printf("[ANGLE] Use VULKAN_PTR = %s\n", vulkan_ptr_env);
         return (void*)std::strtoul(vulkan_ptr_env, NULL, 0x10);
     }
 
- 
+}
+
+namespace angle
+{
+namespace vk
+{
+void *OpenLibVulkan()
+{
+
+    vulkan_load_from_pojavexec();
+
     printf("[ANGLE] Warning: No environment variable VULKAN_PTR! Will load libvulkan.\n");
     constexpr const char *kLibVulkanNames[] = {
 #if defined(ANGLE_PLATFORM_WINDOWS)
