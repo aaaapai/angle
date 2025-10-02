@@ -100,3 +100,4 @@ libcxx_abi_unstable = true
 angle_vulkan_display_mode = headless
 use_llvm_libatomic = true
 use_cxx17 = true
+android_ndk_version = "r28c"
