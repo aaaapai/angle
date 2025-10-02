@@ -31,7 +31,7 @@ static void* vulkan_load_from_pojavexec() {
     }
     
     // 获取 load_vulkan 函数
-    void *load_vulkan_func = reinterpret_cast<void*(*)()>(dlsym(lib_handle, "maybe_load_vulkan"));
+    void *(*load_vulkan_func)() = reinterpret_cast<void*(*)()>(dlsym(lib_handle, "maybe_load_vulkan"));
     if (load_vulkan_func) {
         // 调用 load_vulkan 函数
         vulkan_ptr_env = std::getenv("VULKAN_PTR");
