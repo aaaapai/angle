@@ -15,7 +15,7 @@
 #include <dlfcn.h>
 
 
-static void vulkan_load_from_pojavexec() {
+static void* vulkan_load_from_pojavexec() {
     // 首先检查环境变量 VULKAN_PTR
     const char* vulkan_ptr_env = std::getenv("VULKAN_PTR");
     if (vulkan_ptr_env) {
@@ -39,6 +39,7 @@ static void vulkan_load_from_pojavexec() {
         return (void*)std::strtoul(vulkan_ptr_env, NULL, 0x10);
     }
 
+    return nullptr;
 }
 
 namespace angle
@@ -48,7 +49,10 @@ namespace vk
 void *OpenLibVulkan()
 {
 
-    vulkan_load_from_pojavexec();
+    void* vulkan_load_from_pojavexec_result = vulkan_load_from_pojavexec();
+    if (vulkan_load_from_pojavexec_result != nullptr) {
+        return vulkan_load_from_pojavexec_result;
+    }
 
     printf("[ANGLE] Warning: No environment variable VULKAN_PTR! Will load libvulkan.\n");
     constexpr const char *kLibVulkanNames[] = {
