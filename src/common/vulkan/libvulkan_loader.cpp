@@ -35,6 +35,7 @@ static void* vulkan_load_from_pojavexec() {
             printf("[ANGLE] Failed to dlopen libpgw.Now try again.\n");
             lib_handle = dlopen("libpgw.so", RTLD_LOCAL|RTLD_LAZY);
           }
+      }
     }
     
     // 获取 load_vulkan 函数
