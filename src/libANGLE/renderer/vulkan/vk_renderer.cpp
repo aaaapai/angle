@@ -140,18 +140,14 @@ bool IsQualcommOpenSource(uint32_t vendorId, uint32_t driverId, const char *devi
         return false;
     }
 
-    // Otherwise, look for Venus or Turnip in the device name.
-    if (strstr(deviceName, "Venus") != nullptr || strstr(deviceName, "Turnip") != nullptr || strstr(deviceName, "PurpleVK") != nullptr) {
-        return true;
-    }
-
     // Where driver id is available, distinguish by driver id:
     if (driverId != 0)
     {
         return driverId != VK_DRIVER_ID_QUALCOMM_PROPRIETARY;
     }
 
-    return false;
+    // Otherwise, look for Venus or Turnip in the device name.
+    return strstr(deviceName, "Venus") != nullptr || strstr(deviceName, "Turnip") != nullptr || strstr(deviceName, "PurpleVK") != nullptr;
 }
 
 bool IsXclipse()
