@@ -99,6 +99,6 @@ ldflags = [
 
 treat_warnings_as_errors = false
 libcxx_abi_unstable = true
-angle_vulkan_display_mode = "headless"
+angle_vulkan_display_mode = "simple"
 use_cxx17 = true
 android_ndk_version = "r28c"
