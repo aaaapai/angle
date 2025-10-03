@@ -30,10 +30,10 @@ static void* vulkan_load_from_pojavexec() {
       lib_handle = dlopen("libpojavexec.so", RTLD_LOCAL|RTLD_LAZY);
       if (lib_handle == nullptr) {
           printf("[ANGLE] Failed to dlopen libpojavexec.Are you using Pojav Glow Worm?Now try to dlopen libpgw.\n");
-          void* lib_handle = dlopen("libpgw.so", RTLD_NOLOAD);
+          lib_handle = dlopen("libpgw.so", RTLD_NOLOAD);
           if (lib_handle == nullptr) {
             printf("[ANGLE] Failed to dlopen libpgw.Now try again.\n");
-            void* lib_handle = dlopen("libpgw.so", RTLD_LOCAL|RTLD_LAZY);
+            lib_handle = dlopen("libpgw.so", RTLD_LOCAL|RTLD_LAZY);
           }
     }
     
