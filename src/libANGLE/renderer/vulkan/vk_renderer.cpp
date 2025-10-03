@@ -147,7 +147,7 @@ bool IsQualcommOpenSource(uint32_t vendorId, uint32_t driverId, const char *devi
     }
 
     // Otherwise, look for Venus or Turnip in the device name.
-    return strstr(deviceName, "Venus") != nullptr || strstr(deviceName, "Turnip") != nullptr;
+    return strstr(deviceName, "Venus") != nullptr || strstr(deviceName, "Turnip") != nullptr || strstr(deviceName, "PurpleVK") != nullptr;
 }
 
 bool IsXclipse()
