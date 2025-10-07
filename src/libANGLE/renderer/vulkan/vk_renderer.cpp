@@ -5125,7 +5125,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
 
     // Distinguish between the ARM proprietary driver and the Mesa open source driver
     const bool isMesaPanVK      = IsMesaPanVK(mDriverProperties.driverID);
-    const bool isARMProprietary = isARM && !isMesaPanVK;
+    const bool isARMProprietary = (isARM && !isMesaPanVK) || (isMaleoon && std::getenv("ANGLE_Maleoon_as_Mali") != nullptr);
 
     // Lacking other explicit ways to tell if mali GPU is job manager based or command stream front
     // end based, we use maxDrawIndirectCount as equivalent since all JM based has
