@@ -18,84 +18,10 @@
 #include <mutex>
 #include <sstream>
 #include <string>
-#include <iostream>
 
 #include "common/angleutils.h"
 #include "common/entry_points_enum_autogen.h"
 #include "common/platform.h"
-
-
-class aaaaaaAngleInfoLogger {
-public:
-    aaaaaaAngleInfoLogger() { std::cout << "[ANGLE] "; }
-    ~aaaaaaAngleInfoLogger() { std::cout << std::endl; }
-    
-    template<typename T>
-    aaaaaaAngleInfoLogger& operator<<(const T& value) {
-        std::cout << value;
-        return *this;
-    }
-    
-    // 添加对 std::endl 等流操作符的支持
-    aaaaaaAngleInfoLogger& operator<<(std::ostream& (*manip)(std::ostream&)) {
-        manip(std::cout);
-        return *this;
-    }
-};
-
-class aaaaaaAngleWarnLogger {
-public:
-    aaaaaaAngleWarnLogger() { std::cout << "[ANGLE] Warning: "; }
-    ~aaaaaaAngleWarnLogger() { std::cout << std::endl; }
-    
-    template<typename T>
-    aaaaaaAngleWarnLogger& operator<<(const T& value) {
-        std::cout << value;
-        return *this;
-    }
-    
-    // 添加对 std::endl 等流操作符的支持
-    aaaaaaAngleWarnLogger& operator<<(std::ostream& (*manip)(std::ostream&)) {
-        manip(std::cout);
-        return *this;
-    }
-};
-
-class aaaaaaAngleErrorLogger {
-public:
-    aaaaaaAngleErrorLogger() { std::cout << "[ANGLE] Error: "; }
-    ~aaaaaaAngleErrorLogger() { std::cout << std::endl; }
-    
-    template<typename T>
-    aaaaaaAngleErrorLogger& operator<<(const T& value) {
-        std::cout << value;
-        return *this;
-    }
-    
-    // 添加对 std::endl 等流操作符的支持
-    aaaaaaAngleErrorLogger& operator<<(std::ostream& (*manip)(std::ostream&)) {
-        manip(std::cout);
-        return *this;
-    }
-};
-
-class aaaaaaAngleFatalLogger {
-public:
-    aaaaaaAngleFatalLogger() { std::cout << "[ANGLE] Fatal error: "; }
-    ~aaaaaaAngleFatalLogger() { std::cout << std::endl; }
-    
-    template<typename T>
-    aaaaaaAngleFatalLogger& operator<<(const T& value) {
-        std::cout << value;
-        return *this;
-    }
-    
-    // 添加对 std::endl 等流操作符的支持
-    aaaaaaAngleFatalLogger& operator<<(std::ostream& (*manip)(std::ostream&)) {
-        manip(std::cout);
-        return *this;
-    }
-};
 
 namespace gl
 {
@@ -284,10 +210,10 @@ std::ostream &FmtHex(std::ostream &os, T value)
 #    define ANGLE_ENABLE_ASSERTS
 #endif
 
-#define INFO() aaaaaaAngleInfoLogger()
-#define WARN() aaaaaaAngleWarnLogger()
-#define ERR() aaaaaaAngleErrorLogger()
-#define FATAL() aaaaaaAngleFatalLogger()
+#define INFO() ANGLE_LOG(INFO)
+#define WARN() ANGLE_LOG(WARN)
+#define ERR() ANGLE_LOG(ERR)
+#define FATAL() ANGLE_LOG(FATAL)
 
 // A macro to log a performance event around a scope.
 #if defined(ANGLE_TRACE_ENABLED)
