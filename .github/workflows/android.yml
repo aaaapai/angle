@@ -18,15 +18,6 @@ jobs:
 
     steps:
  
-      - name: Cache depot_tools and dependencies
-        id: cache-deps
-        uses: actions/cache@main
-        with:
-          path: |
-            third_party
-            .cipd
-          key: ${{ runner.os }}-angle-deps-${{ hashFiles('angle/DEPS') }}
-
       - name: Checkout
         uses: actions/checkout@main
         with:
