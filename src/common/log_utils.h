@@ -263,7 +263,7 @@ std::ostream &FmtHex(std::ostream &os, T value)
 #define INFO() aaaaaaAngleInfoLogger()
 #define WARN() aaaaaaAngleWarnLogger()
 #define ERR() aaaaaaAngleErrorLogger()
-#define FATAL() aaaaaaAngleFaltalLogger()
+#define FATAL() aaaaaaAngleFatalLogger()
 
 // A macro to log a performance event around a scope.
 #if defined(ANGLE_TRACE_ENABLED)
