@@ -35,6 +35,12 @@ public:
         std::cout << value;
         return *this;
     }
+    
+    // 添加对 std::endl 等流操作符的支持
+    aaaaaaAngleInfoLogger& operator<<(std::ostream& (*manip)(std::ostream&)) {
+        manip(std::cout);
+        return *this;
+    }
 };
 
 class aaaaaaAngleWarnLogger {
@@ -45,6 +51,12 @@ public:
     template<typename T>
     aaaaaaAngleWarnLogger& operator<<(const T& value) {
         std::cout << value;
+        return *this;
+    }
+    
+    // 添加对 std::endl 等流操作符的支持
+    aaaaaaAngleWarnLogger& operator<<(std::ostream& (*manip)(std::ostream&)) {
+        manip(std::cout);
         return *this;
     }
 };
@@ -59,6 +71,12 @@ public:
         std::cout << value;
         return *this;
     }
+    
+    // 添加对 std::endl 等流操作符的支持
+    aaaaaaAngleErrorLogger& operator<<(std::ostream& (*manip)(std::ostream&)) {
+        manip(std::cout);
+        return *this;
+    }
 };
 
 class aaaaaaAngleFatalLogger {
@@ -69,6 +87,12 @@ public:
     template<typename T>
     aaaaaaAngleFatalLogger& operator<<(const T& value) {
         std::cout << value;
+        return *this;
+    }
+    
+    // 添加对 std::endl 等流操作符的支持
+    aaaaaaAngleFatalLogger& operator<<(std::ostream& (*manip)(std::ostream&)) {
+        manip(std::cout);
         return *this;
     }
 };
