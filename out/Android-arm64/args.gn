@@ -61,7 +61,6 @@ cflags = [
   "-mllvm -polly-parallel",
   "-DANGLE_ENABLE_GL_DESKTOP_BACKEND",
   "-DUNSAFE_BUFFERS_BUILD",
-  "-rdynamic",
 ]
 cflags_cc = [
   "-Wno-unused-variable",
@@ -91,7 +90,6 @@ cflags_cc = [
   "-stdlib=libc++",
   "-DANGLE_ENABLE_GL_DESKTOP_BACKEND",
   "-DUNSAFE_BUFFERS_BUILD",
-  "-rdynamic",
 ]
 ldflags = [
   "-fuse-ld=lld",
@@ -101,4 +99,5 @@ treat_warnings_as_errors = false
 libcxx_abi_unstable = true
 angle_vulkan_display_mode = "simple"
 use_cxx17 = true
-android_ndk_version = "r28c"
+android_ndk_root = /usr/local/lib/android/sdk/ndk
+android_ndk_version = "28.2.13676358"
