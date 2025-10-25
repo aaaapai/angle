@@ -499,7 +499,6 @@ libangle_sources = [
   "src/libANGLE/validationES31.cpp",
   "src/libANGLE/validationES32.cpp",
   "src/libANGLE/validationESEXT.cpp",
-  "src/libANGLE/vulkan_simulate/zink_simulate_vkfunction.cpp‎",
 ]
 
 cl_includes = [
