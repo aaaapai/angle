@@ -214,7 +214,7 @@ std::ostream &FmtHex(std::ostream &os, T value)
 #define INFO() FATAL()
 #define WARN() FATAL()
 #define ERR() FATAL()
-#define FATAL() FATAL()
+#define FATAL() ANGLE_LOG(FATAL)
 #else
 #define INFO() ANGLE_LOG(INFO)
 #define WARN() ANGLE_LOG(WARN)
