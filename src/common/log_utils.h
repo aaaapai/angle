@@ -211,10 +211,10 @@ std::ostream &FmtHex(std::ostream &os, T value)
 #endif
 
 #if defined(ANGLE_ASSERT_ALWAYS_ON)
-#define INFO() std::cout
-#define WARN() std::cout
-#define ERR() std::cout
-#define FATAL() std::cout
+#define INFO() FATAL()
+#define WARN() FATAL()
+#define ERR() FATAL()
+#define FATAL() FATAL()
 #else
 #define INFO() ANGLE_LOG(INFO)
 #define WARN() ANGLE_LOG(WARN)
