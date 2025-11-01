@@ -5151,7 +5151,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
 
     // Distinguish between the ARM proprietary driver and the Mesa open source driver
     const bool isMesaPanVK      = IsMesaPanVK(mDriverProperties.driverID);
-    const bool isARMProprietary = (isARM && !isMesaPanVK) || (isMaleoon && std::getenv("ANGLE_Maleoon_as_Mali") != nullptr);
+    const bool isARMProprietary = (isARM && !isMesaPanVK) || (isMaleoon && std::getenv("ANGLE_view_Maleoon_as_Mali") != nullptr);
 
     // Lacking other explicit ways to tell if mali GPU is job manager based or command stream front
     // end based, we use maxDrawIndirectCount as equivalent since all JM based has
@@ -6065,9 +6065,6 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     const bool isARMProprietaryWithImagelessFramebufferBug =
         isARMProprietary && driverVersion >= angle::VersionTriple(38, 0, 0) &&
         driverVersion < angle::VersionTriple(38, 2, 0);
-    const bool isMaleoonDriverWithImagelessFramebufferBug =
-        isMaleoon && driverVersion >= angle::VersionTriple(38, 0, 0) &&
-        driverVersion < angle::VersionTriple(38, 2, 0);
 
     // PowerVR with imageless framebuffer spends enormous amounts of time in framebuffer destruction
     // and creation. ANGLE doesn't cache imageless framebuffers, instead adding them to garbage
@@ -6508,7 +6505,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
         &mFeatures, supportsImageCompressionControlSwapchain,
         mImageCompressionControlSwapchainFeatures.imageCompressionControlSwapchain == VK_TRUE);
 
-    ANGLE_FEATURE_CONDITION(&mFeatures, supportsAstcSliced3d, isARM || isMaleoon);
+    ANGLE_FEATURE_CONDITION(&mFeatures, supportsAstcSliced3d, isARM);
 
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsTextureCompressionAstcHdr,
