@@ -54,4 +54,4 @@ ldflags = [
 
 treat_warnings_as_errors = false
 
-libcxx_abi_unstable = true
+libcxx_abi_unstable = false
