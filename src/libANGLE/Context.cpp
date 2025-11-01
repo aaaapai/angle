@@ -904,7 +904,7 @@ void Context::initializeDefaultResources()
 
     for (int i = 0; i < mState.getCaps().maxUniformBufferBindings; i++)
     {
-        bindBufferRange(BufferBinding::Uniform, i, {0}, 0, -1);
+        bindBufferRange(BufferBinding::Uniform, i, {0}, 0, 0);
     }
 
     // Initialize GLES1 renderer if appropriate.
