@@ -1973,8 +1973,8 @@ angle::Result TextureVk::copySubImageImplWithTransfer(ContextVk *contextVk,
         const gl::ImageIndex stagingIndex =
             gl::ImageIndex::Make2DArrayRange(level.get(), baseLayer, layerCount);
         mImage->stageSubresourceUpdateFromImage(stagingImage.release(), stagingIndex,
-                                                vk::LevelIndex(0), dstOffsetModified, extents,
-                                                imageType);
+                                                vk::LevelIndex(0), 0, dstOffsetModified, extents,
+                                                VK_IMAGE_TYPE_2D, imageType);
     }
 
     return angle::Result::Continue;
@@ -2148,8 +2148,8 @@ angle::Result TextureVk::copySubImageImplWithDraw(ContextVk *contextVk,
         const gl::ImageIndex stagingIndex =
             gl::ImageIndex::Make2DArrayRange(level.get(), baseLayer, layerCount);
         mImage->stageSubresourceUpdateFromImage(stagingImage.release(), stagingIndex,
-                                                vk::LevelIndex(0), dstOffsetModified, extents,
-                                                imageType);
+                                                vk::LevelIndex(0), 0, dstOffsetModified, extents,
+                                                VK_IMAGE_TYPE_2D, imageType);
     }
 
     return angle::Result::Continue;
@@ -3752,7 +3752,7 @@ vk::BufferHelper *TextureVk::getRGBAConversionBufferHelper(vk::Renderer *rendere
     BufferVk *bufferVk                                        = vk::GetImpl(getBuffer().get());
     const gl::OffsetBindingPointer<gl::Buffer> &bufferBinding = mState.getBuffer();
     const VertexConversionBuffer::CacheKey cacheKey{
-        formatID, 16, static_cast<size_t>(bufferBinding.getOffset()), false, true};
+        nullptr, 0, formatID, 16, static_cast<size_t>(bufferBinding.getOffset()), false, true};
     ConversionBuffer *conversion = bufferVk->getVertexConversionBuffer(renderer, cacheKey);
     return conversion->getBuffer();
 }
@@ -3771,8 +3771,8 @@ angle::Result TextureVk::convertBufferToRGBA(ContextVk *contextVk, size_t &conve
     conversionBufferSize = roundUpPow2<size_t>(static_cast<size_t>((bufferSizeFromOffset / 3) * 4),
                                                4 * sizeof(uint32_t));
 
-    const VertexConversionBuffer::CacheKey cacheKey{imageUniformFormat->getIntendedFormatID(), 16,
-                                                    bindingOffset, false, true};
+    const VertexConversionBuffer::CacheKey cacheKey{
+        nullptr, 0, imageUniformFormat->getIntendedFormatID(), 16, bindingOffset, false, true};
     ConversionBuffer *conversion = bufferVk->getVertexConversionBuffer(renderer, cacheKey);
     mBufferContentsObservers->enableForBuffer(getBuffer().get());
     if (!conversion->valid())
