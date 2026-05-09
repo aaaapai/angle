@@ -1544,11 +1544,8 @@ void GenerateCaps(const FunctionsGL *functions,
                                 functions->hasGLESExtension("GL_EXT_depth_clamp");
     extensions->polygonOffsetClampEXT = functions->hasExtension("GL_EXT_polygon_offset_clamp");
 
-    if (functions->standard == STANDARD_GL_DESKTOP)
-    {
-        extensions->polygonModeNV = true;
-    }
-    else if (functions->hasGLESExtension("GL_NV_polygon_mode"))
+    extensions->polygonModeNV = true;
+    /*else if (functions->hasGLESExtension("GL_NV_polygon_mode"))
     {
         // Some drivers expose the extension string without supporting its caps.
         ANGLE_GL_CLEAR_ERRORS(functions);
@@ -1562,7 +1559,7 @@ void GenerateCaps(const FunctionsGL *functions,
         {
             extensions->polygonModeNV = true;
         }
-    }
+    }*/
     extensions->polygonModeANGLE = extensions->polygonModeNV;
 
     // This functionality is provided by Shader Model 5 and should be available in GLSL 4.00
@@ -1971,15 +1968,13 @@ void GenerateCaps(const FunctionsGL *functions,
 
     // ANGLE_base_vertex_base_instance
     extensions->baseVertexBaseInstanceANGLE =
-        !features.disableBaseInstanceVertex.enabled &&
         (functions->isAtLeastGL(gl::Version(3, 2)) || functions->isAtLeastGLES(gl::Version(3, 2)) ||
          functions->hasGLESExtension("GL_OES_draw_elements_base_vertex") ||
          functions->hasGLESExtension("GL_EXT_draw_elements_base_vertex"));
 
     // EXT_base_instance
     // Unlike the ANGLE variant, this extension is exposed only if supported natively.
-    extensions->baseInstanceEXT = !features.disableBaseInstanceVertex.enabled &&
-                                  (functions->isAtLeastGLES(gl::Version(3, 2)) ||
+    extensions->baseInstanceEXT = (functions->isAtLeastGLES(gl::Version(3, 2)) ||
                                    functions->hasGLExtension("GL_ARB_base_instance") ||
                                    functions->hasGLESExtension("GL_EXT_base_instance"));
 
@@ -2033,8 +2028,7 @@ void GenerateCaps(const FunctionsGL *functions,
                                functions->hasGLESExtension("GL_EXT_semaphore");
     extensions->memoryObjectFdEXT = functions->hasGLExtension("GL_EXT_memory_object_fd") ||
                                     functions->hasGLESExtension("GL_EXT_memory_object_fd");
-    extensions->semaphoreFdEXT = !features.disableSemaphoreFd.enabled &&
-                                 (functions->hasGLExtension("GL_EXT_semaphore_fd") ||
+    extensions->semaphoreFdEXT = (functions->hasGLExtension("GL_EXT_semaphore_fd") ||
                                   functions->hasGLESExtension("GL_EXT_semaphore_fd"));
     extensions->gpuShader5EXT = functions->isAtLeastGL(gl::Version(4, 0)) ||
                                 functions->isAtLeastGLES(gl::Version(3, 2)) ||
@@ -2083,8 +2077,7 @@ void GenerateCaps(const FunctionsGL *functions,
     // built-in array redeclarations on OpenGL ES.
     extensions->clipCullDistanceEXT =
         functions->isAtLeastGL(gl::Version(4, 5)) ||
-        (functions->isAtLeastGLES(gl::Version(3, 0)) &&
-         functions->hasGLExtension("GL_ARB_cull_distance")) ||
+        (functions->isAtLeastGLES(gl::Version(3, 0))) ||
         (extensions->shaderIoBlocksEXT && functions->hasGLESExtension("GL_EXT_clip_cull_distance"));
     if (extensions->clipCullDistanceEXT)
     {
@@ -2164,15 +2157,11 @@ void GenerateCaps(const FunctionsGL *functions,
     extensions->tiledRenderingQCOM = !features.disableTiledRendering.enabled &&
                                      functions->hasGLESExtension("GL_QCOM_tiled_rendering");
 
-    extensions->blendEquationAdvancedKHR =
-        !features.disableBlendEquationAdvanced.enabled &&
-        (functions->hasGLExtension("GL_NV_blend_equation_advanced") ||
+    extensions->blendEquationAdvancedKHR = (functions->hasGLExtension("GL_NV_blend_equation_advanced") ||
          functions->hasGLExtension("GL_KHR_blend_equation_advanced") ||
          functions->isAtLeastGLES(gl::Version(3, 2)) ||
          functions->hasGLESExtension("GL_KHR_blend_equation_advanced"));
-    extensions->blendEquationAdvancedCoherentKHR =
-        !features.disableBlendEquationAdvanced.enabled &&
-        (functions->hasGLExtension("GL_NV_blend_equation_advanced_coherent") ||
+    extensions->blendEquationAdvancedCoherentKHR = (functions->hasGLExtension("GL_NV_blend_equation_advanced_coherent") ||
          functions->hasGLExtension("GL_KHR_blend_equation_advanced_coherent") ||
          functions->isAtLeastGLES(gl::Version(3, 2)) ||
          functions->hasGLESExtension("GL_KHR_blend_equation_advanced_coherent"));
