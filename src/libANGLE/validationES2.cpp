@@ -1753,7 +1753,9 @@ bool ValidateES2TexImageParametersBase(const Context *context,
     if (!isSubImage && !isCompressed && internalformat != format && !nonEqualFormatsAllowed)
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInvalidFormatCombination);
-        //return false;
+#ifdef ANGLE_ENABLE_DEBUG_ANNOTATIONS
+        return false;
+#endif
     }
 
     GLenum sizeCheckFormat = isSubImage ? format : internalformat;
@@ -3511,7 +3513,9 @@ bool ValidateCopySubTextureCHROMIUM(const Context *context,
     if (!IsValidCopySubTextureDestionationInternalFormat(destFormat.internalFormat))
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInvalidFormatCombination);
-        //return false;
+#ifdef ANGLE_ENABLE_DEBUG_ANNOTATIONS
+        return false;
+#endif
     }
 
     if (sourceType == TextureType::External && destFormat.isInt() &&
