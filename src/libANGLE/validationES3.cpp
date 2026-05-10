@@ -294,11 +294,13 @@ bool ValidateTexImageFormatCombination(const Context *context,
     // ANGLE_texture_external_yuv_sampling extension adds support for YUV formats
     if (gl::IsYuvFormat(format))
     {
+#ifdef ANGLE_ENABLE_DEBUG_ANNOTATIONS
         if (type != GL_UNSIGNED_BYTE)
         {
             ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInvalidFormatCombination);
-            //return false;
+            return false;
         }
+#endif
     }
     else
     {
@@ -335,11 +337,13 @@ bool ValidateTexImageFormatCombination(const Context *context,
                 default:
                     break;
             }
+#ifdef ANGLE_ENABLE_DEBUG_ANNOTATIONS
             if (!extensionFormatsAllowed)
             {
                 ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInvalidFormatCombination);
-                //return false;
+                return false;
             }
+#endif
         }
     }
 
