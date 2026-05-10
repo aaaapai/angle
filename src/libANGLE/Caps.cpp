@@ -675,6 +675,7 @@ static bool DetermineDepthTextureANGLESupport(const TextureCapsMap &textureCaps)
         GL_DEPTH24_STENCIL8_OES,
     };
 
+    if (std::getenv("ANGLE_D32OES_FORCE_NATIVE")) return true;
     return GetFormatSupport(textureCaps, requiredFormats, true, false, true, false, false);
 }
 
@@ -692,6 +693,7 @@ static bool DetermineDepthTextureOESSupport(const TextureCapsMap &textureCaps)
 #endif
     };
 
+    if (std::getenv("ANGLE_D32OES_FORCE_NATIVE")) return true;
     return GetFormatSupport(textureCaps, requiredFormats, true, false, true, true, false);
 }
 
@@ -712,6 +714,7 @@ static bool DetermineDepth32Support(const TextureCapsMap &textureCaps)
         GL_DEPTH_COMPONENT32_OES,
     };
 
+    if (std::getenv("ANGLE_D32OES_FORCE_NATIVE")) return true;
     return GetFormatSupport(textureCaps, requiredFormats, false, false, true, true, false);
 }
 
