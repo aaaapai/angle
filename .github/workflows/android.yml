@@ -111,3 +111,11 @@ jobs:
         with:
           name: angle-${{matrix.arch}}-${{ github.run_number }}
           path: out/Android-${{matrix.arch}}/*.so
+
+      - name: Upload libc++
+        uses: actions/upload-artifact@main
+        with:
+          name: libc++-${{matrix.arch}}-${{ github.run_number }}
+          path: |
+                **/gen/third_party/libc++
+                **/obj/buildtools/third_party/libc++abi
