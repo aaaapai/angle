@@ -1867,6 +1867,7 @@ void GenerateCaps(const FunctionsGL *functions,
         extensions->textureRectangleANGLE = true;
         caps->maxRectangleTextureSize =
             QuerySingleGLInt(functions, GL_MAX_RECTANGLE_TEXTURE_SIZE_ANGLE);
+    }
 
     // OpenGL 4.3 (and above) and OpenGL ES 3.2 can support all features and constants defined in
     // GL_EXT_geometry_shader.
@@ -2127,11 +2128,6 @@ void GenerateCaps(const FunctionsGL *functions,
             QuerySingleGLInt(functions, GL_TEXTURE_BUFFER_OFFSET_ALIGNMENT);
         extensions->textureBufferOES = true;
         extensions->textureBufferEXT = true;
-    }
-    else
-    {
-        // Can't support ES3.2 without texture buffer objects
-        //LimitVersion(maxSupportedESVersion, gl::Version(3, 1));
     }
 
     extensions->YUVTargetEXT = functions->hasGLESExtension("GL_EXT_YUV_target");
