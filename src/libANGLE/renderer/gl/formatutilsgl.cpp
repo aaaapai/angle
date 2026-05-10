@@ -545,6 +545,34 @@ static GLenum GetNativeInternalFormat(const FunctionsGL *functions,
     }
     else if (functions->isAtLeastGLES(gl::Version(3, 0)))
     {
+
+      if (std::getenv("ANGLE_UseSizedInternalFormat")) result = internalFormat.sizedInternalFormat;
+
+      if (features.avoid1BitAlphaTextureFormats.enabled && internalFormat.alphaBits == 1)
+      {
+          result = GL_RGBA8;
+      }
+
+      if (internalFormat.sizedInternalFormat == GL_RGBA4 &&
+          (features.RGBA4IsNotSupportedForColorRendering.enabled ||
+           features.promotePackedFormatsTo8BitPerChannel.enabled))
+      {
+          result = GL_RGBA8;
+      }
+
+      if (internalFormat.sizedInternalFormat == GL_RGB565 &&
+          ((!functions->isAtLeastGLES(gl::Version(3, 1)) &&
+            !functions->hasGLExtension("GL_ARB_ES2_compatibility")) ||
+           features.promotePackedFormatsTo8BitPerChannel.enabled))
+      {
+          result = GL_RGB8;
+      }
+
+      if (IsLUMAFormat(internalFormat.format))
+      {
+          result = EmulateLUMA(internalFormat).sizedInternalFormat;
+      }
+
         if (internalFormat.componentType == GL_FLOAT)
         {
             if (!internalFormat.isLUMA())
@@ -629,11 +657,9 @@ static GLenum GetTexImageNativeInternalFormat(const FunctionsGL *functions,
 {
     GLenum result = internalFormat.internalFormat;
 
-    if (functions->standard == STANDARD_GL_DESKTOP)
-    {
-        result = GetNativeInternalFormat(functions, features, internalFormat);
-    }
-    else if (functions->isAtLeastGLES(gl::Version(3, 0)))
+    //result = GetNativeInternalFormat(functions, features, internalFormat);
+
+    if (functions->isAtLeastGLES(gl::Version(3, 0)))
     {
         if (internalFormat.sizedInternalFormat == GL_BGRA_EXT ||
             internalFormat.sizedInternalFormat == GL_BGRA8_EXT)
