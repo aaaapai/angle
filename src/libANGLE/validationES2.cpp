@@ -1755,7 +1755,7 @@ bool ValidateES2TexImageParametersBase(const Context *context,
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInvalidFormatCombination);
         WARN() << "ValidateTexImageFormatCombination: target=" << static_cast<int>(target)
-            << ", internalFormat=0x" << std::hex << internalFormat
+            << ", internalFormat=0x" << std::hex << internalformat
             << ", format=0x" << format
             << ", type=0x" << type
             << std::dec;
