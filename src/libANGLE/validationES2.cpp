@@ -1741,7 +1741,7 @@ bool ValidateES2TexImageParametersBase(const Context *context,
                                       internalFormatInfo.sizedInternalFormat))
         {
             // Error already generated
-            return false;
+            //return false;
         }
     }
 
@@ -1754,6 +1754,11 @@ bool ValidateES2TexImageParametersBase(const Context *context,
     if (!isSubImage && !isCompressed && internalformat != format && !nonEqualFormatsAllowed)
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInvalidFormatCombination);
+        WARN() << "ValidateTexImageFormatCombination: target=" << static_cast<int>(target)
+            << ", internalFormat=0x" << std::hex << internalFormat
+            << ", format=0x" << format
+            << ", type=0x" << type
+            << std::dec;
         return false;
     }
 #endif
