@@ -884,13 +884,13 @@ bool DetermineRenderSnormSupport(const TextureCapsMap &textureCaps, bool texture
     };
 
     return true;
-    if (textureNorm16EXT &&
+    /*if (textureNorm16EXT &&
         !GetFormatSupport(textureCaps, requiredSnorm16Formats, false, false, true, true, true))
     {
         return false;
     }
 
-    return GetFormatSupport(textureCaps, requiredSnorm8Formats, false, false, true, true, true);
+    return GetFormatSupport(textureCaps, requiredSnorm8Formats, false, false, true, true, true);*/
 }
 
 void Extensions::setTextureExtensionSupport(const TextureCapsMap &textureCaps)
