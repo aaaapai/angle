@@ -4727,6 +4727,12 @@ void GL_APIENTRY GL_TexImage2D(GLenum target,
                                GLenum type,
                                const void *pixels)
 {
+
+    if (internalformat == GL_RGB16_SNORM_EXT) {
+        if (type == GL_UNSIGNED_BYTE) type = GL_SHORT;
+    }
+    if (target == 0) target = GL_TEXTURE_2D;
+
     ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     ANGLE_UNSAFE_TODO(
