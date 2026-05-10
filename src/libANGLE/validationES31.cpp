@@ -1437,11 +1437,22 @@ bool ValidateBindImageTexture(const Context *context,
         }
 
 
+#ifdef ANGLE_ENABLE_DEBUG_ANNOTATIONS
         if (tex->getType() != gl::TextureType::External &&
             tex->getType() != gl::TextureType::Buffer && !tex->getImmutableFormat())
         {
-#ifdef ANGLE_ENABLE_DEBUG_ANNOTATIONS
-            
+           WARN() << "Texture is not the name of an immutable texture object or a buffer texture.";
+           WARN() << "ValidateBindImageTexture: entryPoint=" << static_cast<int>(entryPoint)
+           << ", unit=" << unit
+           << ", texture=" << texture.value
+           << ", level=" << level
+           << ", layered=" << (layered ? "true" : "false")
+           << ", layer=" << layer
+           << ", access=" << (access == GL_READ_ONLY ? "GL_READ_ONLY" :
+                              (access == GL_WRITE_ONLY ? "GL_WRITE_ONLY" :
+                               (access == GL_READ_WRITE ? "GL_READ_WRITE" : "unknown")))
+           << ", format=0x" << std::hex << format << std::dec;
+
             /*ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION,
                                    kTextureIsNeitherImmutableNorTextureBuffer);
             return false;*/
