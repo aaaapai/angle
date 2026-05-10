@@ -1750,13 +1750,13 @@ bool ValidateES2TexImageParametersBase(const Context *context,
     // TexImage2D. The restriction in section 3.7.1 of the OpenGL ES 2.0 spec that the
     // internalformat parameter and format parameter of TexImage2D must match is lifted for this
     // case.
+#ifdef ANGLE_ENABLE_DEBUG_ANNOTATIONS
     if (!isSubImage && !isCompressed && internalformat != format && !nonEqualFormatsAllowed)
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInvalidFormatCombination);
-#ifdef ANGLE_ENABLE_DEBUG_ANNOTATIONS
         return false;
-#endif
     }
+#endif
 
     GLenum sizeCheckFormat = isSubImage ? format : internalformat;
     return ValidImageDataSize(context, entryPoint, texType, width, height, 1, sizeCheckFormat, type,
@@ -3510,13 +3510,13 @@ bool ValidateCopySubTextureCHROMIUM(const Context *context,
     }
 
     const InternalFormat &destFormat = *dest->getFormat(destTarget, destLevel).info;
+#ifdef ANGLE_ENABLE_DEBUG_ANNOTATIONS
     if (!IsValidCopySubTextureDestionationInternalFormat(destFormat.internalFormat))
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInvalidFormatCombination);
-#ifdef ANGLE_ENABLE_DEBUG_ANNOTATIONS
         return false;
-#endif
     }
+#endif
 
     if (sourceType == TextureType::External && destFormat.isInt() &&
         !context->getExtensions().EGLImageExternalEssl3OES)
