@@ -5466,7 +5466,7 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
         WARN() << "Unknown GPU architecture";
     }
 
-    ANGLE_FEATURE_CONDITION(&mFeatures, preferBGRA8ToRGBA8, isQualcommOpenSource);
+    ANGLE_FEATURE_CONDITION(&mFeatures, preferBGRA8ToRGBA8, std::getenv("ANGLE_preferBGRA8"));
 
     ANGLE_FEATURE_CONDITION(&mFeatures, appendAliasedMemoryDecorations, true);
 
