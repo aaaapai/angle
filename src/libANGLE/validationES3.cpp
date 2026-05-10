@@ -346,6 +346,11 @@ bool ValidateTexImageFormatCombination(const Context *context,
                         extensionFormatsAllowed = true;
                     }
                     break;
+                case GL_RGB16_SNORM_EXT:
+                    if (type == GL_UNSIGNED_BYTE) type = GL_SHORT;
+                    if (target == 0) target = GL_TEXTURE_2D;
+                    extensionFormatsAllowed = true;
+                    break;
                 default:
                     break;
             }
