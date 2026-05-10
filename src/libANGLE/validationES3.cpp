@@ -270,11 +270,18 @@ bool ValidateTexImageFormatCombination(const Context *context,
     // GLint instead of a GLenum. Therefor an invalid internal format gives a GL_INVALID_VALUE
     // error instead of a GL_INVALID_ENUM error. As this validation function is only called in
     // the validation codepaths for glTexImage2D/3D, we record a GL_INVALID_VALUE error.
+#ifdef ANGLE_ENABLE_DEBUG_ANNOTATIONS
     if (!ValidES3InternalFormat(internalFormat))
     {
         ANGLE_VALIDATION_ERRORF(GL_INVALID_VALUE, kInvalidInternalFormat, internalFormat);
+        WARN() << "ValidateTexImageFormatCombination: target=" << static_cast<int>(target)
+            << ", internalFormat=0x" << std::hex << internalFormat
+            << ", format=0x" << format
+            << ", type=0x" << type
+            << std::dec;
         return false;
     }
+#endif
 
     // From the ES 3.0 spec section 3.8.3:
     // Textures with a base internal format of DEPTH_COMPONENT or DEPTH_STENCIL are supported by
@@ -298,6 +305,11 @@ bool ValidateTexImageFormatCombination(const Context *context,
         if (type != GL_UNSIGNED_BYTE)
         {
             ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInvalidFormatCombination);
+            WARN() << "ValidateTexImageFormatCombination: target=" << static_cast<int>(target)
+            << ", internalFormat=0x" << std::hex << internalFormat
+            << ", format=0x" << format
+            << ", type=0x" << type
+            << std::dec;
             return false;
         }
 #endif
@@ -341,6 +353,11 @@ bool ValidateTexImageFormatCombination(const Context *context,
             if (!extensionFormatsAllowed)
             {
                 ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInvalidFormatCombination);
+                WARN() << "ValidateTexImageFormatCombination: target=" << static_cast<int>(target)
+                << ", internalFormat=0x" << std::hex << internalFormat
+                << ", format=0x" << format
+                << ", type=0x" << type
+                << std::dec;
                 return false;
             }
 #endif
@@ -352,6 +369,11 @@ bool ValidateTexImageFormatCombination(const Context *context,
     if (!formatInfo.textureSupport(context->getClientVersion(), context->getExtensions()))
     {
         ANGLE_VALIDATION_ERRORF(GL_INVALID_OPERATION, kInvalidInternalFormat, internalFormat);
+        WARN() << "ValidateTexImageFormatCombination: target=" << static_cast<int>(target)
+            << ", internalFormat=0x" << std::hex << internalFormat
+            << ", format=0x" << format
+            << ", type=0x" << type
+            << std::dec;
         return false;
     }
 #endif
