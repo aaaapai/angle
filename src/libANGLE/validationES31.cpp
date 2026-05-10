@@ -1456,8 +1456,8 @@ bool ValidateBindImageTexture(const Context *context,
             /*ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION,
                                    kTextureIsNeitherImmutableNorTextureBuffer);
             return false;*/
-#endif
         }
+#endif
 
         if (context->getExtensions().textureStorageCompressionEXT &&
             tex->getType() != gl::TextureType::Buffer)
