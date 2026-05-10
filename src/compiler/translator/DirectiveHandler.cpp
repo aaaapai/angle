@@ -309,7 +309,7 @@ void TDirectiveHandler::handleVersion(const angle::pp::SourceLocation &loc,
                                       angle::pp::MacroSet *macro_set)
 {
 
-    if (version == 100 || version == 110 || version == 120 || version == 150 || version == 300 || version == 310 || version == 320)
+    if (version == 100 || version == 110 || version == 120 || version == 150 || version == 300 || version == 310 || version == 320 || version == 330)
     {
         mContext.onShaderVersionDeclared(version);
 
