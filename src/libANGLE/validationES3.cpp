@@ -348,11 +348,13 @@ bool ValidateTexImageFormatCombination(const Context *context,
     }
 
     const InternalFormat &formatInfo = GetInternalFormatInfo(internalFormat, type);
+#ifdef ANGLE_ENABLE_DEBUG_ANNOTATIONS
     if (!formatInfo.textureSupport(context->getClientVersion(), context->getExtensions()))
     {
         ANGLE_VALIDATION_ERRORF(GL_INVALID_OPERATION, kInvalidInternalFormat, internalFormat);
-        //return false;
+        return false;
     }
+#endif
 
     return true;
 }
