@@ -2407,7 +2407,7 @@ angle::Result TextureVk::setEGLImageTarget(const gl::Context *context,
             (imageColorspaceAttribute == EGL_GL_COLORSPACE_SRGB_KHR) ? egl::ImageColorspace::SRGB
                                                                      : egl::ImageColorspace::Linear;
         ASSERT(mImage != nullptr);
-        mImageView.updateEglImageColorspace(*mImage, imageColorspace);
+        mImageView.updateEglImageColorspace(mImage->getActualFormat(), imageColorspace);
     }
 
     ANGLE_TRY(initImageViews(contextVk, getImageViewLevelCount()));
@@ -3832,12 +3832,6 @@ angle::Result TextureVk::syncState(const gl::Context *context,
 
     ANGLE_TRY(respecifyImageStorageIfNecessary(contextVk, source));
 
-    // Initialize the image storage and flush the pixel buffer.
-    const bool isGenerateMipmap = source == gl::Command::GenerateMipmap;
-    ANGLE_TRY(ensureImageInitialized(contextVk, isGenerateMipmap
-                                                    ? ImageMipLevels::FullMipChainForGenerateMipmap
-                                                    : ImageMipLevels::EnabledLevels));
-
     // Mask out the IMPLEMENTATION dirty bit to avoid unnecessary syncs.
     // Keep it set when the border color is used and needs to be resynced.
     gl::Texture::DirtyBits localBits = dirtyBits;
@@ -3847,6 +3841,8 @@ angle::Result TextureVk::syncState(const gl::Context *context,
     }
     localBits.reset(gl::Texture::DIRTY_BIT_BASE_LEVEL);
     localBits.reset(gl::Texture::DIRTY_BIT_MAX_LEVEL);
+
+    bool refreshAllImageViews = false;
 
     // For AHBs, the ImageViews are created with VkSamplerYcbcrConversionInfo's chromaFilter
     // matching min/magFilters as part of the eglEGLImageTargetTexture2DOES() call. However, the
@@ -3862,8 +3858,47 @@ angle::Result TextureVk::syncState(const gl::Context *context,
         if (mImage->updateChromaFilter(renderer, chromaFilter))
         {
             resetSampler();
-            ANGLE_TRY(refreshImageViews(contextVk));
+            refreshAllImageViews = true;
         }
+    }
+
+    if (localBits.test(gl::Texture::DIRTY_BIT_SWIZZLE_RED) ||
+        localBits.test(gl::Texture::DIRTY_BIT_SWIZZLE_GREEN) ||
+        localBits.test(gl::Texture::DIRTY_BIT_SWIZZLE_BLUE) ||
+        localBits.test(gl::Texture::DIRTY_BIT_SWIZZLE_ALPHA) ||
+        localBits.test(gl::Texture::DIRTY_BIT_ASTC_DECODE_PRECISION))
+    {
+        refreshAllImageViews = true;
+    }
+
+    if (localBits.test(gl::Texture::DIRTY_BIT_SRGB_OVERRIDE) ||
+        localBits.test(gl::Texture::DIRTY_BIT_SRGB_DECODE))
+    {
+        ASSERT(mImage != nullptr);
+        const gl::SrgbDecode srgbDecode =
+            (mState.getSamplerState().getSRGBDecode() == GL_SKIP_DECODE_EXT)
+                ? gl::SrgbDecode::Skip
+                : gl::SrgbDecode::Default;
+        const angle::Format &imageFormat = angle::Format::Get(angle::Format::InternalFormatToID(
+            mState.getBaseLevelDesc().format.info->sizedInternalFormat));
+        mImageView.updateSrgbDecode(imageFormat, srgbDecode);
+        mImageView.updateSrgbOverride(imageFormat, mState.getSRGBOverride());
+
+        if (!renderer->getFeatures().supportsImageFormatList.enabled)
+        {
+            refreshAllImageViews = true;
+        }
+    }
+
+    // Initialize the image storage and flush the pixel buffer.
+    const bool isGenerateMipmap = source == gl::Command::GenerateMipmap;
+    ANGLE_TRY(ensureImageInitialized(contextVk, isGenerateMipmap
+                                                    ? ImageMipLevels::FullMipChainForGenerateMipmap
+                                                    : ImageMipLevels::EnabledLevels));
+
+    if (refreshAllImageViews)
+    {
+        ANGLE_TRY(refreshImageViews(contextVk));
     }
 
     if (localBits.none() && mSampler)
@@ -3874,31 +3909,6 @@ angle::Result TextureVk::syncState(const gl::Context *context,
     if (mSampler)
     {
         resetSampler();
-    }
-
-    if (localBits.test(gl::Texture::DIRTY_BIT_SWIZZLE_RED) ||
-        localBits.test(gl::Texture::DIRTY_BIT_SWIZZLE_GREEN) ||
-        localBits.test(gl::Texture::DIRTY_BIT_SWIZZLE_BLUE) ||
-        localBits.test(gl::Texture::DIRTY_BIT_SWIZZLE_ALPHA) ||
-        localBits.test(gl::Texture::DIRTY_BIT_ASTC_DECODE_PRECISION))
-    {
-        ANGLE_TRY(refreshImageViews(contextVk));
-    }
-
-    if (localBits.test(gl::Texture::DIRTY_BIT_SRGB_OVERRIDE) ||
-        localBits.test(gl::Texture::DIRTY_BIT_SRGB_DECODE))
-    {
-        ASSERT(mImage != nullptr);
-        gl::SrgbDecode srgbDecode = (mState.getSamplerState().getSRGBDecode() == GL_SKIP_DECODE_EXT)
-                                        ? gl::SrgbDecode::Skip
-                                        : gl::SrgbDecode::Default;
-        mImageView.updateSrgbDecode(*mImage, srgbDecode);
-        mImageView.updateSrgbOverride(*mImage, mState.getSRGBOverride());
-
-        if (!renderer->getFeatures().supportsImageFormatList.enabled)
-        {
-            ANGLE_TRY(refreshImageViews(contextVk));
-        }
     }
 
     vk::SamplerDesc samplerDesc(contextVk, mState.getSamplerState(), mState.isStencilMode(),
@@ -3966,7 +3976,7 @@ const vk::ImageView &TextureVk::getReadImageView(GLenum srgbDecode,
                                                  bool texelFetchStaticUse,
                                                  bool samplerExternal2DY2YEXT) const
 {
-    ASSERT(mImage->valid());
+    ASSERT(mImage != nullptr && mImage->valid());
 
     const vk::ImageViewHelper &imageViews = getImageViews();
 
@@ -3981,11 +3991,11 @@ const vk::ImageView &TextureVk::getReadImageView(GLenum srgbDecode,
         return imageViews.getSamplerExternal2DY2YEXTImageView();
     }
 
-    ASSERT(mImage != nullptr && mImage->valid());
-    gl::SrgbDecode decode =
+    const gl::SrgbDecode decode =
         (srgbDecode == GL_DECODE_EXT) ? gl::SrgbDecode::Default : gl::SrgbDecode::Skip;
-    imageViews.updateSrgbDecode(*mImage, decode);
-    imageViews.updateStaticTexelFetch(*mImage, texelFetchStaticUse);
+    const angle::Format &imageFormat = mImage->getActualFormat();
+    imageViews.updateSrgbDecode(imageFormat, decode);
+    imageViews.updateStaticTexelFetch(imageFormat, texelFetchStaticUse);
 
     ASSERT(imageViews.getReadImageView().valid());
     return imageViews.getReadImageView();
