@@ -33,6 +33,9 @@
 #include "libANGLE/renderer/vulkan/vk_helpers.h"
 #include "libANGLE/renderer/vulkan/vk_internal_shaders_autogen.h"
 
+#include <ankerl/stl.h>
+#include <ankerl/unordered_dense.h>
+
 namespace rx
 {
 class UtilsVk : angle::NonCopyable
@@ -735,10 +738,10 @@ class UtilsVk : angle::NonCopyable
     angle::PackedEnumMap<Function, vk::PipelineLayoutPtr> mPipelineLayouts;
     angle::PackedEnumMap<Function, vk::DynamicDescriptorPool> mDescriptorPools;
 
-    std::unordered_map<vk::SamplerDesc, vk::DescriptorSetLayoutPointerArray>
+    ankerl::unordered_dense::map<vk::SamplerDesc, vk::DescriptorSetLayoutPointerArray>
         mImageCopyWithSamplerDescriptorSetLayouts;
-    std::unordered_map<vk::SamplerDesc, vk::PipelineLayoutPtr> mImageCopyWithSamplerPipelineLayouts;
-    std::unordered_map<vk::SamplerDesc, vk::DynamicDescriptorPool>
+    ankerl::unordered_dense::map<vk::SamplerDesc, vk::PipelineLayoutPtr> mImageCopyWithSamplerPipelineLayouts;
+    ankerl::unordered_dense::map<vk::SamplerDesc, vk::DynamicDescriptorPool>
         mImageCopyWithSamplerDescriptorPools;
 
     ComputeShaderProgramAndPipelines
@@ -753,7 +756,7 @@ class UtilsVk : angle::NonCopyable
     GraphicsShaderProgramAndPipelines mImageClear[vk::InternalShader::ImageClear_frag::kArrayLen];
     GraphicsShaderProgramAndPipelines mImageCopy[vk::InternalShader::ImageCopy_frag::kArrayLen];
     GraphicsShaderProgramAndPipelines mImageCopyFloat;
-    std::unordered_map<vk::SamplerDesc, GraphicsShaderProgramAndPipelines> mImageCopyWithSampler;
+    ankerl::unordered_dense::map<vk::SamplerDesc, GraphicsShaderProgramAndPipelines> mImageCopyWithSampler;
     ComputeShaderProgramAndPipelines
         mCopyImageToBuffer[vk::InternalShader::CopyImageToBuffer_comp::kArrayLen];
     GraphicsShaderProgramAndPipelines mBlitResolve[vk::InternalShader::BlitResolve_frag::kArrayLen];
@@ -768,8 +771,8 @@ class UtilsVk : angle::NonCopyable
 
     // Unresolve shaders are special as they are generated on the fly due to the large number of
     // combinations.
-    std::unordered_map<uint32_t, vk::ShaderModulePtr> mUnresolveFragShaders;
-    std::unordered_map<uint32_t, GraphicsShaderProgramAndPipelines> mUnresolve;
+    ankerl::unordered_dense::map<uint32_t, vk::ShaderModulePtr> mUnresolveFragShaders;
+    ankerl::unordered_dense::map<uint32_t, GraphicsShaderProgramAndPipelines> mUnresolve;
 
     ComputeShaderProgramAndPipelines mGenerateFragmentShadingRateAttachment;
 
