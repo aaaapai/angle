@@ -19,6 +19,9 @@
 #include "common/hash_containers.h"
 #include "common/vulkan/vk_headers.h"
 
+#include <ankerl/stl.h>
+#include <ankerl/unordered_dense.h>
+
 namespace rx
 {
 namespace vk
@@ -224,7 +227,7 @@ class MemoryAllocationTracker : angle::NonCopyable
     // allocation ID and a record of all active allocations.
     uint64_t mMemoryAllocationID;
     using MemoryAllocInfoMap = angle::HashMap<vk::MemoryAllocInfoMapKey, vk::MemoryAllocationInfo>;
-    std::unordered_map<angle::BacktraceInfo, MemoryAllocInfoMap> mMemoryAllocationRecord;
+    ankerl::unordered_dense::map<angle::BacktraceInfo, MemoryAllocInfoMap> mMemoryAllocationRecord;
 };
 }  // namespace rx
 
