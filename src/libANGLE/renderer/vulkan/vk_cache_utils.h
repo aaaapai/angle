@@ -26,6 +26,9 @@
 #include "libANGLE/renderer/vulkan/vk_resource.h"
 #include "libANGLE/renderer/vulkan/vk_utils.h"
 
+#include <ankerl/stl.h>
+#include <ankerl/unordered_dense.h>
+
 namespace gl
 {
 class ProgramExecutable;
