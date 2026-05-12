@@ -546,7 +546,21 @@ static GLenum GetNativeInternalFormat(const FunctionsGL *functions,
     else if (functions->isAtLeastGLES(gl::Version(3, 0)))
     {
 
-      if (std::getenv("ANGLE_UseSizedInternalFormat")) result = internalFormat.sizedInternalFormat;
+      /*if (std::getenv("ANGLE_UseSizedInternalFormat")) */ result = internalFormat.sizedInternalFormat;
+
+      if (internalFormat.sizedInternalFormat == GL_BGRA_EXT ||
+            internalFormat.sizedInternalFormat == GL_BGRA8_EXT)
+      {
+            // GLES accepts GL_BGRA as an internal format but desktop GL only accepts it as a
+            // format. Update the internal format to GL_RGBA8.
+            result = GL_RGBA8;
+      }
+
+      if (internalFormat.sizedInternalFormat == GL_RGB10_EXT)
+      {
+            ASSERT(features.emulateRGB10.enabled);
+            result = GL_RGB10_A2;
+      }
 
       if (features.avoid1BitAlphaTextureFormats.enabled && internalFormat.alphaBits == 1)
       {
