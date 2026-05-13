@@ -738,10 +738,10 @@ class UtilsVk : angle::NonCopyable
     angle::PackedEnumMap<Function, vk::PipelineLayoutPtr> mPipelineLayouts;
     angle::PackedEnumMap<Function, vk::DynamicDescriptorPool> mDescriptorPools;
 
-    ankerl::unordered_dense::map<vk::SamplerDesc, vk::DescriptorSetLayoutPointerArray>
+    std::unordered_map<vk::SamplerDesc, vk::DescriptorSetLayoutPointerArray>
         mImageCopyWithSamplerDescriptorSetLayouts;
-    ankerl::unordered_dense::map<vk::SamplerDesc, vk::PipelineLayoutPtr> mImageCopyWithSamplerPipelineLayouts;
-    ankerl::unordered_dense::map<vk::SamplerDesc, vk::DynamicDescriptorPool>
+    std::unordered_map<vk::SamplerDesc, vk::PipelineLayoutPtr> mImageCopyWithSamplerPipelineLayouts;
+    std::unordered_map<vk::SamplerDesc, vk::DynamicDescriptorPool>
         mImageCopyWithSamplerDescriptorPools;
 
     ComputeShaderProgramAndPipelines
@@ -756,7 +756,7 @@ class UtilsVk : angle::NonCopyable
     GraphicsShaderProgramAndPipelines mImageClear[vk::InternalShader::ImageClear_frag::kArrayLen];
     GraphicsShaderProgramAndPipelines mImageCopy[vk::InternalShader::ImageCopy_frag::kArrayLen];
     GraphicsShaderProgramAndPipelines mImageCopyFloat;
-    ankerl::unordered_dense::map<vk::SamplerDesc, GraphicsShaderProgramAndPipelines> mImageCopyWithSampler;
+    std::unordered_map<vk::SamplerDesc, GraphicsShaderProgramAndPipelines> mImageCopyWithSampler;
     ComputeShaderProgramAndPipelines
         mCopyImageToBuffer[vk::InternalShader::CopyImageToBuffer_comp::kArrayLen];
     GraphicsShaderProgramAndPipelines mBlitResolve[vk::InternalShader::BlitResolve_frag::kArrayLen];
