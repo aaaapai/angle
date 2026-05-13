@@ -5376,18 +5376,18 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     }
 
     const bool isAMD      = (IsAMD(mPhysicalDeviceProperties.vendorID) || std::getenv("ANGLE_isAMD"));
-    const bool isApple    = (IsAppleGPU(mPhysicalDeviceProperties.vendorID) || std::getenv("AMGLE_isApple"));
-    const bool isARM      = (IsARM(mPhysicalDeviceProperties.vendorID) || std::getenv("AMGLE_isARM"));
+    const bool isApple    = (IsAppleGPU(mPhysicalDeviceProperties.vendorID) || std::getenv("ANGLE_isApple"));
+    const bool isARM      = (IsARM(mPhysicalDeviceProperties.vendorID) || std::getenv("ANGLE_isARM"));
     const bool isIntel    = IsIntel(mPhysicalDeviceProperties.vendorID);
-    const bool isNvidia   = (IsNvidia(mPhysicalDeviceProperties.vendorID) || std::getenv("AMGLE_isNV"));
-    const bool isPowerVR  = (IsPowerVR(mPhysicalDeviceProperties.vendorID) || std::getenv("AMGLE_isPowerVR"));
-    const bool isQualcomm = (IsQualcomm(mPhysicalDeviceProperties.vendorID) || std::getenv("AMGLE_isQualcomm"));
+    const bool isNvidia   = (IsNvidia(mPhysicalDeviceProperties.vendorID) || std::getenv("ANGLE_isNV"));
+    const bool isPowerVR  = (IsPowerVR(mPhysicalDeviceProperties.vendorID) || std::getenv("ANGLE_isPowerVR"));
+    const bool isQualcomm = (IsQualcomm(mPhysicalDeviceProperties.vendorID) || std::getenv("ANGLE_isQualcomm"));
     const bool isBroadcom = IsBroadcom(mPhysicalDeviceProperties.vendorID);
     const bool isSamsung  = IsSamsung(mPhysicalDeviceProperties.vendorID);
     const bool isSwiftShader =
-        (IsSwiftshader(mPhysicalDeviceProperties.vendorID, mPhysicalDeviceProperties.deviceID) || std::getenv("AMGLE_isSwiftShader"));
+        (IsSwiftshader(mPhysicalDeviceProperties.vendorID, mPhysicalDeviceProperties.deviceID) || std::getenv("ANGLE_isSwiftShader"));
     const bool isLavapipe =
-        (IsLavapipe(mPhysicalDeviceProperties.vendorID, mPhysicalDeviceProperties.deviceID) || std::getenv("AMGLE_isLavapipe"));
+        (IsLavapipe(mPhysicalDeviceProperties.vendorID, mPhysicalDeviceProperties.deviceID) || std::getenv("ANGLE_isLavapipe"));
     const bool isSoftwareRenderer = isSwiftShader || isLavapipe;
 
     const bool isGalaxyS23 =
