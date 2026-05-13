@@ -9,6 +9,8 @@
 #ifndef COMMON_HASH_CONTAINERS_H_
 #define COMMON_HASH_CONTAINERS_H_
 
+#undef ANGLE_USE_ABSEIL
+
 #if defined(ANGLE_USE_ABSEIL)
 #    include "absl/container/flat_hash_map.h"
 #    include "absl/container/flat_hash_set.h"
@@ -18,7 +20,6 @@
 #    include <ankerl/stl.h>
 #    include <ankerl/unordered_dense.h>
 #endif  // defined(ANGLE_USE_ABSEIL)
-#undef ANGLE_USE_ABSEIL
 
 namespace angle
 {
