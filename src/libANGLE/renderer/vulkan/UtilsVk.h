@@ -771,8 +771,8 @@ class UtilsVk : angle::NonCopyable
 
     // Unresolve shaders are special as they are generated on the fly due to the large number of
     // combinations.
-    ankerl::unordered_dense::map<uint32_t, vk::ShaderModulePtr> mUnresolveFragShaders;
-    ankerl::unordered_dense::map<uint32_t, GraphicsShaderProgramAndPipelines> mUnresolve;
+    std::unordered_map<uint32_t, vk::ShaderModulePtr> mUnresolveFragShaders;
+    std::unordered_map<uint32_t, GraphicsShaderProgramAndPipelines> mUnresolve;
 
     ComputeShaderProgramAndPipelines mGenerateFragmentShadingRateAttachment;
 
