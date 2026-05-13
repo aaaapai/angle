@@ -18,6 +18,7 @@
 #    include <ankerl/stl.h>
 #    include <ankerl/unordered_dense.h>
 #endif  // defined(ANGLE_USE_ABSEIL)
+#undef ANGLE_USE_ABSEIL
 
 namespace angle
 {
