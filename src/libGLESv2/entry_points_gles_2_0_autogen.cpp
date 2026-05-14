@@ -4414,6 +4414,180 @@ void GL_APIENTRY GL_ShaderBinary(GLsizei count,
     egl::Display::GetCurrentThreadUnlockedTailCall()->run(nullptr);
 }
 
+#include <shaderc/shaderc.h>
+#include <spirv_cross/spirv_cross_c.h>
+static void TryConvertAndSetShaderSource(Context *context,
+                                         ShaderProgramID shaderPacked,
+                                         GLsizei count,
+                                         const GLchar *const *string,
+                                         const GLint *length);
+static void TryConvertAndSetShaderSource(Context *context,
+                                         ShaderProgramID shaderPacked,
+                                         GLsizei count,
+                                         const GLchar *const *string,
+                                         const GLint *length)
+{
+    static std::once_flag initFlag;
+    static bool initSuccess = false;
+    static shaderc_compiler_t (*p_shaderc_compiler_initialize)(void) = nullptr;
+    static void (*p_shaderc_compiler_release)(shaderc_compiler_t) = nullptr;
+    static shaderc_compile_options_t (*p_shaderc_compile_options_initialize)(void) = nullptr;
+    static void (*p_shaderc_compile_options_release)(shaderc_compile_options_t) = nullptr;
+    static void (*p_shaderc_compile_options_set_target_env)(shaderc_compile_options_t,
+                                                            shaderc_target_env, unsigned int) = nullptr;
+    static void (*p_shaderc_compile_options_set_source_language)(shaderc_compile_options_t,
+                                                                 shaderc_source_language) = nullptr;
+    static void (*p_shaderc_compile_options_set_auto_bind_uniforms)(shaderc_compile_options_t,
+                                                                    int) = nullptr;
+    static shaderc_compilation_result_t (*p_shaderc_compile_into_spv)(
+        shaderc_compiler_t, const char*, size_t, shaderc_shader_kind,
+        const char*, const char*, shaderc_compile_options_t) = nullptr;
+    static const char* (*p_shaderc_result_get_bytes)(const shaderc_compilation_result_t) = nullptr;
+    static size_t (*p_shaderc_result_get_length)(const shaderc_compilation_result_t) = nullptr;
+    static const char* (*p_shaderc_result_get_error_message)(const shaderc_compilation_result_t) = nullptr;
+    static void (*p_shaderc_result_release)(shaderc_compilation_result_t) = nullptr;
+
+    static spirv_cross_t (*p_spirv_cross_new)(const uint32_t*, size_t) = nullptr;
+    static void (*p_spirv_cross_delete)(spirv_cross_t) = nullptr;
+    static void (*p_spirv_cross_set_glsl_version)(spirv_cross_t, int) = nullptr;
+    static void (*p_spirv_cross_set_es)(spirv_cross_t, bool) = nullptr;
+    static bool (*p_spirv_cross_compile)(spirv_cross_t) = nullptr;
+    static const char* (*p_spirv_cross_get_glsl)(spirv_cross_t) = nullptr;
+
+    std::call_once(initFlag, [&]() {
+        void* shadercHandle = dlopen("libshaderc.so", RTLD_LAZY);
+        if (!shadercHandle) return;
+#define LOAD_SYM(handle, sym) p_##sym = (decltype(p_##sym))dlsym(handle, #sym); if (!p_##sym) return;
+        LOAD_SYM(shadercHandle, shaderc_compiler_initialize);
+        LOAD_SYM(shadercHandle, shaderc_compiler_release);
+        LOAD_SYM(shadercHandle, shaderc_compile_options_initialize);
+        LOAD_SYM(shadercHandle, shaderc_compile_options_release);
+        LOAD_SYM(shadercHandle, shaderc_compile_options_set_target_env);
+        LOAD_SYM(shadercHandle, shaderc_compile_options_set_source_language);
+        LOAD_SYM(shadercHandle, shaderc_compile_options_set_auto_bind_uniforms);
+        LOAD_SYM(shadercHandle, shaderc_compile_into_spv);
+        LOAD_SYM(shadercHandle, shaderc_result_get_bytes);
+        LOAD_SYM(shadercHandle, shaderc_result_get_length);
+        LOAD_SYM(shadercHandle, shaderc_result_get_error_message);
+        LOAD_SYM(shadercHandle, shaderc_result_release);
+#undef LOAD_SYM
+
+        void* spirvCrossHandle = dlopen("libspirv-cross-c-shared.so", RTLD_LAZY);
+        if (!spirvCrossHandle) {
+            dlclose(shadercHandle);
+            return;
+        }
+#define LOAD_SPIRV_SYM(handle, sym) p_##sym = (decltype(p_##sym))dlsym(handle, #sym); if (!p_##sym) return;
+        LOAD_SPIRV_SYM(spirvCrossHandle, spirv_cross_new);
+        LOAD_SPIRV_SYM(spirvCrossHandle, spirv_cross_delete);
+        LOAD_SPIRV_SYM(spirvCrossHandle, spirv_cross_set_glsl_version);
+        LOAD_SPIRV_SYM(spirvCrossHandle, spirv_cross_set_es);
+        LOAD_SPIRV_SYM(spirvCrossHandle, spirv_cross_compile);
+        LOAD_SPIRV_SYM(spirvCrossHandle, spirv_cross_get_glsl);
+#undef LOAD_SPIRV_SYM
+
+        initSuccess = true;
+        printf("GLSL converter initialized (shaderc + spirv-cross)\n");
+    });
+
+    if (!initSuccess) {
+        context->shaderSource(shaderPacked, count, string, length);
+        return;
+    }
+
+    std::string originalSource;
+    for (GLsizei i = 0; i < count; ++i) {
+        if (!string[i]) continue;
+        if (length && length[i] > 0)
+            originalSource.append(string[i], length[i]);
+        else
+            originalSource.append(string[i]);
+    }
+    if (originalSource.empty()) {
+        context->shaderSource(shaderPacked, count, string, length);
+        return;
+    }
+
+    Shader *shaderObj = context->getShader(shaderPacked);
+    if (!shaderObj) {
+        context->shaderSource(shaderPacked, count, string, length);
+        return;
+    }
+    gl::ShaderType shaderType = shaderObj->getType();
+    shaderc_shader_kind kind = shaderc_vertex_shader;
+    switch (shaderType) {
+        case gl::ShaderType::Vertex:   kind = shaderc_vertex_shader; break;
+        case gl::ShaderType::Fragment: kind = shaderc_fragment_shader; break;
+        case gl::ShaderType::Geometry: kind = shaderc_geometry_shader; break;
+        case gl::ShaderType::Compute:  kind = shaderc_compute_shader; break;
+        default:
+            context->shaderSource(shaderPacked, count, string, length);
+            return;
+    }
+
+    shaderc_compiler_t compiler = p_shaderc_compiler_initialize();
+    if (!compiler) {
+        context->shaderSource(shaderPacked, count, string, length);
+        return;
+    }
+    shaderc_compile_options_t options = p_shaderc_compile_options_initialize();
+    if (!options) {
+        p_shaderc_compiler_release(compiler);
+        context->shaderSource(shaderPacked, count, string, length);
+        return;
+    }
+
+    p_shaderc_compile_options_set_target_env(options, shaderc_target_env_opengl, 450);
+    p_shaderc_compile_options_set_source_language(options, shaderc_source_language_glsl);
+    p_shaderc_compile_options_set_auto_bind_uniforms(options, 1);
+
+    shaderc_compilation_result_t result = p_shaderc_compile_into_spv(
+        compiler, originalSource.c_str(), originalSource.size(),
+        kind, "shader", "main", options);
+    p_shaderc_compile_options_release(options);
+
+    if (!result || p_shaderc_result_get_bytes(result) == nullptr) {
+        if (result) p_shaderc_result_release(result);
+        p_shaderc_compiler_release(compiler);
+        context->shaderSource(shaderPacked, count, string, length);
+        return;
+    }
+
+    const uint32_t* spv_data = reinterpret_cast<const uint32_t*>(p_shaderc_result_get_bytes(result));
+    size_t spv_word_count = p_shaderc_result_get_length(result) / sizeof(uint32_t);
+
+    spirv_cross_t cross = p_spirv_cross_new(spv_data, spv_word_count);
+    p_shaderc_result_release(result);
+    p_shaderc_compiler_release(compiler);
+
+    if (!cross) {
+        context->shaderSource(shaderPacked, count, string, length);
+        return;
+    }
+
+    p_spirv_cross_set_glsl_version(cross, 320);
+    p_spirv_cross_set_es(cross, true);
+
+    if (!p_spirv_cross_compile(cross)) {
+        p_spirv_cross_delete(cross);
+        context->shaderSource(shaderPacked, count, string, length);
+        return;
+    }
+
+    const char* glsl = p_spirv_cross_get_glsl(cross);
+    if (!glsl || strlen(glsl) == 0) {
+        p_spirv_cross_delete(cross);
+        context->shaderSource(shaderPacked, count, string, length);
+        return;
+    }
+
+    std::string convertedSource(glsl);
+    p_spirv_cross_delete(cross);
+
+    const GLchar *newString = convertedSource.c_str();
+    GLint newLength = static_cast<GLint>(convertedSource.size());
+    context->shaderSource(shaderPacked, 1, &newString, &newLength);
+}
 void GL_APIENTRY GL_ShaderSource(GLuint shader,
                                  GLsizei count,
                                  const GLchar *const *string,
@@ -4451,7 +4625,7 @@ void GL_APIENTRY GL_ShaderSource(GLuint shader,
         }
         if (ANGLE_LIKELY(isCallValid))
         {
-            context->shaderSource(shaderPacked, count, string, length);
+            TryConvertAndSetShaderSource(context, shaderPacked, count, string, length);
         }
         ANGLE_CAPTURE_GL(ShaderSource, isCallValid, context, shaderPacked, count, string, length);
     }
