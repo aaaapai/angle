@@ -13,8 +13,6 @@
 #include "libANGLE/renderer/vulkan/SyncVk.h"
 #include "libANGLE/renderer/vulkan/vk_renderer.h"
 #include "vulkan/vulkan_core.h"
-#include <thread>
-#include <chrono>
 
 namespace rx
 {
@@ -1145,21 +1143,7 @@ angle::Result CommandQueue::finishOneCommandBatch(ErrorContext *context,
     if (batch.hasFence())
     {
         VkResult status = batch.waitFenceUnlocked(context->getDevice(), timeout, lock);
-
-        if (status == VK_ERROR_DEVICE_LOST) {
-           static int retryCount = 0;
-           WARN() << "Device lost, retry count " << retryCount;
-           if (++retryCount < 3) {
-               std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-               status = batch.waitFenceUnlocked(context->getDevice(), timeout, lock);
-               if (status != VK_ERROR_DEVICE_LOST) {
-                   retryCount = 0;
-               }
-           }
-        }
-
         ANGLE_VK_TRY(context, status);
-
     }
 
     // Other thread might already finish the batch, in that case do not touch the |batch| reference.
