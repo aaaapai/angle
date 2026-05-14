@@ -4414,7 +4414,7 @@ void GL_APIENTRY GL_ShaderBinary(GLsizei count,
     egl::Display::GetCurrentThreadUnlockedTailCall()->run(nullptr);
 }
 
-#include <shaderc/shaderc.h>
+/*#include <shaderc/shaderc.h>
 #include <spirv_cross/spirv_cross_c.h>
 static std::string MergeShaderSources(GLsizei count,
                                       const GLchar *const *string,
@@ -4659,7 +4659,7 @@ static void TryConvertAndSetShaderSource(Context *context,
     {
         context->shaderSource(shaderPacked, count, string, length);
     }
-}
+}*/
 void GL_APIENTRY GL_ShaderSource(GLuint shader,
                                  GLsizei count,
                                  const GLchar *const *string,
@@ -4697,7 +4697,7 @@ void GL_APIENTRY GL_ShaderSource(GLuint shader,
         }
         if (ANGLE_LIKELY(isCallValid))
         {
-            TryConvertAndSetShaderSource(context, shaderPacked, count, string, length);
+            context->shaderSource(context, shaderPacked, count, string, length);
         }
         ANGLE_CAPTURE_GL(ShaderSource, isCallValid, context, shaderPacked, count, string, length);
     }
