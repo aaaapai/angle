@@ -195,18 +195,12 @@ StateManagerGL::StateManagerGL(const FunctionsGL *functions,
     mTemporaryPausedQueries.fill(nullptr);
 
     // Initialize point sprite state for desktop GL
-    if (mFunctions->standard == STANDARD_GL_DESKTOP)
-    {
-        mFunctions->enable(GL_PROGRAM_POINT_SIZE);
+    mFunctions->enable(GL_PROGRAM_POINT_SIZE);
 
-        // GL_POINT_SPRITE was deprecated in the core profile. Point rasterization is always
-        // performed
-        // as though POINT_SPRITE were enabled.
-        if ((mFunctions->profile & GL_CONTEXT_CORE_PROFILE_BIT) == 0)
-        {
-            mFunctions->enable(GL_POINT_SPRITE);
-        }
-    }
+    // GL_POINT_SPRITE was deprecated in the core profile. Point rasterization is always
+    // performed
+    // as though POINT_SPRITE were enabled.
+    mFunctions->enable(GL_POINT_SPRITE);
 
     if (features.emulatePrimitiveRestartFixedIndex.enabled)
     {
@@ -1820,7 +1814,7 @@ void StateManagerGL::setPolygonMode(gl::PolygonMode mode)
         }
         else
         {
-            ASSERT(mFunctions->polygonModeNV);
+            //ASSERT(mFunctions->polygonModeNV);
             mFunctions->polygonModeNV(GL_FRONT_AND_BACK, ToGLenum(mPolygonMode));
         }
 
@@ -2794,10 +2788,10 @@ void StateManagerGL::setLogicOp(gl::LogicalOperation opcode)
 
 void StateManagerGL::setTextureCubemapSeamlessEnabled(bool enabled)
 {
-    if (mFunctions->standard != STANDARD_GL_DESKTOP)
+    /*if (mFunctions->standard != STANDARD_GL_DESKTOP)
     {
         return;
-    }
+    }*/
 
     if (mTextureCubemapSeamlessEnabled != enabled)
     {

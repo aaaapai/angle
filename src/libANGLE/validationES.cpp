@@ -6775,11 +6775,6 @@ bool ValidateGetTexParameterBase(const Context *context,
         case GL_TEXTURE_CROP_RECT_OES:
             // TODO(lfy@google.com): Restrict to GL_OES_draw_texture
             // after GL_OES_draw_texture functionality implemented
-            if (context->getClientVersion() >= ES_2_0)
-            {
-                ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kGLES1Only);
-                return false;
-            }
             break;
 
         case GL_MEMORY_SIZE_ANGLE:
@@ -7278,11 +7273,6 @@ bool ValidateTexParameterBase(const Context *context,
 
         case GL_GENERATE_MIPMAP:
         case GL_TEXTURE_CROP_RECT_OES:
-            if (context->getClientVersion() >= ES_2_0)
-            {
-                ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kGLES1Only);
-                return false;
-            }
             break;
 
         default:
@@ -7483,19 +7473,9 @@ bool ValidateTexParameterBase(const Context *context,
             break;
 
         case GL_GENERATE_MIPMAP:
-            if (context->getClientVersion() >= ES_2_0)
-            {
-                ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kGLES1Only);
-                return false;
-            }
             break;
 
         case GL_TEXTURE_CROP_RECT_OES:
-            if (context->getClientVersion() >= ES_2_0)
-            {
-                ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kGLES1Only);
-                return false;
-            }
             if (entryPoint == angle::EntryPoint::GLTexParameterf ||
                 entryPoint == angle::EntryPoint::GLTexParameteri ||
                 entryPoint == angle::EntryPoint::GLTexParameterx)

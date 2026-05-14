@@ -4727,6 +4727,7 @@ void GL_APIENTRY GL_TexImage2D(GLenum target,
                                GLenum type,
                                const void *pixels)
 {
+
     ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     ANGLE_UNSAFE_TODO(
