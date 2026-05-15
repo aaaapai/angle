@@ -4697,7 +4697,7 @@ void GL_APIENTRY GL_ShaderSource(GLuint shader,
         }
         if (ANGLE_LIKELY(isCallValid))
         {
-            context->shaderSource(context, shaderPacked, count, string, length);
+            context->shaderSource(shaderPacked, count, string, length);
         }
         ANGLE_CAPTURE_GL(ShaderSource, isCallValid, context, shaderPacked, count, string, length);
     }
