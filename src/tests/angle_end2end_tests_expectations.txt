@@ -571,6 +571,8 @@
 496259841 WIN D3D11 : RobustResourceInitTestES3.InvalidateThenReadBack/* = SKIP
 496259841 WIN D3D11 : RobustResourceInitTestES3.DrawThenInvalidateThenReadBack/* = SKIP
 496259841 WIN D3D11 : RobustResourceInitTestES3.DrawThenInvalidateThenVerifyDepthStencil/* = SKIP
+512896813 WIN D3D11 : LineLoopTestES3.LineLoopDrawArraysInstancedBaseInstance/* = SKIP
+512896813 WIN D3D11 : LineLoopTestES3.LineLoopDrawElementsInstancedBaseVertexBaseInstance/* = SKIP
 
 // Android
 42264624 ANDROID GLES : GLSLTest_ES3.InitGlobalComplexConstant/* = SKIP
@@ -644,7 +646,6 @@
 42264513 PIXEL4ORXL GLES : ImageTest.SourceCubeTarget2D_Colorspace/* = SKIP
 42264513 PIXEL4ORXL GLES : ImageTest.SourceCubeTargetExternal_Colorspace/* = SKIP
 42264513 PIXEL4ORXL GLES : ImageTest.SourceCubeTargetRenderbuffer_Colorspace/* = SKIP
-42264513 PIXEL4ORXL GLES : ImageTest.SourceNativeClientBufferTargetExternal_Colorspace/* = SKIP
 42264513 PIXEL4ORXL GLES : ImageTest.SourceNativeClientBufferTargetRenderbuffer_Colorspace/* = SKIP
 42264513 PIXEL4ORXL GLES : ImageTest.SourceRenderbufferTargetRenderbuffer_Colorspace/* = SKIP
 42264513 PIXEL4ORXL GLES : ImageTest.SourceRenderbufferTargetTexture_Colorspace/* = SKIP
@@ -1017,7 +1018,6 @@
 480069042 PIXEL10 GLES : ImageTest.SourceAHBTarget2DExternalCycleThroughRgbAndYuvSources/* = SKIP
 480069042 PIXEL10 GLES : ImageTest.SourceAHBTarget2DExternalCycleThroughRgbAndYuvTargets/* = SKIP
 480069042 PIXEL10 GLES : ImageTest.SourceCubeAndSameTargetTextureWithEachCubeFace/* = SKIP
-480069042 PIXEL10 GLES : ImageTest.SourceNativeClientBufferTargetExternal/* = SKIP
 480069042 PIXEL10 GLES : ImageTest.SourceYUVAHBTargetExternalRGBSampleInitData/* = SKIP
 480069042 PIXEL10 GLES : ImageTest.ValidationImageBase/* = SKIP
 480069042 PIXEL10 GLES : ImageTestES3.ClearYUVAHB/* = SKIP
@@ -1230,8 +1230,6 @@
 480069042 PIXEL10 VULKAN : ImageTest.SourceAHBTarget2DExternalCycleThroughRgbAndYuvSources/* = SKIP
 480069042 PIXEL10 VULKAN : ImageTest.SourceAHBTarget2DExternalCycleThroughRgbAndYuvTargets/* = SKIP
 480069042 PIXEL10 VULKAN : ImageTest.SourceAHBTarget2DExternalCycleThroughYuvSourcesNoData/* = SKIP
-480069042 PIXEL10 VULKAN : ImageTest.SourceNativeClientBufferTargetExternal/* = SKIP
-480069042 PIXEL10 VULKAN : ImageTest.SourceNativeClientBufferTargetExternal_Colorspace/* = SKIP
 480069042 PIXEL10 VULKAN : ImageTest.SourceYUVAHBTargetExternalRGBSampleInitData/* = SKIP
 480069042 PIXEL10 VULKAN : ImageTestES3.ClearYUVAHB/* = SKIP
 480069042 PIXEL10 VULKAN : ImageTestES3.ClearYUVAHBWithDepth/* = SKIP
@@ -1938,6 +1936,10 @@
 465357680 SAMSUNG GALAXYS24EXYNOS VULKAN : StateChangeTestES3.PrimitiveRestart/ES3_Vulkan_NoSupportsExtendedDynamicState2* = SKIP
 465357680 SAMSUNG GALAXYS24EXYNOS VULKAN : StateChangeTestES3.PrimitiveRestart/ES3_Vulkan_NoUsePrimitiveRestartEnableDynamicState = SKIP
 500540748 SAMSUNG GALAXYS24EXYNOS VULKAN : ImageTestES3.RGBXAHBImportPreservesData_Colorspace_TexStorage/* = SKIP
+511737097 SAMSUNG GALAXYS24EXYNOS VULKAN : StateChangeTestES3.PrimitiveRestartWithUnsignedBytesClientIndexData/ES3_Vulkan_NoSupportsExtendedDynamicState2* = SKIP
+511737097 SAMSUNG GALAXYS24EXYNOS VULKAN : StateChangeTestES3.PrimitiveRestartWithUnsignedBytesClientIndexData/ES3_Vulkan_NoUsePrimitiveRestartEnableDynamicState = SKIP
+511737097 SAMSUNG GALAXYS24EXYNOS VULKAN : StateChangeTestES3.PrimitiveRestartWithUnsignedBytesIndexBufferUpdates/ES3_Vulkan_NoSupportsExtendedDynamicState2* = SKIP
+511737097 SAMSUNG GALAXYS24EXYNOS VULKAN : StateChangeTestES3.PrimitiveRestartWithUnsignedBytesIndexBufferUpdates/ES3_Vulkan_NoUsePrimitiveRestartEnableDynamicState = SKIP
 
 // Additional Xclipse failures on latest public
 410630704 SAMSUNG GALAXYS24EXYNOS GLES : AdvancedBlendTest.AdvancedBlendDisabledAndThenEnabledKHR/* = SKIP
