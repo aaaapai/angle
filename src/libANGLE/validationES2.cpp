@@ -634,6 +634,8 @@ bool ValidCapUncommon(const PrivateState &state, ErrorSet *errors, GLenum cap, b
         case GL_SAMPLE_ALPHA_TO_ONE_EXT:
             return state.getExtensions().multisampleCompatibilityEXT;
 
+        case GL_TEXTURE_CUBE_MAP_SEAMLESS:
+        case GL_PROGRAM_POINT_SIZE:
         case GL_SAMPLE_ALPHA_TO_COVERAGE:
         case GL_SAMPLE_COVERAGE:
         case GL_DITHER:
