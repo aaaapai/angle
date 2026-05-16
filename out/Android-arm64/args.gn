@@ -151,8 +151,7 @@ enable_stripping = true
 
 use_cxx23 = true
 
-c_wrapper="ccache"
-cc_wrapper="ccache"
+cc_wrapper = "env CCACHE_SLOPPINESS=time_macros ccache"
 
 enable_unused_resource_stripping = true
 exclude_unwind_tables = true
