@@ -24,7 +24,9 @@ jobs:
         id: cache-depot-tools
         uses: actions/cache@main
         with:
-          path: depot_tools
+          path: |
+                depot_tools
+                .gclient
           key: depot-tools-${{ runner.os }}-${{ hashFiles('.gclient') }}
           restore-keys: |
             depot-tools-${{ runner.os }}-
@@ -33,7 +35,6 @@ jobs:
         if: steps.cache-depot-tools.outputs.cache-hit != 'true'
         shell: bash
         run: |
-          # 清理磁盘空间（原有）
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /opt/ghc
           sudo rm -rf /usr/local/share/boost
@@ -48,27 +49,12 @@ jobs:
           sudo rm -rf /usr/local/lib/android/sdk/ndk/27.3.13750724
           git clone --depth 1 https://chromium.googlesource.com/chromium/tools/depot_tools.git
 
-      - name: Cache ANGLE dependencies
-        id: cache-deps
-        uses: actions/cache@main
-        with:
-          path: |
-            build/linux
-            third_party/llvm-build
-            third_party/rust-toolchain
-            tools/glslang
-            tools/flex-bison
-          key: deps-${{ runner.os }}-${{ hashFiles('DEPS') }}
-          restore-keys: |
-            deps-${{ runner.os }}-
-
       - name: Run gclient sync
         shell: bash
         run: |
           # 确保 PATH 包含 depot_tools
           export PATH=`pwd`/depot_tools:$PATH
 
-          # 如果 .gclient 不存在，则先运行 bootstrap 创建（缓存恢复后可能缺失）
           if [ ! -f .gclient ]; then
             vpython3 scripts/bootstrap.py
           fi
@@ -112,10 +98,10 @@ jobs:
           name: angle-${{matrix.arch}}-${{ github.run_number }}
           path: out/Android-${{matrix.arch}}/*.so
 
-      - name: Upload libc++
-        uses: actions/upload-artifact@main
-        with:
-          name: libc++-${{matrix.arch}}-${{ github.run_number }}
-          path: |
-                **/gen/third_party/libc++
-                **/obj/buildtools/third_party/libc++abi
+      # - name: Upload libc++
+      #   uses: actions/upload-artifact@main
+      #   with:
+      #     name: libc++-${{matrix.arch}}-${{ github.run_number }}
+      #    path: |
+      #          **/gen/third_party/libc++
+      #          **/obj/buildtools/third_party/libc++abi
