@@ -3004,6 +3004,8 @@ pub mod ffi {
         RGBA32F,
         RGBA16F,
         R32F,
+        RG32UI,
+        RG16F,
         RGBA32UI,
         RGBA16UI,
         RGBA8UI,
@@ -4246,6 +4248,12 @@ impl BuilderWrapper {
             ffi::ASTLayoutImageInternalFormat::R32UI => decorations
                 .decorations
                 .push(Decoration::ImageInternalFormat(ImageInternalFormat::R32UI)),
+                        ffi::ASTLayoutImageInternalFormat::RG32UI => decorations
+                .decorations
+                .push(Decoration::ImageInternalFormat(ImageInternalFormat::RG32UI)),
+            ffi::ASTLayoutImageInternalFormat::RG16F => decorations
+                .decorations
+                .push(Decoration::ImageInternalFormat(ImageInternalFormat::RG16F)),
             ffi::ASTLayoutImageInternalFormat::RGBA32I => decorations
                 .decorations
                 .push(Decoration::ImageInternalFormat(ImageInternalFormat::RGBA32I)),
