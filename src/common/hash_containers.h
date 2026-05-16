@@ -9,7 +9,7 @@
 #ifndef COMMON_HASH_CONTAINERS_H_
 #define COMMON_HASH_CONTAINERS_H_
 
-#undef ANGLE_USE_ABSEIL
+//#undef ANGLE_USE_ABSEIL // Is ABSEIL faster?
 
 #if defined(ANGLE_USE_ABSEIL)
 #    include "absl/container/flat_hash_map.h"
