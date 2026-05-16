@@ -7516,6 +7516,14 @@ TLayoutQualifier TParseContext::parseLayoutQualifier(const ImmutableString &qual
         }
         qualifier.imageInternalFormat = EiifR32UI;
     }
+    else if (qualifierType == "rg32ui")
+    {
+        qualifier.imageInternalFormat = EiifRG32UI;
+    }
+    else if (qualifierType == "rg16f")
+    {
+        qualifier.imageInternalFormat = EiifRG16F;
+    }
     else if (mShaderType == GL_GEOMETRY_SHADER_EXT &&
              (mShaderVersion >= 320 ||
               (checkCanUseOneOfExtensions(
