@@ -1672,9 +1672,9 @@ spv::ImageFormat SPIRVBuilder::getImageFormat(TLayoutImageInternalFormat imageIn
         case EiifR32I:
             return spv::ImageFormatR32i;
         case EiifRG16F:
-            return 7;
+            return spv::ImageFormatRg16f;
         case EiifRG32UI:
-            return 35;
+            return spv::ImageFormatRg32ui;
         case EiifRGBA8:
             return spv::ImageFormatRgba8;
         case EiifRGBA8_SNORM:
