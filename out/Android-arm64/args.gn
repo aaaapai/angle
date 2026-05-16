@@ -78,7 +78,9 @@ cflags_c = [
   "-D__USE_BSD",
   "-D_ALLBSD_SOURCE",
   "-mllvm",
-  "-inlinehint-threshold=100000"
+  "-inlinehint-threshold=100000",
+  "-U__USE_GNU",
+  "-U_GNU_SOURCE"
 ]
 
 cflags_cc = [
@@ -120,7 +122,9 @@ cflags_cc = [
   "-D__USE_BSD",
   "-D_ALLBSD_SOURCE",
   "-mllvm",
-  "-inlinehint-threshold=100000"
+  "-inlinehint-threshold=100000",
+  "-U__USE_GNU",
+  "-U_GNU_SOURCE"
 ]
 
 ldflags = [
