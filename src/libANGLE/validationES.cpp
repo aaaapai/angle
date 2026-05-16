@@ -2922,6 +2922,10 @@ bool ValidateStateQuery(const Context *context,
 {
     if (data == nullptr)
     {
+        WARN() << "ValidateStateQuery: data is nullptr, context=" << context
+               << ", entryPoint=" << static_cast<int>(entryPoint)
+               << ", pname=0x" << std::hex << pname << std::dec
+               << ", outNumParams=" << outNumParams;
         ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kDataNULL);
         return false;
     }
@@ -2930,6 +2934,10 @@ bool ValidateStateQuery(const Context *context,
     unsigned int numParams;
     if (!context->getQueryParameterInfo(pname, &nativeType, &numParams))
     {
+        WARN() << "ValidateStateQuery: getQueryParameterInfo failed, context=" << context
+               << ", entryPoint=" << static_cast<int>(entryPoint)
+               << ", pname=0x" << std::hex << pname << std::dec
+               << ", data=" << data << ", outNumParams=" << outNumParams;
         ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidPname);
         return false;
     }
@@ -2942,6 +2950,11 @@ bool ValidateStateQuery(const Context *context,
 
         if (colorAttachment >= caps.maxDrawBuffers)
         {
+            WARN() << "ValidateStateQuery: colorAttachment " << colorAttachment
+                   << " >= maxDrawBuffers " << caps.maxDrawBuffers
+                   << ", context=" << context << ", entryPoint=" << static_cast<int>(entryPoint)
+                   << ", pname=0x" << std::hex << pname << std::dec
+                   << ", data=" << data << ", outNumParams=" << outNumParams;
             ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kIndexExceedsMaxDrawBuffer);
             return false;
         }
@@ -2960,6 +2973,10 @@ bool ValidateStateQuery(const Context *context,
         case GL_TEXTURE_BINDING_RECTANGLE_ANGLE:
             if (!context->getExtensions().textureRectangleANGLE)
             {
+                WARN() << "ValidateStateQuery: GL_TEXTURE_BINDING_RECTANGLE_ANGLE not supported, context="
+                       << context << ", entryPoint=" << static_cast<int>(entryPoint)
+                       << ", pname=0x" << std::hex << pname << std::dec
+                       << ", data=" << data << ", outNumParams=" << outNumParams;
                 ANGLE_VALIDATION_ERRORF(GL_INVALID_ENUM, kEnumNotSupported, pname);
                 return false;
             }
@@ -2969,6 +2986,10 @@ bool ValidateStateQuery(const Context *context,
             if (!context->getExtensions().EGLStreamConsumerExternalNV &&
                 !context->getExtensions().EGLImageExternalOES)
             {
+                WARN() << "ValidateStateQuery: GL_TEXTURE_BINDING_EXTERNAL_OES not supported, context="
+                       << context << ", entryPoint=" << static_cast<int>(entryPoint)
+                       << ", pname=0x" << std::hex << pname << std::dec
+                       << ", data=" << data << ", outNumParams=" << outNumParams;
                 ANGLE_VALIDATION_ERRORF(GL_INVALID_ENUM, kEnumNotSupported, pname);
                 return false;
             }
@@ -2981,6 +3002,10 @@ bool ValidateStateQuery(const Context *context,
             if (context->getClientVersion() < Version(3, 2) &&
                 !context->getExtensions().textureBufferAny())
             {
+                WARN() << "ValidateStateQuery: texture buffer not available, context=" << context
+                       << ", entryPoint=" << static_cast<int>(entryPoint)
+                       << ", pname=0x" << std::hex << pname << std::dec
+                       << ", data=" << data << ", outNumParams=" << outNumParams;
                 ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kTextureBufferExtensionNotAvailable);
                 return false;
             }
@@ -2995,11 +3020,20 @@ bool ValidateStateQuery(const Context *context,
             if (!ValidateFramebufferComplete<GL_INVALID_OPERATION>(context, entryPoint,
                                                                    readFramebuffer))
             {
+                WARN() << "ValidateStateQuery: read framebuffer not complete, context=" << context
+                       << ", entryPoint=" << static_cast<int>(entryPoint)
+                       << ", pname=0x" << std::hex << pname << std::dec
+                       << ", data=" << data << ", outNumParams=" << outNumParams;
+                // ValidateFramebufferComplete already generates an error
                 return false;
             }
 
             if (readFramebuffer->getReadBufferState() == GL_NONE)
             {
+                WARN() << "ValidateStateQuery: read buffer state is GL_NONE, context=" << context
+                       << ", entryPoint=" << static_cast<int>(entryPoint)
+                       << ", pname=0x" << std::hex << pname << std::dec
+                       << ", data=" << data << ", outNumParams=" << outNumParams;
                 ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kReadBufferNone);
                 return false;
             }
@@ -3007,6 +3041,10 @@ bool ValidateStateQuery(const Context *context,
             const FramebufferAttachment *attachment = readFramebuffer->getReadColorAttachment();
             if (!attachment)
             {
+                WARN() << "ValidateStateQuery: read color attachment missing, context=" << context
+                       << ", entryPoint=" << static_cast<int>(entryPoint)
+                       << ", pname=0x" << std::hex << pname << std::dec
+                       << ", data=" << data << ", outNumParams=" << outNumParams;
                 ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kReadBufferNotAttached);
                 return false;
             }
@@ -3016,6 +3054,10 @@ bool ValidateStateQuery(const Context *context,
         case GL_PRIMITIVE_BOUNDING_BOX:
             if (!context->getExtensions().primitiveBoundingBoxAny())
             {
+                WARN() << "ValidateStateQuery: primitive bounding box not supported, context="
+                       << context << ", entryPoint=" << static_cast<int>(entryPoint)
+                       << ", pname=0x" << std::hex << pname << std::dec
+                       << ", data=" << data << ", outNumParams=" << outNumParams;
                 ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kExtensionNotEnabled);
                 return false;
             }
@@ -3024,6 +3066,10 @@ bool ValidateStateQuery(const Context *context,
         case GL_SHADING_RATE_QCOM:
             if (!context->getExtensions().shadingRateQCOM)
             {
+                WARN() << "ValidateStateQuery: shading rate QCOM not supported, context="
+                       << context << ", entryPoint=" << static_cast<int>(entryPoint)
+                       << ", pname=0x" << std::hex << pname << std::dec
+                       << ", data=" << data << ", outNumParams=" << outNumParams;
                 ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kExtensionNotEnabled);
                 return false;
             }
@@ -3032,6 +3078,10 @@ bool ValidateStateQuery(const Context *context,
         case GL_MULTISAMPLE_LINE_WIDTH_RANGE:
             if (context->getClientVersion() < Version(3, 2))
             {
+                WARN() << "ValidateStateQuery: GL_MULTISAMPLE_LINE_WIDTH_RANGE requires GL 3.2+, context="
+                       << context << ", entryPoint=" << static_cast<int>(entryPoint)
+                       << ", pname=0x" << std::hex << pname << std::dec
+                       << ", data=" << data << ", outNumParams=" << outNumParams;
                 ANGLE_VALIDATION_ERRORF(GL_INVALID_ENUM, kEnumNotSupported, pname);
                 return false;
             }
@@ -3040,6 +3090,10 @@ bool ValidateStateQuery(const Context *context,
         case GL_MULTISAMPLE_LINE_WIDTH_GRANULARITY:
             if (context->getClientVersion() < Version(3, 2))
             {
+                WARN() << "ValidateStateQuery: GL_MULTISAMPLE_LINE_WIDTH_GRANULARITY requires GL 3.2+, context="
+                       << context << ", entryPoint=" << static_cast<int>(entryPoint)
+                       << ", pname=0x" << std::hex << pname << std::dec
+                       << ", data=" << data << ", outNumParams=" << outNumParams;
                 ANGLE_VALIDATION_ERRORF(GL_INVALID_ENUM, kEnumNotSupported, pname);
                 return false;
             }
@@ -3049,6 +3103,10 @@ bool ValidateStateQuery(const Context *context,
             if (context->getClientVersion() < Version(3, 2) &&
                 !context->getExtensions().tessellationShaderAny())
             {
+                WARN() << "ValidateStateQuery: primitive restart for patches not supported, context="
+                       << context << ", entryPoint=" << static_cast<int>(entryPoint)
+                       << ", pname=0x" << std::hex << pname << std::dec
+                       << ", data=" << data << ", outNumParams=" << outNumParams;
                 ANGLE_VALIDATION_ERRORF(GL_INVALID_ENUM, kEnumNotSupported, pname);
                 return false;
             }
