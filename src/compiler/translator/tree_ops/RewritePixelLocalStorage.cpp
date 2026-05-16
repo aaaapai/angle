@@ -391,6 +391,14 @@ class RewritePLSToImagesTraverser : public RewritePLSTraverser
             case TLayoutImageInternalFormat::EiifR32UI:
                 imageType->setBasicType(EbtUImage2D);
                 break;
+            case TLayoutImageInternalFormat::EiifRG16F:
+                imageType->setBasicType(EbtImage2D);
+                imageType->setPrecision(EbpHigh);
+                break;
+            case TLayoutImageInternalFormat::EiifRG32UI:
+                imageType->setBasicType(EbtUImage2D);
+                imageType->setPrecision(EbpHigh);
+                break;
             default:
                 UNREACHABLE();
         }
@@ -810,6 +818,12 @@ class RewritePLSToFramebufferFetchTraverser : public RewritePLSTraverser
                     break;
                 case EiifR32UI:
                     accessVarType = new TType(EbtUInt, 1);
+                    break;
+                case EiifRG16F:
+                    accessVarType = new TType(EbtFloat, 2);
+                    break;
+                case EiifRG32UI:
+                    accessVarType = new TType(EbtUInt, 2);
                     break;
             }
             accessVarType->setPrecision(plsType.getPrecision());
