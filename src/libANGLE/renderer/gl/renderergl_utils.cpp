@@ -1258,15 +1258,7 @@ void GenerateCaps(const FunctionsGL *functions,
 
         // OpenGL 4.3 has no limit on maximum value of stride.
         // [OpenGL 4.3 (Core Profile) - February 14, 2013] Chapter 10.3.1 Page 298
-        if (features.emulateMaxVertexAttribStride.enabled ||
-            (functions->standard == STANDARD_GL_DESKTOP && functions->version == gl::Version(4, 3)))
-        {
-            caps->maxVertexAttribStride = 2048;
-        }
-        else
-        {
-            caps->maxVertexAttribStride = QuerySingleGLInt(functions, GL_MAX_VERTEX_ATTRIB_STRIDE);
-        }
+        caps->maxVertexAttribStride = 4096;
     }
     else
     {
