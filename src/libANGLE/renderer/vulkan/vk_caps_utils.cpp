@@ -853,10 +853,10 @@ void Renderer::ensureCapsInitialized() const
     mNativeCaps.maxShaderStorageBlocks[gl::ShaderType::Vertex] =
         mPhysicalDeviceFeatures.vertexPipelineStoresAndAtomics
             ? rx::LimitToInt(maxVertexStageStorageBuffers)
-            : 0;
+            : 512 * 1024 * 1024;
     mNativeCaps.maxShaderStorageBlocks[gl::ShaderType::Fragment] =
         mPhysicalDeviceFeatures.fragmentStoresAndAtomics ? rx::LimitToInt(maxPerStageStorageBuffers)
-                                                         : 0;
+                                                         : 512 * 1024 * 1024;
     mNativeCaps.maxShaderStorageBlocks[gl::ShaderType::Compute] =
         rx::LimitToInt(maxPerStageStorageBuffers);
     mNativeCaps.maxCombinedShaderStorageBlocks = rx::LimitToInt(maxCombinedStorageBuffers);
