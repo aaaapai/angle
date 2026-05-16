@@ -2586,6 +2586,10 @@ void TParseContext::nonEmptyDeclarationErrorCheck(const TPublicType &publicType,
                     return;
                 }
                 break;
+            case EiifRG32UI:
+                break;
+            case EiifRG16F:
+                break;
             case EiifUnspecified:
                 warning(identifierLocation, "layout qualifier", "No image internal format specified");
                 break;
@@ -2623,6 +2627,8 @@ void TParseContext::nonEmptyDeclarationErrorCheck(const TPublicType &publicType,
         }
         switch (layoutQualifier.imageInternalFormat)
         {
+            case EiifRG16F:
+            case EiifRG32UI:
             case EiifR32F:
             case EiifRGBA8:
                 if (publicType.getBasicType() != EbtPixelLocalANGLE)
