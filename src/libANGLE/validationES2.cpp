@@ -6138,6 +6138,10 @@ void RecordBindTextureTypeError(const Context *context,
                                 angle::EntryPoint entryPoint,
                                 TextureType target)
 {
+    WARN() << "RecordBindTextureTypeError called: context=" << context
+           << ", entryPoint=" << static_cast<int>(entryPoint)
+           << ", target=" << static_cast<int>(target);
+
     ASSERT(!context->getStateCache().isValidBindTextureType(target));
 
     switch (target)
