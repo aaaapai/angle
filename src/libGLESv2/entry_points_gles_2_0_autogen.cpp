@@ -4974,6 +4974,11 @@ void GL_APIENTRY GL_TexImage2D(GLenum target,
                                const void *pixels)
 {
 
+    if (target == 0) {
+        WARN() << "GL_TexImage2D: target is 0, which is not a valid texture target. Set to GL_TEXTURE_2D by default.";
+        target = GL_TEXTURE_2D;
+    }
+
     ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     ANGLE_UNSAFE_TODO(
