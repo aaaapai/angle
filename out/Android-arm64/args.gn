@@ -40,6 +40,7 @@ use_lto = true
 angle_build_tests = false
 
 cflags_c = [
+  "-Wno-unsafe-buffer-usage",
   "-Wno-unused-variable",
   "-Wno-error=unused-variable",
   "-Wno-error",
@@ -81,6 +82,7 @@ cflags_c = [
 ]
 
 cflags_cc = [
+  "-Wno-unsafe-buffer-usage",
   "-Wno-unused-variable",
   "-Wno-error=unused-variable",
   "-Wno-error",

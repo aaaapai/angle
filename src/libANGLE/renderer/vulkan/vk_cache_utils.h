@@ -26,6 +26,9 @@
 #include "libANGLE/renderer/vulkan/vk_resource.h"
 #include "libANGLE/renderer/vulkan/vk_utils.h"
 
+#include <ankerl/stl.h>
+#include <ankerl/unordered_dense.h>
+
 namespace gl
 {
 class ProgramExecutable;
@@ -2668,8 +2671,8 @@ class RenderPassCache final : angle::NonCopyable
     // Use a two-layer caching scheme. The top level matches the "compatible" RenderPass elements.
     // The second layer caches the attachment load/store ops and initial/final layout.
     // Switch to `std::unordered_map` to retain pointer stability.
-    using InnerCache = std::unordered_map<vk::AttachmentOpsArray, vk::RenderPassHelper>;
-    using OuterCache = std::unordered_map<vk::RenderPassDesc, InnerCache>;
+    using InnerCache = ankerl::unordered_dense::map<vk::AttachmentOpsArray, vk::RenderPassHelper>;
+    using OuterCache = ankerl::unordered_dense::map<vk::RenderPassDesc, InnerCache>;
 
     OuterCache mPayload;
     CacheStats mCompatibleRenderPassCacheStats;
@@ -2870,7 +2873,7 @@ class DescriptorSetLayoutCache final : angle::NonCopyable
 
   private:
     mutable angle::SimpleMutex mMutex;
-    std::unordered_map<vk::DescriptorSetLayoutDesc, vk::DescriptorSetLayoutPtr> mPayload;
+    ankerl::unordered_dense::map<vk::DescriptorSetLayoutDesc, vk::DescriptorSetLayoutPtr> mPayload;
     CacheStats mCacheStats;
 };
 
@@ -2889,7 +2892,7 @@ class PipelineLayoutCache final : public HasCacheStats<VulkanCacheType::Pipeline
 
   private:
     mutable angle::SimpleMutex mMutex;
-    std::unordered_map<vk::PipelineLayoutDesc, vk::PipelineLayoutPtr> mPayload;
+    ankerl::unordered_dense::map<vk::PipelineLayoutDesc, vk::PipelineLayoutPtr> mPayload;
 };
 
 class SamplerCache final : public HasCacheStats<VulkanCacheType::Sampler>
@@ -2905,7 +2908,7 @@ class SamplerCache final : public HasCacheStats<VulkanCacheType::Sampler>
                              vk::SharedSamplerPtr *samplerOut);
 
   private:
-    std::unordered_map<vk::SamplerDesc, vk::SharedSamplerPtr> mPayload;
+    ankerl::unordered_dense::map<vk::SamplerDesc, vk::SharedSamplerPtr> mPayload;
 };
 
 // YuvConversion Cache
@@ -2924,7 +2927,7 @@ class SamplerYcbcrConversionCache final
 
   private:
     using SamplerYcbcrConversionMap =
-        std::unordered_map<vk::YcbcrConversionDesc, vk::SamplerYcbcrConversion>;
+        ankerl::unordered_dense::map<vk::YcbcrConversionDesc, vk::SamplerYcbcrConversion>;
     SamplerYcbcrConversionMap mExternalFormatPayload;
     SamplerYcbcrConversionMap mVkFormatPayload;
 };
