@@ -4643,8 +4643,7 @@ static bool TryConvertGLSL(const Context *context,
     p_spvc_context_destroy(spvcCtx);
     return !outputSource.empty();
 }
-static void TryConvertAndSetShaderSource(Context *context,
-                                         ShaderProgramID shaderPacked,
+static void TryConvertAndSetShaderSource(ShaderProgramID shaderPacked,
                                          GLsizei count,
                                          const GLchar *const *string,
                                          const GLint *length)
