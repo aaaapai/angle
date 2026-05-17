@@ -20,6 +20,7 @@
 #include "libANGLE/entry_points_utils.h"
 #include "libANGLE/validationES2.h"
 #include "libGLESv2/global_state.h"
+#include <dlfcn.h>
 
 using namespace gl;
 
