@@ -2284,31 +2284,30 @@ bool ValidateGenerateMipmapBase(const Context *context,
                                    ? TextureTarget::CubeMapPositiveX
                                    : NonCubeTextureTypeToTarget(target);
     const auto &format       = *(texture->getFormat(baseTarget, effectiveBaseLevel).info);
-    /*if (format.sizedInternalFormat == GL_NONE || format.compressed || format.paletted ||
-        format.depthBits > 0 || format.stencilBits > 0)
+    if (format.sizedInternalFormat == GL_NONE || format.compressed || format.paletted)
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kGenerateMipmapNotAllowed);
         return false;
-    }*/
+    }
 
     // GenerateMipmap accepts formats that are unsized or both color renderable and filterable.
     bool formatUnsized = !format.sized;
     bool formatColorRenderableAndFilterable =
         format.filterSupport(context->getClientVersion(), context->getExtensions()) &&
         format.textureAttachmentSupport(context->getClientVersion(), context->getExtensions());
-    /*if (!formatUnsized && !formatColorRenderableAndFilterable)
+    if (!formatColorRenderableAndFilterable)
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kGenerateMipmapNotAllowed);
         return false;
-    }*/
+    }
 
     // GL_EXT_sRGB adds an unsized SRGB (no alpha) format which has explicitly disabled mipmap
     // generation
-    /*if (format.colorEncoding == GL_SRGB && format.format == GL_RGB)
+    if (format.colorEncoding == GL_SRGB && format.format == GL_RGB && !std::getenv("ANGLE_ALLOW_SRGB_uSRGB_MIPMAP"))
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kGenerateMipmapNotAllowed);
         return false;
-    }*/
+    }
 
     // According to the OpenGL extension spec EXT_sRGB.txt, EXT_SRGB is based on ES 2.0 and
     // generateMipmap is not allowed if texture format is SRGB_EXT or SRGB_ALPHA_EXT.
