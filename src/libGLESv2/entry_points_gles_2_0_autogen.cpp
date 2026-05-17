@@ -4414,7 +4414,7 @@ void GL_APIENTRY GL_ShaderBinary(GLsizei count,
     egl::Display::GetCurrentThreadUnlockedTailCall()->run(nullptr);
 }
 
-/*#include <shaderc/shaderc.h>
+#include <shaderc/shaderc.h>
 #include <spirv_cross/spirv_cross_c.h>
 static std::string MergeShaderSources(GLsizei count,
                                       const GLchar *const *string,
@@ -4459,8 +4459,11 @@ static bool TryConvertGLSL(const Context *context,
     static size_t (*p_shaderc_result_get_length)(const shaderc_compilation_result_t) = nullptr;
     static const char* (*p_shaderc_result_get_error_message)(const shaderc_compilation_result_t) = nullptr;
     static void (*p_shaderc_result_release)(shaderc_compilation_result_t) = nullptr;
+    static void (*p_shaderc_compile_options_set_generate_debug_info)(shaderc_compile_options_t, bool) = nullptr;
+    static void (*p_shaderc_compile_options_set_optimization_level)(shaderc_compile_options_t, shaderc_optimization_level) = nullptr;
+    static void (*p_shaderc_compile_into_preprocessed_text)(const shaderc_compiler_t, const char*, size_t, shaderc_shader_kind, const char*, const char*, const shaderc_compile_options_t) = nullptr;
+    static void (*p_shaderc_compile_options_set_target_spirv)(shaderc_compile_options_t, shaderc_spirv_version) = nullptr;
 
-    // spirv-cross 函数指针
     static spvc_result (*p_spvc_context_create)(spvc_context *) = nullptr;
     static void (*p_spvc_context_destroy)(spvc_context) = nullptr;
     static void (*p_spvc_context_release_allocations)(spvc_context) = nullptr;
@@ -4478,7 +4481,6 @@ static bool TryConvertGLSL(const Context *context,
     static spvc_result (*p_spvc_compiler_compile)(spvc_compiler, const char **) = nullptr;
 
     std::call_once(initFlag, [&]() {
-        // 加载 libshaderc.so
         void *shadercLib = dlopen("libshaderc.so", RTLD_LAZY);
         if (!shadercLib) return;
 #define LOAD_SHADERC(name) \
@@ -4496,9 +4498,12 @@ static bool TryConvertGLSL(const Context *context,
         LOAD_SHADERC(shaderc_result_get_length);
         LOAD_SHADERC(shaderc_result_get_error_message);
         LOAD_SHADERC(shaderc_result_release);
+        LOAD_SHADERC(shaderc_compile_options_set_generate_debug_info);
+        LOAD_SHADERC(shaderc_compile_into_preprocessed_text);
+        LOAD_SHADERC(shaderc_compile_options_set_optimization_level);
+        LOAD_SHADERC(shaderc_compile_options_set_target_spirv);
 #undef LOAD_SHADERC
 
-        // 加载 libspirv-cross-c-shared.so
         void *spvcLib = dlopen("libspirv-cross-c-shared.so", RTLD_LAZY);
         if (!spvcLib) { dlclose(shadercLib); return; }
 #define LOAD_SPVC(name) \
@@ -4535,8 +4540,9 @@ static bool TryConvertGLSL(const Context *context,
         case gl::ShaderType::Fragment: kind = shaderc_fragment_shader; break;
         case gl::ShaderType::Geometry: kind = shaderc_geometry_shader; break;
         case gl::ShaderType::Compute:  kind = shaderc_compute_shader; break;
-        // TODO
-        default: return false;
+        case gl::ShaderType::TessControl: kind = shaderc_tess_control_shader; break;
+        case gl::ShaderType::TessEvaluation: kind = shaderc_tess_evaluation_shader; break;
+        default: kind = shaderc_fragment_shader;
     }
 
     shaderc_compiler_t compiler = p_shaderc_compiler_initialize();
@@ -4552,8 +4558,11 @@ static bool TryConvertGLSL(const Context *context,
     p_shaderc_compile_options_set_target_env(options, shaderc_target_env_opengl, 450);
     p_shaderc_compile_options_set_source_language(options, shaderc_source_language_glsl);
     p_shaderc_compile_options_set_auto_bind_uniforms(options, true);
+    p_shaderc_compile_options_set_optimization_level(options, shaderc_optimization_level_performance);
+    p_shaderc_compile_options_set_generate_debug_info(options, true);
+    p_shaderc_compile_options_set_target_spirv(options, shaderc_spirv_version_1_0);
 
-    shaderc_compilation_result_t result = p_shaderc_compile_into_spv(
+    shaderc_compilation_result_t result = p_shaderc_compile_into_preprocessed_text(
         compiler,
         inputSource.c_str(),
         inputSource.size(),
@@ -4659,7 +4668,7 @@ static void TryConvertAndSetShaderSource(Context *context,
     {
         context->shaderSource(shaderPacked, count, string, length);
     }
-}*/
+}
 void GL_APIENTRY GL_ShaderSource(GLuint shader,
                                  GLsizei count,
                                  const GLchar *const *string,
