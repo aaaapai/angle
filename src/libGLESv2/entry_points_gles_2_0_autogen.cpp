@@ -4732,6 +4732,9 @@ static bool TryConvertGLSL(shaderc_shader_kind kind,
     static void (*p_shaderc_compile_options_set_generate_debug_info)(shaderc_compile_options_t, bool) = nullptr;
     static void (*p_shaderc_compile_options_set_optimization_level)(shaderc_compile_options_t, shaderc_optimization_level) = nullptr;
     static void (*p_shaderc_compile_options_set_target_spirv)(shaderc_compile_options_t, shaderc_spirv_version) = nullptr;
+    static shaderc_compilation_result_t (*p_shaderc_compile_into_preprocessed_text)(
+    shaderc_compiler_t, const char*, size_t, shaderc_shader_kind,
+    const char*, const char*, const shaderc_compile_options_t) = nullptr;
 
     std::call_once(initFlag, [&]() {
         void *shadercLib = dlopen("libshaderc.so", RTLD_LAZY);
@@ -4746,7 +4749,7 @@ static bool TryConvertGLSL(shaderc_shader_kind kind,
         LOAD_SHADERC(shaderc_compile_options_set_target_env);
         LOAD_SHADERC(shaderc_compile_options_set_source_language);
         LOAD_SHADERC(shaderc_compile_options_set_auto_bind_uniforms);
-        LOAD_SHADERC(shaderc_compile_into_preprocessed_text);  // 现在类型正确
+        LOAD_SHADERC(shaderc_compile_into_preprocessed_text);
         LOAD_SHADERC(shaderc_result_get_bytes);
         LOAD_SHADERC(shaderc_result_get_length);
         LOAD_SHADERC(shaderc_result_get_error_message);
