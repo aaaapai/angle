@@ -27,6 +27,10 @@ jobs:
           path: |
                 depot_tools
                 .gclient
+                tools/flex-bison
+                third_party/llvm-build
+                third_party/rust-toolchain
+                tools/flex-bison
           key: depot-tools-${{ runner.os }}-${{ hashFiles('.gclient') }}
           restore-keys: |
             depot-tools-${{ runner.os }}-
@@ -70,7 +74,7 @@ jobs:
         uses: hendrikmuhs/ccache-action@main
         with:
           key: angle-ccache
-          max-size: 6G
+          max-size: 8G
 
       - name: Build ANGLE
         shell: bash
