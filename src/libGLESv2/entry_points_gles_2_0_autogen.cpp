@@ -4692,27 +4692,22 @@ static void TryConvertAndSetShaderSource(ShaderProgramID shaderPacked,
 #include <shaderc/shaderc.h>
 // 不再需要 spirv_cross 头文件
 // #include <spirv_cross/spirv_cross_c.h>
-
 static std::string MergeShaderSources(GLsizei count,
                                       const GLchar *const *string,
                                       const GLint *length)
 {
-    // ... 保持不变 ...
+    std::string result;
+    for (GLsizei i = 0; i < count; ++i)
+    {
+        if (string[i] == nullptr)
+            continue;
+        if (length && length[i] > 0)
+            result.append(string[i], static_cast<size_t>(length[i]));
+        else
+            result.append(string[i]);
+    }
+    return result;
 }
-
-// 修正：返回类型应为 shaderc_compilation_result_t
-static shaderc_compilation_result_t (*p_shaderc_compile_into_preprocessed_text)(
-    shaderc_compiler_t, const char*, size_t, shaderc_shader_kind,
-    const char*, const char*, const shaderc_compile_options_t) = nullptr;
-
-/*
-// === 注释掉所有 spirv-cross 相关的函数指针 ===
-static spvc_result (*p_spvc_context_create)(spvc_context *) = nullptr;
-static void (*p_spvc_context_destroy)(spvc_context) = nullptr;
-...
-static spvc_result (*p_spvc_compiler_compile)(spvc_compiler, const char **) = nullptr;
-*/
-
 static bool TryConvertGLSL(shaderc_shader_kind kind,
                            const std::string &inputSource,
                            std::string &outputSource)
@@ -4720,7 +4715,6 @@ static bool TryConvertGLSL(shaderc_shader_kind kind,
     static std::once_flag initFlag;
     static bool initSuccess = false;
 
-    // shaderc 函数指针（保留）
     static shaderc_compiler_t (*p_shaderc_compiler_initialize)(void) = nullptr;
     static void (*p_shaderc_compiler_release)(shaderc_compiler_t) = nullptr;
     static shaderc_compile_options_t (*p_shaderc_compile_options_initialize)(void) = nullptr;
@@ -4762,7 +4756,6 @@ static bool TryConvertGLSL(shaderc_shader_kind kind,
         LOAD_SHADERC(shaderc_compile_options_set_target_spirv);
 #undef LOAD_SHADERC
 
-        // 不再加载 spirv-cross 库
         initSuccess = true;
         printf("GLSL preprocessor initialized (shaderc only)\n");
     });
@@ -4786,7 +4779,6 @@ static bool TryConvertGLSL(shaderc_shader_kind kind,
     p_shaderc_compile_options_set_generate_debug_info(options, true);
     p_shaderc_compile_options_set_target_spirv(options, shaderc_spirv_version_1_0);
 
-    // 预处理 GLSL，不进行 SPIR-V 生成
     shaderc_compilation_result_t result = p_shaderc_compile_into_preprocessed_text(
         compiler,
         inputSource.c_str(),
@@ -4828,9 +4820,8 @@ static void TryConvertAndSetShaderSource(Context *context,
         return;
     }
 
-    // 获取着色器类型：通过 glGetShaderiv (内部调用)
     GLint shaderType = 0;
-    context->getShaderiv(shaderPacked, GL_SHADER_TYPE, &shaderType);
+    context->getShaderiv(shaderPacked, PackParam<ShaderParameter>(GL_SHADER_TYPE), &shaderType);
 
     shaderc_shader_kind kind;
     switch (shaderType) {
@@ -4841,7 +4832,6 @@ static void TryConvertAndSetShaderSource(Context *context,
         case GL_TESS_CONTROL_SHADER: kind = shaderc_tess_control_shader; break;
         case GL_TESS_EVALUATION_SHADER: kind = shaderc_tess_evaluation_shader; break;
         default:
-            // 未知类型，回退到原始调用
             context->shaderSource(shaderPacked, count, string, length);
             return;
     }
