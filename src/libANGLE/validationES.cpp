@@ -2284,7 +2284,7 @@ bool ValidateGenerateMipmapBase(const Context *context,
                                    ? TextureTarget::CubeMapPositiveX
                                    : NonCubeTextureTypeToTarget(target);
     const auto &format       = *(texture->getFormat(baseTarget, effectiveBaseLevel).info);
-    if (format.sizedInternalFormat == GL_NONE || format.compressed || format.paletted)
+    if (format.sizedInternalFormat == GL_NONE || format.compressed || format.paletted || ( (format.depthBits > 0 || format.stencilBits > 0) && !std::getenv("ANGLE_NO_MIPMAPLIMITS") ) )
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kGenerateMipmapNotAllowed);
         return false;
@@ -2295,7 +2295,7 @@ bool ValidateGenerateMipmapBase(const Context *context,
     bool formatColorRenderableAndFilterable =
         format.filterSupport(context->getClientVersion(), context->getExtensions()) &&
         format.textureAttachmentSupport(context->getClientVersion(), context->getExtensions());
-    if (!formatColorRenderableAndFilterable)
+    if ( (!formatUnsized && !std::getenv("ANGLE_NO_MIPMAPLIMITS") ) && !formatColorRenderableAndFilterable)
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kGenerateMipmapNotAllowed);
         return false;
