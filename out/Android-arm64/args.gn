@@ -80,7 +80,9 @@ cflags_c = [
   "-mllvm",
   "-inlinehint-threshold=100000",
   "-U__USE_GNU",
-  "-U_GNU_SOURCE"
+  "-U_GNU_SOURCE",
+  "-DANGLE_USE_ANDROID_TLS_SLOT",
+  "-DUNSAFE_BUFFERS_BUILD"
 ]
 
 cflags_cc = [
@@ -124,7 +126,9 @@ cflags_cc = [
   "-mllvm",
   "-inlinehint-threshold=100000",
   "-U__USE_GNU",
-  "-U_GNU_SOURCE"
+  "-U_GNU_SOURCE",
+  "-DANGLE_USE_ANDROID_TLS_SLOT",
+  "-DUNSAFE_BUFFERS_BUILD"
 ]
 
 ldflags = [
@@ -155,7 +159,7 @@ enable_stripping = true
 
 use_cxx23 = true
 
-cc_wrapper = "env CCACHE_SLOPPINESS=time_macros ccache"
+cc_wrapper = "ccache"
 
 enable_unused_resource_stripping = true
 exclude_unwind_tables = true
