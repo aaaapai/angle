@@ -4536,7 +4536,7 @@ static bool TryConvertGLSL(const Context *context,
         return false;
 
     GLint shaderTypeGL = 0;
-    context->getShaderiv(shaderPacked, GL_SHADER_TYPE, &shaderTypeGL);
+    context->getShaderiv(shaderPacked, PackParam<ShaderParameter>(GL_SHADER_TYPE), &shaderTypeGL);
     shaderc_shader_kind kind;
     switch (shaderTypeGL)
     {
