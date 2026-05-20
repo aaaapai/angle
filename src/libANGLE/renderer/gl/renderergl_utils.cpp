@@ -2732,6 +2732,9 @@ void InitializeFeatures(const FunctionsGL *functions, angle::FeaturesGL *feature
     // types, LUMA and depth stencil.
     ANGLE_FEATURE_CONDITION(features, disableClearTexImageForRobustInit, IsPowerVR(vendor));
 
+    // Disable EXT_clear_texture entirely on IMG as a speculative fix for driver crashes.
+    ANGLE_FEATURE_CONDITION(features, disableClearTexture, IsPowerVR(vendor));
+
     // IMG GL drivers crash while compiling shaders with more than the limit of uniform blocks.
     ANGLE_FEATURE_CONDITION(features, validateMaxPerStageUniformBlocksAtCompileTime,
                             IsPowerVR(vendor));
