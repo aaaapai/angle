@@ -29,6 +29,10 @@
 #ifndef ANKERL_STL_H
 #define ANKERL_STL_H
 
+#ifdef UNSAFE_BUFFERS_BUILD
+#    pragma allow_unsafe_buffers
+#endif
+
 #include <cstdlib>
 #include <array>            // for array
 #include <cstdint>          // for uint64_t, uint32_t, std::uint8_t, UINT64_C
