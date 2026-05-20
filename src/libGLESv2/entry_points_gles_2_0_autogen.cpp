@@ -4434,7 +4434,7 @@ static std::string MergeShaderSources(GLsizei count,
     }
     return result;
 }
-static bool TryConvertGLSL(const Context *context,
+static bool TryConvertGLSL(Context *context,
                            ShaderProgramID shaderPacked,
                            const std::string &inputSource,
                            std::string &outputSource)
