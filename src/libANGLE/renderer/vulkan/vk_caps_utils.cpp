@@ -748,7 +748,7 @@ void Renderer::ensureCapsInitialized() const
     }
 
     const int32_t maxPerStageUniformBuffers = rx::LimitToInt(
-        limitsVk.maxPerStageDescriptorUniformBuffe);
+        limitsVk.maxPerStageDescriptorUniformBuffers);
     for (gl::ShaderType shaderType : gl::AllShaderTypes())
     {
         mNativeCaps.maxShaderUniformBlocks[shaderType] = maxPerStageUniformBuffers;
