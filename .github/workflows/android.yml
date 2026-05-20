@@ -11,7 +11,7 @@ jobs:
       fail-fast: false
 
     name: "Build for Android ${{matrix.arch}}"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
 
     steps:
       - name: Checkout
@@ -19,7 +19,11 @@ jobs:
         with:
           fetch-depth: 1
 
-      # ---------- 缓存 depot_tools ----------
+      - name: Setup Python
+        uses: actions/setup-python@v6.2.0
+        with:
+           python-version: '3'
+
       - name: Cache depot_tools
         id: cache-depot-tools
         uses: actions/cache@main
@@ -27,9 +31,7 @@ jobs:
           path: |
                 depot_tools
                 .gclient
-                tools/flex-bison
                 third_party/llvm-build
-                third_party/rust-toolchain
                 tools/flex-bison
           key: depot-tools-${{ runner.os }}-${{ hashFiles('.gclient') }}
           restore-keys: |
@@ -39,14 +41,6 @@ jobs:
         if: steps.cache-depot-tools.outputs.cache-hit != 'true'
         shell: bash
         run: |
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf /usr/local/share/boost
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-          sudo rm -rf JAVA_HOME_8_X64
-          sudo rm -rf /usr/share/miniconda
-          sudo rm -rf /usr/local/share/vcpkg
-          sudo rm -rf /usr/local/lib/android/sdk/ndk/27.3.13750724
           git clone --depth 1 https://chromium.googlesource.com/chromium/tools/depot_tools.git
 
       - name: Run gclient sync
