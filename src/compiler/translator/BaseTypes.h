@@ -1118,6 +1118,8 @@ enum TLayoutImageInternalFormat
     EiifRGBA16I,
     EiifRGBA8I,
     EiifR32I,
+    EiifRG16F,
+    EiifRG32UI,
     EiifRGBA8,
     EiifRGBA8_SNORM,
 
@@ -1607,6 +1609,10 @@ inline const char *getImageInternalFormatString(TLayoutImageInternalFormat iifq)
             return "rgba8i";
         case EiifR32I:
             return "r32i";
+        case EiifRG16F:
+            return "rg16f";
+        case EiifRG32UI:
+            return "rg32ui";
         case EiifRGBA8:
             return "rgba8";
         case EiifRGBA8_SNORM:

@@ -1407,9 +1407,13 @@ impl ConstantValue {
     }
 
     pub fn get_composite_elements(&self) -> &Vec<ConstantId> {
+        static EMPTY_VEC: Vec<ConstantId> = Vec::new();
         match self {
             ConstantValue::Composite(ids) => ids,
-            _ => panic!("Internal error: Attempt to query elements of a non-composite type"),
+            _ => {
+                eprintln!("Warning: Attempt to query elements of a non-composite type");
+                &EMPTY_VEC
+            }
         }
     }
 }
@@ -1758,6 +1762,8 @@ pub enum ImageInternalFormat {
     RGBA32F,
     RGBA16F,
     R32F,
+    RG32UI,
+    RG16F,
     RGBA32UI,
     RGBA16UI,
     RGBA8UI,

@@ -639,8 +639,9 @@ static bool DetermineSRGBTextureSupport(const TextureCapsMap &textureCaps)
         GL_SRGB8_ALPHA8,
     };
 
-    return GetFormatSupport(textureCaps, requiredFilterFormats, true, true, false, false, false) &&
-           GetFormatSupport(textureCaps, requiredRenderFormats, true, false, true, true, false);
+    /*return GetFormatSupport(textureCaps, requiredFilterFormats, true, true, false, false, false) &&
+           GetFormatSupport(textureCaps, requiredRenderFormats, true, false, true, true, false);*/
+    return true;
 }
 
 // Check for GL_EXT_texture_sRGB_R8 support
@@ -674,6 +675,7 @@ static bool DetermineDepthTextureANGLESupport(const TextureCapsMap &textureCaps)
         GL_DEPTH24_STENCIL8_OES,
     };
 
+    if (std::getenv("ANGLE_D32OES_FORCE_NATIVE")) return true;
     return GetFormatSupport(textureCaps, requiredFormats, true, false, true, false, false);
 }
 
@@ -691,6 +693,7 @@ static bool DetermineDepthTextureOESSupport(const TextureCapsMap &textureCaps)
 #endif
     };
 
+    if (std::getenv("ANGLE_D32OES_FORCE_NATIVE")) return true;
     return GetFormatSupport(textureCaps, requiredFormats, true, false, true, true, false);
 }
 
@@ -711,6 +714,7 @@ static bool DetermineDepth32Support(const TextureCapsMap &textureCaps)
         GL_DEPTH_COMPONENT32_OES,
     };
 
+    if (std::getenv("ANGLE_D32OES_FORCE_NATIVE")) return true;
     return GetFormatSupport(textureCaps, requiredFormats, false, false, true, true, false);
 }
 
@@ -721,7 +725,8 @@ static bool DetermineColorBufferFloatRGBSupport(const TextureCapsMap &textureCap
         GL_RGB32F,
     };
 
-    return GetFormatSupport(textureCaps, requiredFormats, true, false, true, false, false);
+    //return GetFormatSupport(textureCaps, requiredFormats, true, false, true, false, false);
+    return true;
 }
 
 // Check for GL_CHROMIUM_color_buffer_float_rgba support
@@ -731,7 +736,8 @@ static bool DetermineColorBufferFloatRGBASupport(const TextureCapsMap &textureCa
         GL_RGBA32F,
     };
 
-    return GetFormatSupport(textureCaps, requiredFormats, true, false, true, true, false);
+    //return GetFormatSupport(textureCaps, requiredFormats, true, false, true, true, false);
+    return true;
 }
 
 // Check for GL_EXT_color_buffer_float support
@@ -750,8 +756,9 @@ static bool DetermineColorBufferFloatSupport(const TextureCapsMap &textureCaps)
         GL_R11F_G11F_B10F,
     };
 
-    return GetFormatSupport(textureCaps, nonBlendableFormats, true, false, true, true, false) &&
-           GetFormatSupport(textureCaps, blendableFormats, true, false, true, true, true);
+    /*return GetFormatSupport(textureCaps, nonBlendableFormats, true, false, true, true, false) &&
+           GetFormatSupport(textureCaps, blendableFormats, true, false, true, true, true);*/
+    return true;
 }
 
 // Check for GL_EXT_float_blend support
@@ -763,7 +770,8 @@ static bool DetermineFloatBlendSupport(const TextureCapsMap &textureCaps)
         GL_RGBA32F,
     };
 
-    return GetFormatSupport(textureCaps, requiredFormats, true, false, true, true, true);
+    //return GetFormatSupport(textureCaps, requiredFormats, true, false, true, true, true);
+  return true;
 }
 
 // Check for GL_EXT_texture_norm16 support
@@ -780,8 +788,9 @@ static bool DetermineTextureNorm16Support(const TextureCapsMap &textureCaps)
         GL_RGBA16_EXT,
     };
 
-    return GetFormatSupport(textureCaps, requiredFilterFormats, true, true, false, false, false) &&
-           GetFormatSupport(textureCaps, requiredRenderFormats, true, false, true, true, false);
+    /*return GetFormatSupport(textureCaps, requiredFilterFormats, true, true, false, false, false) &&
+           GetFormatSupport(textureCaps, requiredRenderFormats, true, false, true, true, false);*/
+    return true;
 }
 
 // Check for EXT_texture_compression_rgtc support
@@ -847,7 +856,8 @@ static bool DetermineStencilIndex8Support(const TextureCapsMap &textureCaps)
         GL_STENCIL_INDEX8,
     };
 
-    return GetFormatSupport(textureCaps, requiredFormats, true, false, true, false, false);
+    //return GetFormatSupport(textureCaps, requiredFormats, true, false, true, false, false);
+    return true;
 }
 
 // Checks for GL_QCOM_render_shared_exponent support
@@ -857,7 +867,8 @@ static bool DetermineRenderSharedExponentSupport(const TextureCapsMap &textureCa
         GL_RGB9_E5,
     };
 
-    return GetFormatSupport(textureCaps, requiredFormats, false, false, true, true, true);
+    //return GetFormatSupport(textureCaps, requiredFormats, false, false, true, true, true);
+    return true;
 }
 
 // Check for GL_EXT_render_snorm support
@@ -875,13 +886,14 @@ bool DetermineRenderSnormSupport(const TextureCapsMap &textureCaps, bool texture
         GL_RGBA16_SNORM_EXT,
     };
 
-    if (textureNorm16EXT &&
+    return true;
+    /*if (textureNorm16EXT &&
         !GetFormatSupport(textureCaps, requiredSnorm16Formats, false, false, true, true, true))
     {
         return false;
     }
 
-    return GetFormatSupport(textureCaps, requiredSnorm8Formats, false, false, true, true, true);
+    return GetFormatSupport(textureCaps, requiredSnorm8Formats, false, false, true, true, true);*/
 }
 
 void Extensions::setTextureExtensionSupport(const TextureCapsMap &textureCaps)
@@ -1005,8 +1017,6 @@ Caps GenerateMinimumCaps(const Version &clientVersion, const Extensions &extensi
     caps.maxColorAttachments = 1;
 
     // GLES1 emulation (Minimums taken from Table 6.20 / 6.22 (ES 1.1 spec))
-    if (clientVersion < Version(2, 0))
-    {
         caps.maxMultitextureUnits = 2;
         caps.maxLights            = 8;
         caps.maxClipPlanes        = 1;
@@ -1017,7 +1027,6 @@ Caps GenerateMinimumCaps(const Version &clientVersion, const Extensions &extensi
 
         caps.minSmoothPointSize = 1.0f;
         caps.maxSmoothPointSize = 1.0f;
-    }
 
     if (clientVersion >= Version(2, 0))
     {
@@ -1050,7 +1059,7 @@ Caps GenerateMinimumCaps(const Version &clientVersion, const Extensions &extensi
         caps.maxVertexUniformVectors                          = 128;
         caps.maxVaryingVectors                                = 8;
         caps.maxCombinedTextureImageUnits                     = 8;
-        caps.maxShaderTextureImageUnits[ShaderType::Fragment] = 8;
+        caps.maxShaderTextureImageUnits[ShaderType::Fragment] = 64;
         caps.maxFragmentUniformVectors                        = 16;
         caps.maxRenderbufferSize                              = 1;
 
@@ -1068,8 +1077,8 @@ Caps GenerateMinimumCaps(const Version &clientVersion, const Extensions &extensi
         caps.maxLODBias            = 2.0f;
         caps.maxCubeMapTextureSize = 2048;
         caps.maxRenderbufferSize   = 2048;
-        caps.maxDrawBuffers        = 4;
-        caps.maxColorAttachments   = 4;
+        caps.maxDrawBuffers        = 8;
+        caps.maxColorAttachments   = 8;
         caps.maxViewportWidth      = caps.max2DTextureSize;
         caps.maxViewportHeight     = caps.max2DTextureSize;
 
@@ -1100,14 +1109,14 @@ Caps GenerateMinimumCaps(const Version &clientVersion, const Extensions &extensi
         caps.maxVertexUniformVectors                        = 256;
         caps.maxShaderUniformBlocks[ShaderType::Vertex]     = limits::kMinimumShaderUniformBlocks;
         caps.maxVertexOutputComponents = limits::kMinimumVertexOutputComponents;
-        caps.maxShaderTextureImageUnits[ShaderType::Vertex] = 16;
+        caps.maxShaderTextureImageUnits[ShaderType::Vertex] = 64;
 
         // Table 6.32
         caps.maxShaderUniformComponents[ShaderType::Fragment] = 896;
         caps.maxFragmentUniformVectors                        = 224;
         caps.maxShaderUniformBlocks[ShaderType::Fragment]     = limits::kMinimumShaderUniformBlocks;
         caps.maxFragmentInputComponents                       = 60;
-        caps.maxShaderTextureImageUnits[ShaderType::Fragment] = 16;
+        caps.maxShaderTextureImageUnits[ShaderType::Fragment] = 64;
         caps.minProgramTexelOffset                            = -8;
         caps.maxProgramTexelOffset                            = 7;
 
@@ -1143,18 +1152,18 @@ Caps GenerateMinimumCaps(const Version &clientVersion, const Extensions &extensi
         caps.maxVertexAttribStride         = 2048;
 
         // Table 20.43
-        caps.maxShaderAtomicCounterBuffers[ShaderType::Vertex] = 0;
-        caps.maxShaderAtomicCounters[ShaderType::Vertex]       = 0;
-        caps.maxShaderImageUniforms[ShaderType::Vertex]        = 0;
-        caps.maxShaderStorageBlocks[ShaderType::Vertex]        = 0;
+        caps.maxShaderAtomicCounterBuffers[ShaderType::Vertex] = 256;
+        caps.maxShaderAtomicCounters[ShaderType::Vertex]       = 256;
+        caps.maxShaderImageUniforms[ShaderType::Vertex]        = 256;
+        caps.maxShaderStorageBlocks[ShaderType::Vertex]        = 256;
 
         // Table 20.44
         caps.maxShaderUniformComponents[ShaderType::Fragment]    = 1024;
         caps.maxFragmentUniformVectors                           = 256;
-        caps.maxShaderAtomicCounterBuffers[ShaderType::Fragment] = 0;
-        caps.maxShaderAtomicCounters[ShaderType::Fragment]       = 0;
-        caps.maxShaderImageUniforms[ShaderType::Fragment]        = 0;
-        caps.maxShaderStorageBlocks[ShaderType::Fragment]        = 0;
+        caps.maxShaderAtomicCounterBuffers[ShaderType::Fragment] = 256;
+        caps.maxShaderAtomicCounters[ShaderType::Fragment]       = 256;
+        caps.maxShaderImageUniforms[ShaderType::Fragment]        = 256;
+        caps.maxShaderStorageBlocks[ShaderType::Fragment]        = 256;
         caps.minProgramTextureGatherOffset                       = caps.minProgramTexelOffset;
         caps.maxProgramTextureGatherOffset                       = caps.maxProgramTexelOffset;
 
@@ -1163,7 +1172,7 @@ Caps GenerateMinimumCaps(const Version &clientVersion, const Extensions &extensi
         caps.maxComputeWorkGroupSize                         = {{128, 128, 64}};
         caps.maxComputeWorkGroupInvocations                  = 128;
         caps.maxShaderUniformBlocks[ShaderType::Compute]     = limits::kMinimumShaderUniformBlocks;
-        caps.maxShaderTextureImageUnits[ShaderType::Compute] = 16;
+        caps.maxShaderTextureImageUnits[ShaderType::Compute] = 64;
         caps.maxComputeSharedMemorySize                      = 16384;
         caps.maxShaderUniformComponents[ShaderType::Compute] = 1024;
         caps.maxShaderAtomicCounterBuffers[ShaderType::Compute] = 1;
@@ -1211,29 +1220,29 @@ Caps GenerateMinimumCaps(const Version &clientVersion, const Extensions &extensi
     if (extensions.geometryShaderAny())
     {
         // Table 20.40 (GL_EXT_geometry_shader)
-        caps.maxFramebufferLayers = 256;
+        caps.maxFramebufferLayers = 2048;
         caps.layerProvokingVertex = GL_LAST_VERTEX_CONVENTION_EXT;
 
         // Table 20.43gs (GL_EXT_geometry_shader)
-        caps.maxShaderUniformComponents[ShaderType::Geometry] = 1024;
+        caps.maxShaderUniformComponents[ShaderType::Geometry] = 2048;
         caps.maxShaderUniformBlocks[ShaderType::Geometry]     = limits::kMinimumShaderUniformBlocks;
         caps.maxGeometryInputComponents                       = 64;
         caps.maxGeometryOutputComponents                      = 64;
         caps.maxGeometryOutputVertices                        = 256;
         caps.maxGeometryTotalOutputComponents                 = 1024;
-        caps.maxShaderTextureImageUnits[ShaderType::Geometry] = 16;
-        caps.maxShaderAtomicCounterBuffers[ShaderType::Geometry] = 0;
-        caps.maxShaderAtomicCounters[ShaderType::Geometry]       = 0;
-        caps.maxShaderStorageBlocks[ShaderType::Geometry]        = 0;
+        caps.maxShaderTextureImageUnits[ShaderType::Geometry] = 64;
+        caps.maxShaderAtomicCounterBuffers[ShaderType::Geometry] = 256;
+        caps.maxShaderAtomicCounters[ShaderType::Geometry]       = 256;
+        caps.maxShaderStorageBlocks[ShaderType::Geometry]        = 256;
         caps.maxGeometryShaderInvocations                        = 32;
 
         // Table 20.46 (GL_EXT_geometry_shader)
-        caps.maxShaderImageUniforms[ShaderType::Geometry] = 0;
+        caps.maxShaderImageUniforms[ShaderType::Geometry] = 256;
 
         // Table 20.46 (GL_EXT_geometry_shader)
-        caps.maxUniformBufferBindings     = 48;
-        caps.maxCombinedUniformBlocks     = 36;
-        caps.maxCombinedTextureImageUnits = 64;
+        caps.maxUniformBufferBindings     = 128;
+        caps.maxCombinedUniformBlocks     = 72;
+        caps.maxCombinedTextureImageUnits = 128;
     }
 
     if (extensions.tessellationShaderAny())
@@ -1254,7 +1263,7 @@ Caps GenerateMinimumCaps(const Version &clientVersion, const Extensions &extensi
 
         caps.maxTessEvaluationInputComponents                          = 64;
         caps.maxTessEvaluationOutputComponents                         = 64;
-        caps.maxShaderTextureImageUnits[ShaderType::TessEvaluation]    = 16;
+        caps.maxShaderTextureImageUnits[ShaderType::TessEvaluation]    = 64;
         caps.maxShaderUniformComponents[ShaderType::TessEvaluation]    = 1024;
         caps.maxShaderImageUniforms[ShaderType::TessEvaluation]        = 0;
         caps.maxShaderAtomicCounters[ShaderType::TessEvaluation]       = 0;

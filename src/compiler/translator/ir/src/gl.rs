@@ -114,3 +114,5 @@ pub const RGBA8I: Enum = 0x8D8E;
 pub const R32F: Enum = 0x822E;
 pub const R32UI: Enum = 0x8236;
 pub const R32I: Enum = 0x8235;
+pub const RG32UI: Enum = 0x823C;
+pub const RG16F: Enum = 0x822F;

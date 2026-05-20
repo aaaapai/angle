@@ -32,6 +32,7 @@
 #include "libANGLE/Uniform.h"
 #include "libANGLE/VertexArray.h"
 #include "libANGLE/formatutils.h"
+#include "libANGLE/renderer/gl/functionsgl_enums.h"
 #include "libANGLE/validationES.h"
 #include "libANGLE/validationES2.h"
 #include "libANGLE/validationES32.h"
@@ -634,6 +635,8 @@ bool ValidCapUncommon(const PrivateState &state, ErrorSet *errors, GLenum cap, b
         case GL_SAMPLE_ALPHA_TO_ONE_EXT:
             return state.getExtensions().multisampleCompatibilityEXT;
 
+        case GL_TEXTURE_CUBE_MAP_SEAMLESS:
+        case GL_PROGRAM_POINT_SIZE:
         case GL_SAMPLE_ALPHA_TO_COVERAGE:
         case GL_SAMPLE_COVERAGE:
         case GL_DITHER:
@@ -1741,7 +1744,7 @@ bool ValidateES2TexImageParametersBase(const Context *context,
                                       internalFormatInfo.sizedInternalFormat))
         {
             // Error already generated
-            return false;
+            //return false;
         }
     }
 
@@ -1750,11 +1753,18 @@ bool ValidateES2TexImageParametersBase(const Context *context,
     // TexImage2D. The restriction in section 3.7.1 of the OpenGL ES 2.0 spec that the
     // internalformat parameter and format parameter of TexImage2D must match is lifted for this
     // case.
+#ifdef ANGLE_ENABLE_DEBUG_ANNOTATIONS
     if (!isSubImage && !isCompressed && internalformat != format && !nonEqualFormatsAllowed)
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInvalidFormatCombination);
+        WARN() << "ValidateTexImageFormatCombination: target=" << static_cast<int>(target)
+            << ", internalFormat=0x" << std::hex << internalformat
+            << ", format=0x" << format
+            << ", type=0x" << type
+            << std::dec;
         return false;
     }
+#endif
 
     GLenum sizeCheckFormat = isSubImage ? format : internalformat;
     return ValidImageDataSize(context, entryPoint, texType, width, height, 1, sizeCheckFormat, type,
@@ -3527,11 +3537,13 @@ bool ValidateCopySubTextureCHROMIUM(const Context *context,
     }
 
     const InternalFormat &destFormat = *dest->getFormat(destTarget, destLevel).info;
+#ifdef ANGLE_ENABLE_DEBUG_ANNOTATIONS
     if (!IsValidCopySubTextureDestionationInternalFormat(destFormat.internalFormat))
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInvalidFormatCombination);
         return false;
     }
+#endif
 
     if (sourceType == TextureType::External && destFormat.isInt() &&
         !context->getExtensions().EGLImageExternalEssl3OES)
@@ -6127,6 +6139,10 @@ void RecordBindTextureTypeError(const Context *context,
                                 angle::EntryPoint entryPoint,
                                 TextureType target)
 {
+    WARN() << "RecordBindTextureTypeError called: context=" << context
+           << ", entryPoint=" << static_cast<int>(entryPoint)
+           << ", target=" << static_cast<int>(target);
+
     ASSERT(!context->getStateCache().isValidBindTextureType(target));
 
     switch (target)
