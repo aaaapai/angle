@@ -1083,14 +1083,14 @@ angle::Result TextureMtl::ensureSamplerStateCreated(const gl::Context *context)
     {
         // On devices not supporting filtering for depth textures, we need to convert to nearest
         // here.
-        samplerDesc.minFilter = MTLSamplerMinMagFilterNearest;
-        samplerDesc.magFilter = MTLSamplerMinMagFilterNearest;
-        if (samplerDesc.mipFilter != MTLSamplerMipFilterNotMipmapped)
+        samplerDesc.setMinFilter(MTLSamplerMinMagFilterNearest);
+        samplerDesc.setMagFilter(MTLSamplerMinMagFilterNearest);
+        if (samplerDesc.getMipFilter() != MTLSamplerMipFilterNotMipmapped)
         {
-            samplerDesc.mipFilter = MTLSamplerMipFilterNearest;
+            samplerDesc.setMipFilter(MTLSamplerMipFilterNearest);
         }
 
-        samplerDesc.maxAnisotropy = 1;
+        samplerDesc.setMaxAnisotropy(1);
     }
 
     // OpenGL ES 3.x: The rules for texel selection are modified
@@ -1099,9 +1099,9 @@ angle::Result TextureMtl::ensureSamplerStateCreated(const gl::Context *context)
          mState.getType() == gl::TextureType::CubeMapArray) &&
         context->getState().getClientVersion() >= gl::ES_3_0)
     {
-        samplerDesc.rAddressMode = MTLSamplerAddressModeClampToEdge;
-        samplerDesc.sAddressMode = MTLSamplerAddressModeClampToEdge;
-        samplerDesc.tAddressMode = MTLSamplerAddressModeClampToEdge;
+        samplerDesc.setRAddressMode(MTLSamplerAddressModeClampToEdge);
+        samplerDesc.setSAddressMode(MTLSamplerAddressModeClampToEdge);
+        samplerDesc.setTAddressMode(MTLSamplerAddressModeClampToEdge);
     }
     mMetalSamplerState = contextMtl->getDisplay()->getStateCache().getSamplerState(
         contextMtl->getMetalDevice(), samplerDesc);
@@ -1112,15 +1112,17 @@ angle::Result TextureMtl::ensureSamplerStateCreated(const gl::Context *context)
 angle::Result TextureMtl::createViewFromBaseToMaxLevel()
 {
     ASSERT(mNativeTextureStorage);
+    uint32_t baseLevel =
+        std::min(mNativeTextureStorage->getMaxSupportedGLLevel(), mState.getEffectiveBaseLevel());
     uint32_t maxLevel =
         std::min(mNativeTextureStorage->getMaxSupportedGLLevel(), mState.getEffectiveMaxLevel());
 
     // In edge case where base level > max level, clamp up to base level.
-    maxLevel = std::max(maxLevel, mState.getEffectiveBaseLevel());
+    maxLevel = std::max(maxLevel, baseLevel);
 
     mtl::TextureRef nativeViewFromBaseToMaxLevelRef;
     if (maxLevel == mNativeTextureStorage->getMaxSupportedGLLevel() &&
-        mState.getEffectiveBaseLevel() == mNativeTextureStorage->getBaseGLLevel())
+        baseLevel == mNativeTextureStorage->getBaseGLLevel())
     {
         // If base & max level are the same in mNativeTextureStorage, we don't need
         // a dedicated view. Furthermore, Intel driver has some bugs when sampling a view
@@ -1129,9 +1131,9 @@ angle::Result TextureMtl::createViewFromBaseToMaxLevel()
     }
     else
     {
-        uint32_t baseToMaxLevels = maxLevel - mState.getEffectiveBaseLevel() + 1;
+        uint32_t baseToMaxLevels = maxLevel - baseLevel + 1;
         nativeViewFromBaseToMaxLevelRef =
-            mNativeTextureStorage->createMipsView(mState.getEffectiveBaseLevel(), baseToMaxLevels);
+            mNativeTextureStorage->createMipsView(baseLevel, baseToMaxLevels);
     }
 
     mViewFromBaseToMaxLevel = std::make_unique<NativeTextureWrapper>(
