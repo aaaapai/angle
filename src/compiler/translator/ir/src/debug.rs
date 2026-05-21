@@ -302,6 +302,8 @@ fn image_internal_format_str(format: ImageInternalFormat) -> String {
         ImageInternalFormat::RGBA32F => "rgba32f",
         ImageInternalFormat::RGBA16F => "rgba16f",
         ImageInternalFormat::R32F => "r32f",
+        ImageInternalFormat::RG32UI => "rg32ui",
+        ImageInternalFormat::RG16F => "rg16f",
         ImageInternalFormat::RGBA32UI => "rgba32ui",
         ImageInternalFormat::RGBA16UI => "rgba16ui",
         ImageInternalFormat::RGBA8UI => "rgba8ui",

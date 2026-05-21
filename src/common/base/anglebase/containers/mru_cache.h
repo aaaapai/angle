@@ -28,6 +28,9 @@
 #include "anglebase/logging.h"
 #include "anglebase/macros.h"
 
+#include <ankerl/stl.h>
+#include <ankerl/unordered_dense.h>
+
 namespace angle
 {
 
@@ -247,7 +250,7 @@ class MRUCache : public MRUCacheBase<KeyType, PayloadType, CompareType>
 template <class KeyType, class ValueType, class HashType>
 struct MRUCacheHashMap
 {
-    typedef std::unordered_map<KeyType, ValueType, HashType> Type;
+    typedef ankerl::unordered_dense::map<KeyType, ValueType, HashType> Type;
 };
 
 // This class is similar to MRUCache, except that it uses std::unordered_map as

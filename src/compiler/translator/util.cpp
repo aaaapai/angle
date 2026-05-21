@@ -439,6 +439,9 @@ GLenum GLVariablePrecision(const TType &type)
                 return GL_MEDIUM_FLOAT;
             case EbpLow:
                 return GL_LOW_FLOAT;
+            case EbpUndefined:
+                // Desktop specs do not use precision
+                return GL_NONE;
             default:
                 UNREACHABLE();
         }
@@ -453,6 +456,9 @@ GLenum GLVariablePrecision(const TType &type)
                 return GL_MEDIUM_INT;
             case EbpLow:
                 return GL_LOW_INT;
+            case EbpUndefined:
+                // Desktop specs do not use precision
+                return GL_NONE;
             default:
                 UNREACHABLE();
         }
@@ -933,6 +939,10 @@ GLenum GetImageInternalFormatType(TLayoutImageInternalFormat iifq)
             return GL_RGBA8I;
         case EiifR32I:
             return GL_R32I;
+        case EiifRG16F:
+            return GL_RG16F;
+        case EiifRG32UI:
+            return GL_RG32UI;
         case EiifRGBA8:
             return GL_RGBA8;
         case EiifRGBA8_SNORM:
