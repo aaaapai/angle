@@ -4312,7 +4312,7 @@ void Context::initCaps()
     // GLES requires that draw buffers are mapped to color attachments with an identical index (in
     // glDrawBuffers), and so draw buffers and color attachments are frequently interchanged in the
     // codebase.  The same limit is thus used for both.
-    const GLint maxDrawBuffersAndColorAttachments = std::max<GLint>(
+    const GLint maxDrawBuffersAndColorAttachments = std::min<GLint>(
         std::max(caps->maxDrawBuffers, caps->maxColorAttachments), IMPLEMENTATION_MAX_DRAW_BUFFERS);
     ANGLE_LIMIT_CAP(caps->maxDrawBuffers, maxDrawBuffersAndColorAttachments);
     ANGLE_LIMIT_CAP(caps->maxFramebufferWidth, IMPLEMENTATION_MAX_FRAMEBUFFER_SIZE);
@@ -4637,7 +4637,7 @@ void Context::initCaps()
                 ANGLE_LIMIT_CAP(caps->maxPixelLocalStoragePlanes,
                                 IMPLEMENTATION_MAX_PIXEL_LOCAL_STORAGE_PLANES);
                 caps->maxCombinedDrawBuffersAndPixelLocalStoragePlanes =
-                    std::max<GLint>(caps->maxPixelLocalStoragePlanes +
+                    std::min<GLint>(caps->maxPixelLocalStoragePlanes +
                                         std::max(caps->maxDrawBuffers, caps->maxColorAttachments),
                                     caps->maxCombinedShaderOutputResources);
                 break;
@@ -4735,7 +4735,7 @@ void Context::updateCaps()
                 if (formatInfo.isInt())
                 {
                     caps->maxIntegerSamples =
-                        std::max(static_cast<GLuint>(caps->maxIntegerSamples), formatMaxSamples);
+                        std::min(static_cast<GLuint>(caps->maxIntegerSamples), formatMaxSamples);
                 }
 
                 // GLES 3.1 section 19.3.1.
