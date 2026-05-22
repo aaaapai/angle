@@ -572,6 +572,7 @@
 496259841 WIN D3D11 : RobustResourceInitTestES3.InvalidateThenReadBack/* = SKIP
 496259841 WIN D3D11 : RobustResourceInitTestES3.DrawThenInvalidateThenReadBack/* = SKIP
 496259841 WIN D3D11 : RobustResourceInitTestES3.DrawThenInvalidateThenVerifyDepthStencil/* = SKIP
+514927166 WIN D3D11 : RobustResourceInitTestES3.ClearThenInvalidateThenReadBack/* = SKIP
 512896813 WIN D3D11 : LineLoopTestES3.LineLoopDrawArraysInstancedBaseInstance/* = SKIP
 512896813 WIN D3D11 : LineLoopTestES3.LineLoopDrawElementsInstancedBaseVertexBaseInstance/* = SKIP
 514615434 D3D11 : DrawBaseVertexBaseInstanceTest.NegativeBaseVertex/* = SKIP
@@ -1374,6 +1375,24 @@
 40096883 IOS METAL : Texture2DDepthStencilTestES3.TexSampleModes*Swizzled/* = SKIP
 375244081 IOS METAL : GLSLTest_ES3.MaxVaryingWithFeedbackAndGLline/* = SKIP
 496604559 IOS METAL : RobustResourceInitTestES3.DrawThenInvalidateThenVerifyDepthStencil/* = SKIP
+507904704 IOS METAL : CompressedTextureASTCTest.Test/* = SKIP
+507904704 IOS METAL : CompressedTextureEACR11STest.Test/* = SKIP
+507904704 IOS METAL : CompressedTextureEACR11UTest.Test/* = SKIP
+507904704 IOS METAL : CompressedTextureEACRG11STest.Test/* = SKIP
+507904704 IOS METAL : CompressedTextureEACRG11UTest.Test/* = SKIP
+507904704 IOS METAL : CompressedTextureETC1SubTest.Test/* = SKIP
+507904704 IOS METAL : CompressedTextureETC2RGB8A1SRGBTest.Test/* = SKIP
+507904704 IOS METAL : CompressedTextureETC2RGB8A1Test.Test/* = SKIP
+507904704 IOS METAL : CompressedTextureETC2RGB8SRGBTest.Test/* = SKIP
+507904704 IOS METAL : CompressedTextureETC2RGB8Test.Test/* = SKIP
+507904704 IOS METAL : CompressedTextureETC2RGBA8SRGBTest.Test/* = SKIP
+507904704 IOS METAL : CompressedTextureETC2RGBA8Test.Test/* = SKIP
+507904704 IOS METAL : ETC1CompressedTextureTest.ETC1CompressedImageNPOT/* = SKIP
+507904704 IOS METAL : ETC1CompressedTextureTest.ETC1CompressedSubImage/* = SKIP
+507904704 IOS METAL : ETC1CompressedTextureTest.ETC1ShrinkThenGrowMaxLevels/* = SKIP
+507904704 IOS METAL : Texture2DTestES3.SampleThenFullUpdateThenSampleAgainCompressed/* = SKIP
+507904704 IOS METAL : TextureSizeLimitTest.CompressedASTC/* = SKIP
+507904704 IOS METAL : WebGLCompatibilityTest.EnableCompressedTextureExtensionETC1/* = SKIP
 
 // Simulator does not support compare functions in the sampler state
 365066518 IOS METAL : ShadowSamplerFunctionTexture2DTest.Test/* = SKIP
