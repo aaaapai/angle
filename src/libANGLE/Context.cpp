@@ -4303,6 +4303,7 @@ void Context::initCaps()
         if ((cap) > (limit))                   \
         {                                      \
             ANGLE_LOG_LIMITED_CAP(cap, limit); \
+            (cap) = (limit);                   \
         }                                      \
     } while (0)
 
@@ -4311,8 +4312,8 @@ void Context::initCaps()
     // GLES requires that draw buffers are mapped to color attachments with an identical index (in
     // glDrawBuffers), and so draw buffers and color attachments are frequently interchanged in the
     // codebase.  The same limit is thus used for both.
-    const GLint maxDrawBuffersAndColorAttachments = std::min<GLint>(
-        std::min(caps->maxDrawBuffers, caps->maxColorAttachments), IMPLEMENTATION_MAX_DRAW_BUFFERS);
+    const GLint maxDrawBuffersAndColorAttachments = std::max<GLint>(
+        std::max(caps->maxDrawBuffers, caps->maxColorAttachments), IMPLEMENTATION_MAX_DRAW_BUFFERS);
     ANGLE_LIMIT_CAP(caps->maxDrawBuffers, maxDrawBuffersAndColorAttachments);
     ANGLE_LIMIT_CAP(caps->maxFramebufferWidth, IMPLEMENTATION_MAX_FRAMEBUFFER_SIZE);
     ANGLE_LIMIT_CAP(caps->maxFramebufferHeight, IMPLEMENTATION_MAX_FRAMEBUFFER_SIZE);
@@ -4627,7 +4628,7 @@ void Context::initCaps()
     // maxPixelLocalStoragePlanes will already be nonzero and we can skip this step.
     if (mSupportedExtensions.shaderPixelLocalStorageANGLE && caps->maxPixelLocalStoragePlanes == 0)
     {
-        int maxDrawableAttachments = std::min(caps->maxDrawBuffers, caps->maxColorAttachments);
+        int maxDrawableAttachments = std::max(caps->maxDrawBuffers, caps->maxColorAttachments);
         switch (mImplementation->getNativePixelLocalStorageOptions().type)
         {
             case ShPixelLocalStorageType::ImageLoadStore:
@@ -4636,8 +4637,8 @@ void Context::initCaps()
                 ANGLE_LIMIT_CAP(caps->maxPixelLocalStoragePlanes,
                                 IMPLEMENTATION_MAX_PIXEL_LOCAL_STORAGE_PLANES);
                 caps->maxCombinedDrawBuffersAndPixelLocalStoragePlanes =
-                    std::min<GLint>(caps->maxPixelLocalStoragePlanes +
-                                        std::min(caps->maxDrawBuffers, caps->maxColorAttachments),
+                    std::max<GLint>(caps->maxPixelLocalStoragePlanes +
+                                        std::max(caps->maxDrawBuffers, caps->maxColorAttachments),
                                     caps->maxCombinedShaderOutputResources);
                 break;
 
@@ -4734,7 +4735,7 @@ void Context::updateCaps()
                 if (formatInfo.isInt())
                 {
                     caps->maxIntegerSamples =
-                        std::min(static_cast<GLuint>(caps->maxIntegerSamples), formatMaxSamples);
+                        std::max(static_cast<GLuint>(caps->maxIntegerSamples), formatMaxSamples);
                 }
 
                 // GLES 3.1 section 19.3.1.
