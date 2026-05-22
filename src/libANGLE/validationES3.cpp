@@ -4303,7 +4303,7 @@ bool ValidateGetFragDataLocation(const Context *context,
         return false;
     }
 
-    if (!programObject->isLinked())
+    if (!programObject->isLinked() && !std::getenv("ANGLE_IGNORE_PROGEAMNOTLINKED"))
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kProgramNotLinked);
         return false;
@@ -4846,7 +4846,7 @@ bool ValidateGetFragDataIndexEXT(const Context *context,
         return false;
     }
 
-    if (!programObject->isLinked())
+    if (!programObject->isLinked() && !std::getenv("ANGLE_IGNORE_PROGEAMNOTLINKED"))
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kProgramNotLinked);
         return false;
