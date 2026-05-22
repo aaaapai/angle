@@ -546,19 +546,19 @@ static GLenum GetNativeInternalFormat(const FunctionsGL *functions,
     else if (functions->isAtLeastGLES(gl::Version(3, 0)))
     {
 
-      /*if (std::getenv("ANGLE_UseSizedInternalFormat")) */ result = internalFormat.sizedInternalFormat;
+      if (!std::getenv("ANGLE_DISABLED_DESKTOPGL_FORMAT_UTIL")) {
+      result = internalFormat.sizedInternalFormat;
 
-      if (internalFormat.sizedInternalFormat == GL_BGRA_EXT ||
-            internalFormat.sizedInternalFormat == GL_BGRA8_EXT)
+      if ((internalFormat.sizedInternalFormat == GL_BGRA_EXT ||
+            internalFormat.sizedInternalFormat == GL_BGRA8_EXT) && std::getenv("ANGLE_CONVER_TO_RGBA8"))
       {
             // GLES accepts GL_BGRA as an internal format but desktop GL only accepts it as a
             // format. Update the internal format to GL_RGBA8.
             result = GL_RGBA8;
       }
 
-      if (internalFormat.sizedInternalFormat == GL_RGB10_EXT)
+      if (internalFormat.sizedInternalFormat == GL_RGB10_EXT && features.emulateRGB10.enabled)
       {
-            ASSERT(features.emulateRGB10.enabled);
             result = GL_RGB10_A2;
       }
 
@@ -576,7 +576,7 @@ static GLenum GetNativeInternalFormat(const FunctionsGL *functions,
 
       if (internalFormat.sizedInternalFormat == GL_RGB565 &&
           ((!functions->isAtLeastGLES(gl::Version(3, 1)) &&
-            !functions->hasGLExtension("GL_ARB_ES2_compatibility")) ||
+            !functions->hasGLESExtension("GL_ARB_ES2_compatibility")) ||
            features.promotePackedFormatsTo8BitPerChannel.enabled))
       {
           result = GL_RGB8;
@@ -585,6 +585,7 @@ static GLenum GetNativeInternalFormat(const FunctionsGL *functions,
       if (IsLUMAFormat(internalFormat.format))
       {
           result = EmulateLUMA(internalFormat).sizedInternalFormat;
+      }
       }
 
         if (internalFormat.componentType == GL_FLOAT)
