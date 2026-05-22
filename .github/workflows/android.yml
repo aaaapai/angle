@@ -62,8 +62,9 @@ jobs:
       - name: ccache
         uses: hendrikmuhs/ccache-action@main
         with:
-          key: angle-ccache
-          max-size: 8G
+          key: 'angle-ccache'
+          max-size: '8G'
+          update-package-index: 'true'
 
       - name: Build ANGLE
         shell: bash
