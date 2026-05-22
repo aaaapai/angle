@@ -4622,7 +4622,7 @@ bool ValidateGetAttribLocation(const Context *context,
         return false;
     }
 
-    if (!programObject->isLinked())
+    if (!programObject->isLinked() && !std::getenv("ANGLE_IGNORE_PROGEAMNOTLINKED"))
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kProgramNotLinked);
         return false;
@@ -4797,7 +4797,7 @@ bool ValidateGetUniformLocation(const Context *context,
         return false;
     }
 
-    if (!programObject->isLinked())
+    if (!programObject->isLinked() && !std::getenv("ANGLE_IGNORE_PROGEAMNOTLINKED"))
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kProgramNotLinked);
         return false;
@@ -5683,7 +5683,7 @@ bool ValidateUseProgram(const Context *context,
                 return false;
             }
         }
-        if (!programObject->isLinked())
+        if (!programObject->isLinked() && !std::getenv("ANGLE_IGNORE_PROGEAMNOTLINKED"))
         {
             ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kProgramNotLinked);
             return false;
