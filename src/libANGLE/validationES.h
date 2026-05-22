@@ -237,7 +237,7 @@ ANGLE_INLINE bool ValidateUniformCommonBase(const Context *context,
         return false;
     }
 
-    if (ANGLE_UNLIKELY(!program->isLinked()))
+    if (ANGLE_UNLIKELY(!program->isLinked()) && !std::getenv("ANGLE_IGNORE_PROGEAMNOTLINKED") )
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, err::kProgramNotLinked);
         return false;
