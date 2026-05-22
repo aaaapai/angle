@@ -4303,7 +4303,6 @@ void Context::initCaps()
         if ((cap) > (limit))                   \
         {                                      \
             ANGLE_LOG_LIMITED_CAP(cap, limit); \
-            (cap) = (limit);                   \
         }                                      \
     } while (0)
 
