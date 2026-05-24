@@ -2786,7 +2786,7 @@ class ComputePipelineCache final : HasCacheStats<rx::VulkanCacheType::ComputePip
                                  const vk::ComputePipelineDesc &desc,
                                  vk::PipelineHelper **pipelineOut);
 
-        absl::flat_hash_map<vk::ComputePipelineDesc,
+        std::unordered_map<vk::ComputePipelineDesc,
                        vk::PipelineHelper,
                        ComputePipelineDescHash,
                        ComputePipelineDescKeyEqual>
@@ -2849,7 +2849,7 @@ class GraphicsPipelineCache final : public HasCacheStats<VulkanCacheType::Graphi
                     vk::PipelineHelper **pipelineOut);
 
     using KeyEqual = typename GraphicsPipelineCacheTypeHelper<Hash>::KeyEqual;
-    absl::flat_hash_map<vk::GraphicsPipelineDesc, vk::PipelineHelper, Hash, KeyEqual> mPayload;
+    std::unordered_map<vk::GraphicsPipelineDesc, vk::PipelineHelper, Hash, KeyEqual> mPayload;
 };
 
 using CompleteGraphicsPipelineCache    = GraphicsPipelineCache<GraphicsPipelineDescCompleteHash>;
