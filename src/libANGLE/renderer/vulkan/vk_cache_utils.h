@@ -26,8 +26,8 @@
 #include "libANGLE/renderer/vulkan/vk_resource.h"
 #include "libANGLE/renderer/vulkan/vk_utils.h"
 
-#include <ankerl/stl.h>
-#include <ankerl/unordered_dense.h>
+#include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
 
 namespace gl
 {
@@ -2671,8 +2671,8 @@ class RenderPassCache final : angle::NonCopyable
     // Use a two-layer caching scheme. The top level matches the "compatible" RenderPass elements.
     // The second layer caches the attachment load/store ops and initial/final layout.
     // Switch to `std::unordered_map` to retain pointer stability.
-    using InnerCache = ankerl::unordered_dense::map<vk::AttachmentOpsArray, vk::RenderPassHelper>;
-    using OuterCache = ankerl::unordered_dense::map<vk::RenderPassDesc, InnerCache>;
+    using InnerCache = std::unordered_map<vk::AttachmentOpsArray, vk::RenderPassHelper>;
+    using OuterCache = std::unordered_map<vk::RenderPassDesc, InnerCache>;
 
     OuterCache mPayload;
     CacheStats mCompatibleRenderPassCacheStats;
@@ -2786,7 +2786,7 @@ class ComputePipelineCache final : HasCacheStats<rx::VulkanCacheType::ComputePip
                                  const vk::ComputePipelineDesc &desc,
                                  vk::PipelineHelper **pipelineOut);
 
-    std::unordered_map<vk::ComputePipelineDesc,
+        absl::flat_hash_map<vk::ComputePipelineDesc,
                        vk::PipelineHelper,
                        ComputePipelineDescHash,
                        ComputePipelineDescKeyEqual>
@@ -2849,7 +2849,7 @@ class GraphicsPipelineCache final : public HasCacheStats<VulkanCacheType::Graphi
                     vk::PipelineHelper **pipelineOut);
 
     using KeyEqual = typename GraphicsPipelineCacheTypeHelper<Hash>::KeyEqual;
-    std::unordered_map<vk::GraphicsPipelineDesc, vk::PipelineHelper, Hash, KeyEqual> mPayload;
+    absl::flat_hash_map<vk::GraphicsPipelineDesc, vk::PipelineHelper, Hash, KeyEqual> mPayload;
 };
 
 using CompleteGraphicsPipelineCache    = GraphicsPipelineCache<GraphicsPipelineDescCompleteHash>;
@@ -2873,7 +2873,7 @@ class DescriptorSetLayoutCache final : angle::NonCopyable
 
   private:
     mutable angle::SimpleMutex mMutex;
-    ankerl::unordered_dense::map<vk::DescriptorSetLayoutDesc, vk::DescriptorSetLayoutPtr> mPayload;
+    absl::flat_hash_map<vk::DescriptorSetLayoutDesc, vk::DescriptorSetLayoutPtr> mPayload;
     CacheStats mCacheStats;
 };
 
@@ -2892,7 +2892,7 @@ class PipelineLayoutCache final : public HasCacheStats<VulkanCacheType::Pipeline
 
   private:
     mutable angle::SimpleMutex mMutex;
-    ankerl::unordered_dense::map<vk::PipelineLayoutDesc, vk::PipelineLayoutPtr> mPayload;
+    absl::flat_hash_map<vk::PipelineLayoutDesc, vk::PipelineLayoutPtr> mPayload;
 };
 
 class SamplerCache final : public HasCacheStats<VulkanCacheType::Sampler>
@@ -2908,7 +2908,7 @@ class SamplerCache final : public HasCacheStats<VulkanCacheType::Sampler>
                              vk::SharedSamplerPtr *samplerOut);
 
   private:
-    ankerl::unordered_dense::map<vk::SamplerDesc, vk::SharedSamplerPtr> mPayload;
+   absl::flat_hash_map<vk::SamplerDesc, vk::SharedSamplerPtr> mPayload;
 };
 
 // YuvConversion Cache
