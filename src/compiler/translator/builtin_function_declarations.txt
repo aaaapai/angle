@@ -703,22 +703,30 @@ GROUP END AtomicCounter
 
 GROUP BEGIN AtomicMemory {"queryFunction": true}
   DEFAULT METADATA {"essl_level": "ESSL3_1_BUILTINS"}
-    uint atomicAdd(inout uint, uint, atomic_uint);
+    uint atomicAdd(inout uint, uint);
     int atomicAdd(inout int, int);
-    uint atomicMin(inout uint, uint, atomic_uint);
+    uint atomicMin(inout uint, uint);
     int atomicMin(inout int, int);
-    uint atomicMax(inout uint, uint, atomic_uint);
+    uint atomicMax(inout uint, uint);
     int atomicMax(inout int, int);
-    uint atomicAnd(inout uint, uint, atomic_uint);
+    uint atomicAnd(inout uint, uint);
     int atomicAnd(inout int, int);
-    uint atomicOr(inout uint, uint, atomic_uint);
+    uint atomicOr(inout uint, uint);
     int atomicOr(inout int, int);
-    uint atomicXor(inout uint, uint, atomic_uint);
+    uint atomicXor(inout uint, uint);
     int atomicXor(inout int, int);
-    uint atomicExchange(inout uint, uint, atomic_uint);
+    uint atomicExchange(inout uint, uint);
     int atomicExchange(inout int, int);
-    uint atomicCompSwap(inout uint, uint, uint, atomic_uint);
+    uint atomicCompSwap(inout uint, uint, uint);
     int atomicCompSwap(inout int, int, int);
+    uint atomicAdd(inout atomic_uint, uint);
+    uint atomicMin(inout atomic_uint, uint);
+    uint atomicMax(inout atomic_uint, uint);
+    uint atomicAnd(inout atomic_uint, uint);
+    uint atomicOr(inout atomic_uint, uint);
+    uint atomicXor(inout atomic_uint, uint);
+    uint atomicExchange(inout atomic_uint, uint);
+    uint atomicCompSwap(inout atomic_uint, uint, uint);
 GROUP END AtomicMemory
 
 GROUP BEGIN Image {"queryFunction": true}

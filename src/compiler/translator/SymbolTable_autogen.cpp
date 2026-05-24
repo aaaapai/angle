@@ -25,7 +25,7 @@ using TableBase = TSymbolTableBase;
 
 struct SymbolIdChecker
 {
-    static_assert(TSymbolTable::kFirstUserDefinedSymbolId > 2015);
+    static_assert(TSymbolTable::kFirstUserDefinedSymbolId > 2024);
 };
 
 namespace BuiltInName
@@ -530,6 +530,7 @@ constexpr const TVariable kptE0B(BuiltInId::ptE0B, BuiltInName::_empty, SymbolTy
 constexpr const TVariable kptF0B(BuiltInId::ptF0B, BuiltInName::_empty, SymbolType::BuiltIn, std::array<TExtension, 1u>{{TExtension::UNDEFINED}}, StaticType::Get<EbtFloat, EbpUndefined, EvqGlobal, 4, 4>());
 constexpr const TVariable kpt_io_00C(BuiltInId::pt_io_00C, BuiltInName::_empty, SymbolType::BuiltIn, std::array<TExtension, 1u>{{TExtension::UNDEFINED}}, StaticType::Get<EbtInt, EbpUndefined, EvqParamInOut, 1, 1>());
 constexpr const TVariable kpt_io_00D(BuiltInId::pt_io_00D, BuiltInName::_empty, SymbolType::BuiltIn, std::array<TExtension, 1u>{{TExtension::UNDEFINED}}, StaticType::Get<EbtUInt, EbpUndefined, EvqParamInOut, 1, 1>());
+constexpr const TVariable kpt_io_00F(BuiltInId::pt_io_00F, BuiltInName::_empty, SymbolType::BuiltIn, std::array<TExtension, 1u>{{TExtension::UNDEFINED}}, StaticType::Get<EbtAtomicCounter, EbpUndefined, EvqParamInOut, 1, 1>());
 constexpr const TVariable kpt_o_00B(BuiltInId::pt_o_00B, BuiltInName::_empty, SymbolType::BuiltIn, std::array<TExtension, 1u>{{TExtension::UNDEFINED}}, StaticType::Get<EbtFloat, EbpUndefined, EvqParamOut, 1, 1>());
 constexpr const TVariable kpt_o_00C(BuiltInId::pt_o_00C, BuiltInName::_empty, SymbolType::BuiltIn, std::array<TExtension, 1u>{{TExtension::UNDEFINED}}, StaticType::Get<EbtInt, EbpUndefined, EvqParamOut, 1, 1>());
 constexpr const TVariable kpt_o_00D(BuiltInId::pt_o_00D, BuiltInName::_empty, SymbolType::BuiltIn, std::array<TExtension, 1u>{{TExtension::UNDEFINED}}, StaticType::Get<EbtUInt, EbpUndefined, EvqParamOut, 1, 1>());
@@ -1220,8 +1221,8 @@ constexpr const TVariable *pD0BD0B[2] = { &BuiltInVariable::kptD0B, &BuiltInVari
 constexpr const TVariable *pE0BE0B[2] = { &BuiltInVariable::kptE0B, &BuiltInVariable::kptE0B };
 constexpr const TVariable *pF0BF0B[2] = { &BuiltInVariable::kptF0B, &BuiltInVariable::kptF0B };
 constexpr const TVariable *p_io_00C00C00C[3] = { &BuiltInVariable::kpt_io_00C, &BuiltInVariable::kpt00C, &BuiltInVariable::kpt00C };
-constexpr const TVariable *p_io_00D00D00D00F[4] = { &BuiltInVariable::kpt_io_00D, &BuiltInVariable::kpt00D, &BuiltInVariable::kpt00D, &BuiltInVariable::kpt00F };
-constexpr const TVariable *p_io_00D00D00F[3] = { &BuiltInVariable::kpt_io_00D, &BuiltInVariable::kpt00D, &BuiltInVariable::kpt00F };
+constexpr const TVariable *p_io_00D00D00D[3] = { &BuiltInVariable::kpt_io_00D, &BuiltInVariable::kpt00D, &BuiltInVariable::kpt00D };
+constexpr const TVariable *p_io_00F00D00D[3] = { &BuiltInVariable::kpt_io_00F, &BuiltInVariable::kpt00D, &BuiltInVariable::kpt00D };
 
 }  // namespace BuiltInParameters
 
@@ -2208,22 +2209,30 @@ constexpr const TFunction interpolateAtOffsetExt_30B10B(BuiltInId::interpolateAt
 constexpr const TFunction atomicCounter_00F(BuiltInId::atomicCounter_AtomicCounter1, BuiltInName::atomicCounter, std::array<TExtension, 1u>{{TExtension::UNDEFINED}}, BuiltInParameters::p00F, 1, StaticType::Get<EbtUInt, EbpUndefined, EvqGlobal, 1, 1>(), EOpAtomicCounter, false);
 constexpr const TFunction atomicCounterIncrement_00F(BuiltInId::atomicCounterIncrement_AtomicCounter1, BuiltInName::atomicCounterIncrement, std::array<TExtension, 1u>{{TExtension::UNDEFINED}}, BuiltInParameters::p00F, 1, StaticType::Get<EbtUInt, EbpUndefined, EvqGlobal, 1, 1>(), EOpAtomicCounterIncrement, false);
 constexpr const TFunction atomicCounterDecrement_00F(BuiltInId::atomicCounterDecrement_AtomicCounter1, BuiltInName::atomicCounterDecrement, std::array<TExtension, 1u>{{TExtension::UNDEFINED}}, BuiltInParameters::p00F, 1, StaticType::Get<EbtUInt, EbpUndefined, EvqGlobal, 1, 1>(), EOpAtomicCounterDecrement, false);
-constexpr const TFunction atomicAdd_00D00D00F(BuiltInId::atomicAdd_UInt1_UInt1_AtomicCounter1, BuiltInName::atomicAdd, std::array<TExtension, 1u>{{TExtension::UNDEFINED}}, BuiltInParameters::p_io_00D00D00F, 3, StaticType::Get<EbtUInt, EbpUndefined, EvqGlobal, 1, 1>(), EOpAtomicAdd, false);
+constexpr const TFunction atomicAdd_00D00D(BuiltInId::atomicAdd_UInt1_UInt1, BuiltInName::atomicAdd, std::array<TExtension, 1u>{{TExtension::UNDEFINED}}, BuiltInParameters::p_io_00D00D00D, 2, StaticType::Get<EbtUInt, EbpUndefined, EvqGlobal, 1, 1>(), EOpAtomicAdd, false);
 constexpr const TFunction atomicAdd_00C00C(BuiltInId::atomicAdd_Int1_Int1, BuiltInName::atomicAdd, std::array<TExtension, 1u>{{TExtension::UNDEFINED}}, BuiltInParameters::p_io_00C00C00C, 2, StaticType::Get<EbtInt, EbpUndefined, EvqGlobal, 1, 1>(), EOpAtomicAdd, false);
-constexpr const TFunction atomicMin_00D00D00F(BuiltInId::atomicMin_UInt1_UInt1_AtomicCounter1, BuiltInName::atomicMin, std::array<TExtension, 1u>{{TExtension::UNDEFINED}}, BuiltInParameters::p_io_00D00D00F, 3, StaticType::Get<EbtUInt, EbpUndefined, EvqGlobal, 1, 1>(), EOpAtomicMin, false);
+constexpr const TFunction atomicMin_00D00D(BuiltInId::atomicMin_UInt1_UInt1, BuiltInName::atomicMin, std::array<TExtension, 1u>{{TExtension::UNDEFINED}}, BuiltInParameters::p_io_00D00D00D, 2, StaticType::Get<EbtUInt, EbpUndefined, EvqGlobal, 1, 1>(), EOpAtomicMin, false);
 constexpr const TFunction atomicMin_00C00C(BuiltInId::atomicMin_Int1_Int1, BuiltInName::atomicMin, std::array<TExtension, 1u>{{TExtension::UNDEFINED}}, BuiltInParameters::p_io_00C00C00C, 2, StaticType::Get<EbtInt, EbpUndefined, EvqGlobal, 1, 1>(), EOpAtomicMin, false);
-constexpr const TFunction atomicMax_00D00D00F(BuiltInId::atomicMax_UInt1_UInt1_AtomicCounter1, BuiltInName::atomicMax, std::array<TExtension, 1u>{{TExtension::UNDEFINED}}, BuiltInParameters::p_io_00D00D00F, 3, StaticType::Get<EbtUInt, EbpUndefined, EvqGlobal, 1, 1>(), EOpAtomicMax, false);
+constexpr const TFunction atomicMax_00D00D(BuiltInId::atomicMax_UInt1_UInt1, BuiltInName::atomicMax, std::array<TExtension, 1u>{{TExtension::UNDEFINED}}, BuiltInParameters::p_io_00D00D00D, 2, StaticType::Get<EbtUInt, EbpUndefined, EvqGlobal, 1, 1>(), EOpAtomicMax, false);
 constexpr const TFunction atomicMax_00C00C(BuiltInId::atomicMax_Int1_Int1, BuiltInName::atomicMax, std::array<TExtension, 1u>{{TExtension::UNDEFINED}}, BuiltInParameters::p_io_00C00C00C, 2, StaticType::Get<EbtInt, EbpUndefined, EvqGlobal, 1, 1>(), EOpAtomicMax, false);
-constexpr const TFunction atomicAnd_00D00D00F(BuiltInId::atomicAnd_UInt1_UInt1_AtomicCounter1, BuiltInName::atomicAnd, std::array<TExtension, 1u>{{TExtension::UNDEFINED}}, BuiltInParameters::p_io_00D00D00F, 3, StaticType::Get<EbtUInt, EbpUndefined, EvqGlobal, 1, 1>(), EOpAtomicAnd, false);
+constexpr const TFunction atomicAnd_00D00D(BuiltInId::atomicAnd_UInt1_UInt1, BuiltInName::atomicAnd, std::array<TExtension, 1u>{{TExtension::UNDEFINED}}, BuiltInParameters::p_io_00D00D00D, 2, StaticType::Get<EbtUInt, EbpUndefined, EvqGlobal, 1, 1>(), EOpAtomicAnd, false);
 constexpr const TFunction atomicAnd_00C00C(BuiltInId::atomicAnd_Int1_Int1, BuiltInName::atomicAnd, std::array<TExtension, 1u>{{TExtension::UNDEFINED}}, BuiltInParameters::p_io_00C00C00C, 2, StaticType::Get<EbtInt, EbpUndefined, EvqGlobal, 1, 1>(), EOpAtomicAnd, false);
-constexpr const TFunction atomicOr_00D00D00F(BuiltInId::atomicOr_UInt1_UInt1_AtomicCounter1, BuiltInName::atomicOr, std::array<TExtension, 1u>{{TExtension::UNDEFINED}}, BuiltInParameters::p_io_00D00D00F, 3, StaticType::Get<EbtUInt, EbpUndefined, EvqGlobal, 1, 1>(), EOpAtomicOr, false);
+constexpr const TFunction atomicOr_00D00D(BuiltInId::atomicOr_UInt1_UInt1, BuiltInName::atomicOr, std::array<TExtension, 1u>{{TExtension::UNDEFINED}}, BuiltInParameters::p_io_00D00D00D, 2, StaticType::Get<EbtUInt, EbpUndefined, EvqGlobal, 1, 1>(), EOpAtomicOr, false);
 constexpr const TFunction atomicOr_00C00C(BuiltInId::atomicOr_Int1_Int1, BuiltInName::atomicOr, std::array<TExtension, 1u>{{TExtension::UNDEFINED}}, BuiltInParameters::p_io_00C00C00C, 2, StaticType::Get<EbtInt, EbpUndefined, EvqGlobal, 1, 1>(), EOpAtomicOr, false);
-constexpr const TFunction atomicXor_00D00D00F(BuiltInId::atomicXor_UInt1_UInt1_AtomicCounter1, BuiltInName::atomicXor, std::array<TExtension, 1u>{{TExtension::UNDEFINED}}, BuiltInParameters::p_io_00D00D00F, 3, StaticType::Get<EbtUInt, EbpUndefined, EvqGlobal, 1, 1>(), EOpAtomicXor, false);
+constexpr const TFunction atomicXor_00D00D(BuiltInId::atomicXor_UInt1_UInt1, BuiltInName::atomicXor, std::array<TExtension, 1u>{{TExtension::UNDEFINED}}, BuiltInParameters::p_io_00D00D00D, 2, StaticType::Get<EbtUInt, EbpUndefined, EvqGlobal, 1, 1>(), EOpAtomicXor, false);
 constexpr const TFunction atomicXor_00C00C(BuiltInId::atomicXor_Int1_Int1, BuiltInName::atomicXor, std::array<TExtension, 1u>{{TExtension::UNDEFINED}}, BuiltInParameters::p_io_00C00C00C, 2, StaticType::Get<EbtInt, EbpUndefined, EvqGlobal, 1, 1>(), EOpAtomicXor, false);
-constexpr const TFunction atomicExchange_00D00D00F(BuiltInId::atomicExchange_UInt1_UInt1_AtomicCounter1, BuiltInName::atomicExchange, std::array<TExtension, 1u>{{TExtension::UNDEFINED}}, BuiltInParameters::p_io_00D00D00F, 3, StaticType::Get<EbtUInt, EbpUndefined, EvqGlobal, 1, 1>(), EOpAtomicExchange, false);
+constexpr const TFunction atomicExchange_00D00D(BuiltInId::atomicExchange_UInt1_UInt1, BuiltInName::atomicExchange, std::array<TExtension, 1u>{{TExtension::UNDEFINED}}, BuiltInParameters::p_io_00D00D00D, 2, StaticType::Get<EbtUInt, EbpUndefined, EvqGlobal, 1, 1>(), EOpAtomicExchange, false);
 constexpr const TFunction atomicExchange_00C00C(BuiltInId::atomicExchange_Int1_Int1, BuiltInName::atomicExchange, std::array<TExtension, 1u>{{TExtension::UNDEFINED}}, BuiltInParameters::p_io_00C00C00C, 2, StaticType::Get<EbtInt, EbpUndefined, EvqGlobal, 1, 1>(), EOpAtomicExchange, false);
-constexpr const TFunction atomicCompSwap_00D00D00D00F(BuiltInId::atomicCompSwap_UInt1_UInt1_UInt1_AtomicCounter1, BuiltInName::atomicCompSwap, std::array<TExtension, 1u>{{TExtension::UNDEFINED}}, BuiltInParameters::p_io_00D00D00D00F, 4, StaticType::Get<EbtUInt, EbpUndefined, EvqGlobal, 1, 1>(), EOpAtomicCompSwap, false);
+constexpr const TFunction atomicCompSwap_00D00D00D(BuiltInId::atomicCompSwap_UInt1_UInt1_UInt1, BuiltInName::atomicCompSwap, std::array<TExtension, 1u>{{TExtension::UNDEFINED}}, BuiltInParameters::p_io_00D00D00D, 3, StaticType::Get<EbtUInt, EbpUndefined, EvqGlobal, 1, 1>(), EOpAtomicCompSwap, false);
 constexpr const TFunction atomicCompSwap_00C00C00C(BuiltInId::atomicCompSwap_Int1_Int1_Int1, BuiltInName::atomicCompSwap, std::array<TExtension, 1u>{{TExtension::UNDEFINED}}, BuiltInParameters::p_io_00C00C00C, 3, StaticType::Get<EbtInt, EbpUndefined, EvqGlobal, 1, 1>(), EOpAtomicCompSwap, false);
+constexpr const TFunction atomicAdd_00F00D(BuiltInId::atomicAdd_AtomicCounter1_UInt1, BuiltInName::atomicAdd, std::array<TExtension, 1u>{{TExtension::UNDEFINED}}, BuiltInParameters::p_io_00F00D00D, 2, StaticType::Get<EbtUInt, EbpUndefined, EvqGlobal, 1, 1>(), EOpAtomicAdd, false);
+constexpr const TFunction atomicMin_00F00D(BuiltInId::atomicMin_AtomicCounter1_UInt1, BuiltInName::atomicMin, std::array<TExtension, 1u>{{TExtension::UNDEFINED}}, BuiltInParameters::p_io_00F00D00D, 2, StaticType::Get<EbtUInt, EbpUndefined, EvqGlobal, 1, 1>(), EOpAtomicMin, false);
+constexpr const TFunction atomicMax_00F00D(BuiltInId::atomicMax_AtomicCounter1_UInt1, BuiltInName::atomicMax, std::array<TExtension, 1u>{{TExtension::UNDEFINED}}, BuiltInParameters::p_io_00F00D00D, 2, StaticType::Get<EbtUInt, EbpUndefined, EvqGlobal, 1, 1>(), EOpAtomicMax, false);
+constexpr const TFunction atomicAnd_00F00D(BuiltInId::atomicAnd_AtomicCounter1_UInt1, BuiltInName::atomicAnd, std::array<TExtension, 1u>{{TExtension::UNDEFINED}}, BuiltInParameters::p_io_00F00D00D, 2, StaticType::Get<EbtUInt, EbpUndefined, EvqGlobal, 1, 1>(), EOpAtomicAnd, false);
+constexpr const TFunction atomicOr_00F00D(BuiltInId::atomicOr_AtomicCounter1_UInt1, BuiltInName::atomicOr, std::array<TExtension, 1u>{{TExtension::UNDEFINED}}, BuiltInParameters::p_io_00F00D00D, 2, StaticType::Get<EbtUInt, EbpUndefined, EvqGlobal, 1, 1>(), EOpAtomicOr, false);
+constexpr const TFunction atomicXor_00F00D(BuiltInId::atomicXor_AtomicCounter1_UInt1, BuiltInName::atomicXor, std::array<TExtension, 1u>{{TExtension::UNDEFINED}}, BuiltInParameters::p_io_00F00D00D, 2, StaticType::Get<EbtUInt, EbpUndefined, EvqGlobal, 1, 1>(), EOpAtomicXor, false);
+constexpr const TFunction atomicExchange_00F00D(BuiltInId::atomicExchange_AtomicCounter1_UInt1, BuiltInName::atomicExchange, std::array<TExtension, 1u>{{TExtension::UNDEFINED}}, BuiltInParameters::p_io_00F00D00D, 2, StaticType::Get<EbtUInt, EbpUndefined, EvqGlobal, 1, 1>(), EOpAtomicExchange, false);
+constexpr const TFunction atomicCompSwap_00F00D00D(BuiltInId::atomicCompSwap_AtomicCounter1_UInt1_UInt1, BuiltInName::atomicCompSwap, std::array<TExtension, 1u>{{TExtension::UNDEFINED}}, BuiltInParameters::p_io_00F00D00D, 3, StaticType::Get<EbtUInt, EbpUndefined, EvqGlobal, 1, 1>(), EOpAtomicCompSwap, false);
 constexpr const TFunction imageSize_00p(BuiltInId::imageSize_Image2D1, BuiltInName::imageSize, std::array<TExtension, 1u>{{TExtension::UNDEFINED}}, BuiltInParameters::p00p10C00B, 1, StaticType::Get<EbtInt, EbpUndefined, EvqGlobal, 2, 1>(), EOpImageSize, true);
 constexpr const TFunction imageSize_00v(BuiltInId::imageSize_IImage2D1, BuiltInName::imageSize, std::array<TExtension, 1u>{{TExtension::UNDEFINED}}, BuiltInParameters::p00v10C00B, 1, StaticType::Get<EbtInt, EbpUndefined, EvqGlobal, 2, 1>(), EOpImageSize, true);
 constexpr const TFunction imageSize_01B(BuiltInId::imageSize_UImage2D1, BuiltInName::imageSize, std::array<TExtension, 1u>{{TExtension::UNDEFINED}}, BuiltInParameters::p01B10C00B, 1, StaticType::Get<EbtInt, EbpUndefined, EvqGlobal, 2, 1>(), EOpImageSize, true);
@@ -3849,22 +3858,30 @@ Rule::Get<320, Shader::FRAGMENT, 0>(&interpolateAtOffset_30B10B), Rule::Get<300,
 Rule::Get<310, Shader::ALL, 0>(&atomicCounter_00F),
 Rule::Get<310, Shader::ALL, 0>(&atomicCounterIncrement_00F),
 Rule::Get<310, Shader::ALL, 0>(&atomicCounterDecrement_00F),
-Rule::Get<310, Shader::ALL, 0>(&atomicAdd_00D00D00F),
+Rule::Get<310, Shader::ALL, 0>(&atomicAdd_00D00D),
 Rule::Get<310, Shader::ALL, 0>(&atomicAdd_00C00C),
-Rule::Get<310, Shader::ALL, 0>(&atomicMin_00D00D00F),
+Rule::Get<310, Shader::ALL, 0>(&atomicMin_00D00D),
 Rule::Get<310, Shader::ALL, 0>(&atomicMin_00C00C),
-Rule::Get<310, Shader::ALL, 0>(&atomicMax_00D00D00F),
+Rule::Get<310, Shader::ALL, 0>(&atomicMax_00D00D),
 Rule::Get<310, Shader::ALL, 0>(&atomicMax_00C00C),
-Rule::Get<310, Shader::ALL, 0>(&atomicAnd_00D00D00F),
+Rule::Get<310, Shader::ALL, 0>(&atomicAnd_00D00D),
 Rule::Get<310, Shader::ALL, 0>(&atomicAnd_00C00C),
-Rule::Get<310, Shader::ALL, 0>(&atomicOr_00D00D00F),
+Rule::Get<310, Shader::ALL, 0>(&atomicOr_00D00D),
 Rule::Get<310, Shader::ALL, 0>(&atomicOr_00C00C),
-Rule::Get<310, Shader::ALL, 0>(&atomicXor_00D00D00F),
+Rule::Get<310, Shader::ALL, 0>(&atomicXor_00D00D),
 Rule::Get<310, Shader::ALL, 0>(&atomicXor_00C00C),
-Rule::Get<310, Shader::ALL, 0>(&atomicExchange_00D00D00F),
+Rule::Get<310, Shader::ALL, 0>(&atomicExchange_00D00D),
 Rule::Get<310, Shader::ALL, 0>(&atomicExchange_00C00C),
-Rule::Get<310, Shader::ALL, 0>(&atomicCompSwap_00D00D00D00F),
+Rule::Get<310, Shader::ALL, 0>(&atomicCompSwap_00D00D00D),
 Rule::Get<310, Shader::ALL, 0>(&atomicCompSwap_00C00C00C),
+Rule::Get<310, Shader::ALL, 0>(&atomicAdd_00F00D),
+Rule::Get<310, Shader::ALL, 0>(&atomicMin_00F00D),
+Rule::Get<310, Shader::ALL, 0>(&atomicMax_00F00D),
+Rule::Get<310, Shader::ALL, 0>(&atomicAnd_00F00D),
+Rule::Get<310, Shader::ALL, 0>(&atomicOr_00F00D),
+Rule::Get<310, Shader::ALL, 0>(&atomicXor_00F00D),
+Rule::Get<310, Shader::ALL, 0>(&atomicExchange_00F00D),
+Rule::Get<310, Shader::ALL, 0>(&atomicCompSwap_00F00D00D),
 Rule::Get<310, Shader::ALL, 0>(&imageSize_00p),
 Rule::Get<310, Shader::ALL, 0>(&imageSize_00v),
 Rule::Get<310, Shader::ALL, 0>(&imageSize_01B),
@@ -5279,22 +5296,30 @@ constexpr const char *kMangledNames[] = {
 "atomicCounter(00F",
 "atomicCounterIncrement(00F",
 "atomicCounterDecrement(00F",
-"atomicAdd(00D00D00F",
+"atomicAdd(00D00D",
 "atomicAdd(00C00C",
-"atomicMin(00D00D00F",
+"atomicMin(00D00D",
 "atomicMin(00C00C",
-"atomicMax(00D00D00F",
+"atomicMax(00D00D",
 "atomicMax(00C00C",
-"atomicAnd(00D00D00F",
+"atomicAnd(00D00D",
 "atomicAnd(00C00C",
-"atomicOr(00D00D00F",
+"atomicOr(00D00D",
 "atomicOr(00C00C",
-"atomicXor(00D00D00F",
+"atomicXor(00D00D",
 "atomicXor(00C00C",
-"atomicExchange(00D00D00F",
+"atomicExchange(00D00D",
 "atomicExchange(00C00C",
-"atomicCompSwap(00D00D00D00F",
+"atomicCompSwap(00D00D00D",
 "atomicCompSwap(00C00C00C",
+"atomicAdd(00F00D",
+"atomicMin(00F00D",
+"atomicMax(00F00D",
+"atomicAnd(00F00D",
+"atomicOr(00F00D",
+"atomicXor(00F00D",
+"atomicExchange(00F00D",
+"atomicCompSwap(00F00D00D",
 "imageSize(00p",
 "imageSize(00v",
 "imageSize(01B",
@@ -6709,539 +6734,547 @@ constexpr uint16_t kMangledOffsets[] = {
 1014, // atomicCounter_00F
 1015, // atomicCounterIncrement_00F
 1016, // atomicCounterDecrement_00F
-1017, // atomicAdd_00D00D00F
+1017, // atomicAdd_00D00D
 1018, // atomicAdd_00C00C
-1019, // atomicMin_00D00D00F
+1019, // atomicMin_00D00D
 1020, // atomicMin_00C00C
-1021, // atomicMax_00D00D00F
+1021, // atomicMax_00D00D
 1022, // atomicMax_00C00C
-1023, // atomicAnd_00D00D00F
+1023, // atomicAnd_00D00D
 1024, // atomicAnd_00C00C
-1025, // atomicOr_00D00D00F
+1025, // atomicOr_00D00D
 1026, // atomicOr_00C00C
-1027, // atomicXor_00D00D00F
+1027, // atomicXor_00D00D
 1028, // atomicXor_00C00C
-1029, // atomicExchange_00D00D00F
+1029, // atomicExchange_00D00D
 1030, // atomicExchange_00C00C
-1031, // atomicCompSwap_00D00D00D00F
+1031, // atomicCompSwap_00D00D00D
 1032, // atomicCompSwap_00C00C00C
-1033, // imageSize_00p
-1034, // imageSize_00v
-1035, // imageSize_01B
-1036, // imageSize_00q
-1037, // imageSize_00w
-1038, // imageSize_01C
-1039, // imageSize_00r
-1040, // imageSize_00x
-1041, // imageSize_01D
-1042, // imageSize_00s
-1043, // imageSize_00y
-1044, // imageSize_01E
-1045, // imageSize_00t
-1048, // imageSize_00z
-1051, // imageSize_01F
-1054, // imageSize_00u
-1057, // imageSize_01A
-1060, // imageSize_01G
-1063, // imageStore_00p10C30B
-1064, // imageStore_00v10C30C
-1065, // imageStore_01B10C30D
-1066, // imageStore_00q20C30B
-1067, // imageStore_00w20C30C
-1068, // imageStore_01C20C30D
-1069, // imageStore_00r20C30B
-1070, // imageStore_00x20C30C
-1071, // imageStore_01D20C30D
-1072, // imageStore_00s20C30B
-1073, // imageStore_00y20C30C
-1074, // imageStore_01E20C30D
-1075, // imageStore_00t20C30B
-1078, // imageStore_00z20C30C
-1081, // imageStore_01F20C30D
-1084, // imageStore_00u00C30B
-1087, // imageStore_01A00C30C
-1090, // imageStore_01G00C30D
-1093, // imageLoad_00p10C
-1094, // imageLoad_00v10C
-1095, // imageLoad_01B10C
-1096, // imageLoad_00q20C
-1097, // imageLoad_00w20C
-1098, // imageLoad_01C20C
-1099, // imageLoad_00r20C
-1100, // imageLoad_00x20C
-1101, // imageLoad_01D20C
-1102, // imageLoad_00s20C
-1103, // imageLoad_00y20C
-1104, // imageLoad_01E20C
-1105, // imageLoad_00t20C
-1108, // imageLoad_00z20C
-1111, // imageLoad_01F20C
-1114, // imageLoad_00u00C
-1117, // imageLoad_01A00C
-1120, // imageLoad_01G00C
-1123, // imageAtomicAdd_00p10C00D
-1125, // imageAtomicAdd_00v10C00D
-1127, // imageAtomicAdd_01B10C00D
-1129, // imageAtomicAdd_00q20C00D
-1131, // imageAtomicAdd_00w20C00D
-1133, // imageAtomicAdd_01C20C00D
-1135, // imageAtomicAdd_00s20C00D
-1137, // imageAtomicAdd_00y20C00D
-1139, // imageAtomicAdd_01E20C00D
-1141, // imageAtomicAdd_00u00C00D
-1143, // imageAtomicAdd_01A00C00D
-1145, // imageAtomicAdd_01G00C00D
-1147, // imageAtomicAdd_00r20C00D
-1149, // imageAtomicAdd_00x20C00D
-1151, // imageAtomicAdd_01D20C00D
-1153, // imageAtomicAdd_00t20C00D
-1155, // imageAtomicAdd_00z20C00D
-1157, // imageAtomicAdd_01F20C00D
-1159, // imageAtomicAdd_00p10C00C
-1161, // imageAtomicAdd_00v10C00C
-1163, // imageAtomicAdd_01B10C00C
-1165, // imageAtomicAdd_00q20C00C
-1167, // imageAtomicAdd_00w20C00C
-1169, // imageAtomicAdd_01C20C00C
-1171, // imageAtomicAdd_00s20C00C
-1173, // imageAtomicAdd_00y20C00C
-1175, // imageAtomicAdd_01E20C00C
-1177, // imageAtomicAdd_00u00C00C
-1179, // imageAtomicAdd_01A00C00C
-1181, // imageAtomicAdd_01G00C00C
-1183, // imageAtomicAdd_00r20C00C
-1185, // imageAtomicAdd_00x20C00C
-1187, // imageAtomicAdd_01D20C00C
-1189, // imageAtomicAdd_00t20C00C
-1191, // imageAtomicAdd_00z20C00C
-1193, // imageAtomicAdd_01F20C00C
-1195, // imageAtomicMin_00p10C00D
-1197, // imageAtomicMin_00v10C00D
-1199, // imageAtomicMin_01B10C00D
-1201, // imageAtomicMin_00q20C00D
-1203, // imageAtomicMin_00w20C00D
-1205, // imageAtomicMin_01C20C00D
-1207, // imageAtomicMin_00s20C00D
-1209, // imageAtomicMin_00y20C00D
-1211, // imageAtomicMin_01E20C00D
-1213, // imageAtomicMin_00u00C00D
-1215, // imageAtomicMin_01A00C00D
-1217, // imageAtomicMin_01G00C00D
-1219, // imageAtomicMin_00r20C00D
-1221, // imageAtomicMin_00x20C00D
-1223, // imageAtomicMin_01D20C00D
-1225, // imageAtomicMin_00t20C00D
-1227, // imageAtomicMin_00z20C00D
-1229, // imageAtomicMin_01F20C00D
-1231, // imageAtomicMin_00p10C00C
-1233, // imageAtomicMin_00v10C00C
-1235, // imageAtomicMin_01B10C00C
-1237, // imageAtomicMin_00q20C00C
-1239, // imageAtomicMin_00w20C00C
-1241, // imageAtomicMin_01C20C00C
-1243, // imageAtomicMin_00s20C00C
-1245, // imageAtomicMin_00y20C00C
-1247, // imageAtomicMin_01E20C00C
-1249, // imageAtomicMin_00u00C00C
-1251, // imageAtomicMin_01A00C00C
-1253, // imageAtomicMin_01G00C00C
-1255, // imageAtomicMin_00r20C00C
-1257, // imageAtomicMin_00x20C00C
-1259, // imageAtomicMin_01D20C00C
-1261, // imageAtomicMin_00t20C00C
-1263, // imageAtomicMin_00z20C00C
-1265, // imageAtomicMin_01F20C00C
-1267, // imageAtomicMax_00p10C00D
-1269, // imageAtomicMax_00v10C00D
-1271, // imageAtomicMax_01B10C00D
-1273, // imageAtomicMax_00q20C00D
-1275, // imageAtomicMax_00w20C00D
-1277, // imageAtomicMax_01C20C00D
-1279, // imageAtomicMax_00s20C00D
-1281, // imageAtomicMax_00y20C00D
-1283, // imageAtomicMax_01E20C00D
-1285, // imageAtomicMax_00u00C00D
-1287, // imageAtomicMax_01A00C00D
-1289, // imageAtomicMax_01G00C00D
-1291, // imageAtomicMax_00r20C00D
-1293, // imageAtomicMax_00x20C00D
-1295, // imageAtomicMax_01D20C00D
-1297, // imageAtomicMax_00t20C00D
-1299, // imageAtomicMax_00z20C00D
-1301, // imageAtomicMax_01F20C00D
-1303, // imageAtomicMax_00p10C00C
-1305, // imageAtomicMax_00v10C00C
-1307, // imageAtomicMax_01B10C00C
-1309, // imageAtomicMax_00q20C00C
-1311, // imageAtomicMax_00w20C00C
-1313, // imageAtomicMax_01C20C00C
-1315, // imageAtomicMax_00s20C00C
-1317, // imageAtomicMax_00y20C00C
-1319, // imageAtomicMax_01E20C00C
-1321, // imageAtomicMax_00u00C00C
-1323, // imageAtomicMax_01A00C00C
-1325, // imageAtomicMax_01G00C00C
-1327, // imageAtomicMax_00r20C00C
-1329, // imageAtomicMax_00x20C00C
-1331, // imageAtomicMax_01D20C00C
-1333, // imageAtomicMax_00t20C00C
-1335, // imageAtomicMax_00z20C00C
-1337, // imageAtomicMax_01F20C00C
-1339, // imageAtomicAnd_00p10C00D
-1341, // imageAtomicAnd_00v10C00D
-1343, // imageAtomicAnd_01B10C00D
-1345, // imageAtomicAnd_00q20C00D
-1347, // imageAtomicAnd_00w20C00D
-1349, // imageAtomicAnd_01C20C00D
-1351, // imageAtomicAnd_00s20C00D
-1353, // imageAtomicAnd_00y20C00D
-1355, // imageAtomicAnd_01E20C00D
-1357, // imageAtomicAnd_00u00C00D
-1359, // imageAtomicAnd_01A00C00D
-1361, // imageAtomicAnd_01G00C00D
-1363, // imageAtomicAnd_00r20C00D
-1365, // imageAtomicAnd_00x20C00D
-1367, // imageAtomicAnd_01D20C00D
-1369, // imageAtomicAnd_00t20C00D
-1371, // imageAtomicAnd_00z20C00D
-1373, // imageAtomicAnd_01F20C00D
-1375, // imageAtomicAnd_00p10C00C
-1377, // imageAtomicAnd_00v10C00C
-1379, // imageAtomicAnd_01B10C00C
-1381, // imageAtomicAnd_00q20C00C
-1383, // imageAtomicAnd_00w20C00C
-1385, // imageAtomicAnd_01C20C00C
-1387, // imageAtomicAnd_00s20C00C
-1389, // imageAtomicAnd_00y20C00C
-1391, // imageAtomicAnd_01E20C00C
-1393, // imageAtomicAnd_00u00C00C
-1395, // imageAtomicAnd_01A00C00C
-1397, // imageAtomicAnd_01G00C00C
-1399, // imageAtomicAnd_00r20C00C
-1401, // imageAtomicAnd_00x20C00C
-1403, // imageAtomicAnd_01D20C00C
-1405, // imageAtomicAnd_00t20C00C
-1407, // imageAtomicAnd_00z20C00C
-1409, // imageAtomicAnd_01F20C00C
-1411, // imageAtomicOr_00p10C00D
-1413, // imageAtomicOr_00v10C00D
-1415, // imageAtomicOr_01B10C00D
-1417, // imageAtomicOr_00q20C00D
-1419, // imageAtomicOr_00w20C00D
-1421, // imageAtomicOr_01C20C00D
-1423, // imageAtomicOr_00s20C00D
-1425, // imageAtomicOr_00y20C00D
-1427, // imageAtomicOr_01E20C00D
-1429, // imageAtomicOr_00u00C00D
-1431, // imageAtomicOr_01A00C00D
-1433, // imageAtomicOr_01G00C00D
-1435, // imageAtomicOr_00r20C00D
-1437, // imageAtomicOr_00x20C00D
-1439, // imageAtomicOr_01D20C00D
-1441, // imageAtomicOr_00t20C00D
-1443, // imageAtomicOr_00z20C00D
-1445, // imageAtomicOr_01F20C00D
-1447, // imageAtomicOr_00p10C00C
-1449, // imageAtomicOr_00v10C00C
-1451, // imageAtomicOr_01B10C00C
-1453, // imageAtomicOr_00q20C00C
-1455, // imageAtomicOr_00w20C00C
-1457, // imageAtomicOr_01C20C00C
-1459, // imageAtomicOr_00s20C00C
-1461, // imageAtomicOr_00y20C00C
-1463, // imageAtomicOr_01E20C00C
-1465, // imageAtomicOr_00u00C00C
-1467, // imageAtomicOr_01A00C00C
-1469, // imageAtomicOr_01G00C00C
-1471, // imageAtomicOr_00r20C00C
-1473, // imageAtomicOr_00x20C00C
-1475, // imageAtomicOr_01D20C00C
-1477, // imageAtomicOr_00t20C00C
-1479, // imageAtomicOr_00z20C00C
-1481, // imageAtomicOr_01F20C00C
-1483, // imageAtomicXor_00p10C00D
-1485, // imageAtomicXor_00v10C00D
-1487, // imageAtomicXor_01B10C00D
-1489, // imageAtomicXor_00q20C00D
-1491, // imageAtomicXor_00w20C00D
-1493, // imageAtomicXor_01C20C00D
-1495, // imageAtomicXor_00s20C00D
-1497, // imageAtomicXor_00y20C00D
-1499, // imageAtomicXor_01E20C00D
-1501, // imageAtomicXor_00u00C00D
-1503, // imageAtomicXor_01A00C00D
-1505, // imageAtomicXor_01G00C00D
-1507, // imageAtomicXor_00r20C00D
-1509, // imageAtomicXor_00x20C00D
-1511, // imageAtomicXor_01D20C00D
-1513, // imageAtomicXor_00t20C00D
-1515, // imageAtomicXor_00z20C00D
-1517, // imageAtomicXor_01F20C00D
-1519, // imageAtomicXor_00p10C00C
-1521, // imageAtomicXor_00v10C00C
-1523, // imageAtomicXor_01B10C00C
-1525, // imageAtomicXor_00q20C00C
-1527, // imageAtomicXor_00w20C00C
-1529, // imageAtomicXor_01C20C00C
-1531, // imageAtomicXor_00s20C00C
-1533, // imageAtomicXor_00y20C00C
-1535, // imageAtomicXor_01E20C00C
-1537, // imageAtomicXor_00u00C00C
-1539, // imageAtomicXor_01A00C00C
-1541, // imageAtomicXor_01G00C00C
-1543, // imageAtomicXor_00r20C00C
-1545, // imageAtomicXor_00x20C00C
-1547, // imageAtomicXor_01D20C00C
-1549, // imageAtomicXor_00t20C00C
-1551, // imageAtomicXor_00z20C00C
-1553, // imageAtomicXor_01F20C00C
-1555, // imageAtomicExchange_00p10C00D
-1557, // imageAtomicExchange_00v10C00D
-1559, // imageAtomicExchange_01B10C00D
-1561, // imageAtomicExchange_00q20C00D
-1563, // imageAtomicExchange_00w20C00D
-1565, // imageAtomicExchange_01C20C00D
-1567, // imageAtomicExchange_00s20C00D
-1569, // imageAtomicExchange_00y20C00D
-1571, // imageAtomicExchange_01E20C00D
-1573, // imageAtomicExchange_00u00C00D
-1575, // imageAtomicExchange_01A00C00D
-1577, // imageAtomicExchange_01G00C00D
-1579, // imageAtomicExchange_00r20C00D
-1581, // imageAtomicExchange_00x20C00D
-1583, // imageAtomicExchange_01D20C00D
-1585, // imageAtomicExchange_00t20C00D
-1587, // imageAtomicExchange_00z20C00D
-1589, // imageAtomicExchange_01F20C00D
-1591, // imageAtomicExchange_00p10C00C
-1593, // imageAtomicExchange_00v10C00C
-1595, // imageAtomicExchange_01B10C00C
-1597, // imageAtomicExchange_00q20C00C
-1599, // imageAtomicExchange_00w20C00C
-1601, // imageAtomicExchange_01C20C00C
-1603, // imageAtomicExchange_00s20C00C
-1605, // imageAtomicExchange_00y20C00C
-1607, // imageAtomicExchange_01E20C00C
-1609, // imageAtomicExchange_00u00C00C
-1611, // imageAtomicExchange_01A00C00C
-1613, // imageAtomicExchange_01G00C00C
-1615, // imageAtomicExchange_00r20C00C
-1617, // imageAtomicExchange_00x20C00C
-1619, // imageAtomicExchange_01D20C00C
-1621, // imageAtomicExchange_00t20C00C
-1623, // imageAtomicExchange_00z20C00C
-1625, // imageAtomicExchange_01F20C00C
-1627, // imageAtomicExchange_00p10C00B
-1629, // imageAtomicExchange_00v10C00B
-1631, // imageAtomicExchange_01B10C00B
-1633, // imageAtomicExchange_00q20C00B
-1635, // imageAtomicExchange_00w20C00B
-1637, // imageAtomicExchange_01C20C00B
-1639, // imageAtomicExchange_00s20C00B
-1641, // imageAtomicExchange_00y20C00B
-1643, // imageAtomicExchange_01E20C00B
-1645, // imageAtomicExchange_00u00C00B
-1647, // imageAtomicExchange_01A00C00B
-1649, // imageAtomicExchange_01G00C00B
-1651, // imageAtomicExchange_00r20C00B
-1653, // imageAtomicExchange_00x20C00B
-1655, // imageAtomicExchange_01D20C00B
-1657, // imageAtomicExchange_00t20C00B
-1659, // imageAtomicExchange_00z20C00B
-1661, // imageAtomicExchange_01F20C00B
-1663, // imageAtomicCompSwap_00p10C00D00D
-1665, // imageAtomicCompSwap_00v10C00D00D
-1667, // imageAtomicCompSwap_01B10C00D00D
-1669, // imageAtomicCompSwap_00q20C00D00D
-1671, // imageAtomicCompSwap_00w20C00D00D
-1673, // imageAtomicCompSwap_01C20C00D00D
-1675, // imageAtomicCompSwap_00s20C00D00D
-1677, // imageAtomicCompSwap_00y20C00D00D
-1679, // imageAtomicCompSwap_01E20C00D00D
-1681, // imageAtomicCompSwap_00u00C00D00D
-1683, // imageAtomicCompSwap_01A00C00D00D
-1685, // imageAtomicCompSwap_01G00C00D00D
-1687, // imageAtomicCompSwap_00r20C00D00D
-1689, // imageAtomicCompSwap_00x20C00D00D
-1691, // imageAtomicCompSwap_01D20C00D00D
-1693, // imageAtomicCompSwap_00t20C00D00D
-1695, // imageAtomicCompSwap_00z20C00D00D
-1697, // imageAtomicCompSwap_01F20C00D00D
-1699, // imageAtomicCompSwap_00p10C00C00C
-1701, // imageAtomicCompSwap_00v10C00C00C
-1703, // imageAtomicCompSwap_01B10C00C00C
-1705, // imageAtomicCompSwap_00q20C00C00C
-1707, // imageAtomicCompSwap_00w20C00C00C
-1709, // imageAtomicCompSwap_01C20C00C00C
-1711, // imageAtomicCompSwap_00s20C00C00C
-1713, // imageAtomicCompSwap_00y20C00C00C
-1715, // imageAtomicCompSwap_01E20C00C00C
-1717, // imageAtomicCompSwap_00u00C00C00C
-1719, // imageAtomicCompSwap_01A00C00C00C
-1721, // imageAtomicCompSwap_01G00C00C00C
-1723, // imageAtomicCompSwap_00r20C00C00C
-1725, // imageAtomicCompSwap_00x20C00C00C
-1727, // imageAtomicCompSwap_01D20C00C00C
-1729, // imageAtomicCompSwap_00t20C00C00C
-1731, // imageAtomicCompSwap_00z20C00C00C
-1733, // imageAtomicCompSwap_01F20C00C00C
-1735, // pixelLocalLoadANGLE_01H
-1736, // pixelLocalLoadANGLE_01I
-1737, // pixelLocalLoadANGLE_01J
-1738, // pixelLocalStoreANGLE_01H30B
-1739, // pixelLocalStoreANGLE_01I30C
-1740, // pixelLocalStoreANGLE_01J30D
-1741, // beginInvocationInterlockNV_
-1742, // endInvocationInterlockNV_
-1743, // beginFragmentShaderOrderingINTEL_
-1744, // beginInvocationInterlockARB_
-1745, // endInvocationInterlockARB_
-1746, // memoryBarrier_
-1747, // memoryBarrierAtomicCounter_
-1748, // memoryBarrierBuffer_
-1749, // memoryBarrierImage_
-1750, // barrier_
-1754, // memoryBarrierShared_
-1755, // groupMemoryBarrier_
-1756, // EmitVertex_
-1759, // EndPrimitive_
-1762, // subpassLoad_01K
-1763, // subpassLoad_01L
-1764, // subpassLoad_01M
-1765, // numSamples_
-1766, // samplePosition_00D
-1767, // interpolateAtCenter_00B
-1768, // interpolateAtCenter_10B
-1769, // interpolateAtCenter_20B
-1770, // interpolateAtCenter_30B
-1771, // loopForwardProgress_
-1772, // saturate_00B
-1773, // saturate_10B
-1774, // saturate_20B
-1775, // saturate_30B
-1776, // gl_DepthRangeParameters
-1777, // gl_DepthRange
-1778, // gl_NumSamples
-1780, // gl_MaxVertexAttribs
-1781, // gl_MaxVertexUniformVectors
-1782, // gl_MaxVertexTextureImageUnits
-1783, // gl_MaxCombinedTextureImageUnits
-1784, // gl_MaxTextureImageUnits
-1785, // gl_MaxFragmentUniformVectors
-1786, // gl_MaxVaryingVectors
-1787, // gl_MaxDrawBuffers
-1788, // gl_MaxDualSourceDrawBuffersEXT
-1789, // gl_MaxVertexOutputVectors
-1790, // gl_MaxFragmentInputVectors
-1791, // gl_MinProgramTexelOffset
-1792, // gl_MaxProgramTexelOffset
-1793, // gl_MaxImageUnits
-1794, // gl_MaxVertexImageUniforms
-1795, // gl_MaxFragmentImageUniforms
-1796, // gl_MaxComputeImageUniforms
-1797, // gl_MaxCombinedImageUniforms
-1798, // gl_MaxCombinedShaderOutputResources
-1799, // gl_MaxComputeWorkGroupCount
-1800, // gl_MaxComputeWorkGroupSize
-1801, // gl_MaxComputeUniformComponents
-1802, // gl_MaxComputeTextureImageUnits
-1803, // gl_MaxComputeAtomicCounters
-1804, // gl_MaxComputeAtomicCounterBuffers
-1805, // gl_MaxVertexAtomicCounters
-1806, // gl_MaxFragmentAtomicCounters
-1807, // gl_MaxCombinedAtomicCounters
-1808, // gl_MaxAtomicCounterBindings
-1809, // gl_MaxVertexAtomicCounterBuffers
-1810, // gl_MaxFragmentAtomicCounterBuffers
-1811, // gl_MaxCombinedAtomicCounterBuffers
-1812, // gl_MaxAtomicCounterBufferSize
-1813, // gl_ShadingRateFlag2VerticalPixelsEXT
-1814, // gl_ShadingRateFlag4VerticalPixelsEXT
-1815, // gl_ShadingRateFlag2HorizontalPixelsEXT
-1816, // gl_ShadingRateFlag4HorizontalPixelsEXT
-1817, // gl_MaxGeometryInputComponents
-1820, // gl_MaxGeometryOutputComponents
-1823, // gl_MaxGeometryImageUniforms
-1826, // gl_MaxGeometryTextureImageUnits
-1829, // gl_MaxGeometryOutputVertices
-1832, // gl_MaxGeometryTotalOutputComponents
-1835, // gl_MaxGeometryUniformComponents
-1838, // gl_MaxGeometryAtomicCounters
-1841, // gl_MaxGeometryAtomicCounterBuffers
-1844, // gl_MaxTessControlInputComponents
-1847, // gl_MaxTessControlOutputComponents
-1850, // gl_MaxTessControlTextureImageUnits
-1853, // gl_MaxTessControlUniformComponents
-1856, // gl_MaxTessControlTotalOutputComponents
-1859, // gl_MaxTessControlImageUniforms
-1862, // gl_MaxTessControlAtomicCounters
-1865, // gl_MaxTessControlAtomicCounterBuffers
-1868, // gl_MaxTessPatchComponents
-1871, // gl_MaxPatchVertices
-1874, // gl_MaxTessGenLevel
-1877, // gl_MaxTessEvaluationInputComponents
-1880, // gl_MaxTessEvaluationOutputComponents
-1883, // gl_MaxTessEvaluationTextureImageUnits
-1886, // gl_MaxTessEvaluationUniformComponents
-1889, // gl_MaxTessEvaluationImageUniforms
-1892, // gl_MaxTessEvaluationAtomicCounters
-1895, // gl_MaxTessEvaluationAtomicCounterBuffers
-1898, // gl_MaxSamples
-1900, // gl_MaxClipDistances
-1903, // gl_MaxCullDistances
-1905, // gl_MaxCombinedClipAndCullDistances
-1907, // gl_FragCoord
-1909, // gl_FrontFacing
-1910, // gl_PointCoord
-1911, // gl_FragColor
-1912, // gl_FragData
-1913, // gl_FragDepth
-1914, // gl_HelperInvocation
-1915, // gl_SecondaryFragColorEXT
-1916, // gl_SecondaryFragDataEXT
-1917, // gl_FragDepthEXT
-1918, // gl_LastFragData
-1920, // gl_LastFragColorARM
-1921, // gl_LastFragDepthARM
-1922, // gl_LastFragStencilARM
-1923, // gl_PrimitiveID
-1935, // gl_Layer
-1942, // gl_ShadingRateEXT
-1943, // gl_SampleID
-1945, // gl_SamplePosition
-1947, // gl_SampleMaskIn
-1949, // gl_SampleMask
-1951, // gl_Position
-1958, // gl_PointSize
-1960, // gl_InstanceID
-1961, // gl_InstanceIndex
-1962, // gl_VertexID
-1963, // gl_VertexIndex
-1964, // gl_DrawID
-1965, // gl_BaseVertex
-1966, // gl_BaseInstance
-1967, // gl_ClipDistance
-1970, // gl_PrimitiveShadingRateEXT
-1972, // gl_NumWorkGroups
-1973, // gl_WorkGroupSize
-1974, // gl_WorkGroupID
-1975, // gl_LocalInvocationID
-1976, // gl_GlobalInvocationID
-1977, // gl_LocalInvocationIndex
-1978, // gl_PrimitiveIDIn
-1981, // gl_InvocationID
-1987, // gl_PerVertex
-1996, // gl_in
-2005, // gl_PatchVerticesIn
-2011, // gl_TessLevelOuter
-2017, // gl_TessLevelInner
-2023, // gl_out
-2026, // gl_BoundingBox
-2029, // gl_BoundingBoxEXT
-2032, // gl_BoundingBoxOES
-2035, // gl_TessCoord
-2036, // gl_ViewID_OVR
-2037, // gl_CullDistance
+1033, // atomicAdd_00F00D
+1034, // atomicMin_00F00D
+1035, // atomicMax_00F00D
+1036, // atomicAnd_00F00D
+1037, // atomicOr_00F00D
+1038, // atomicXor_00F00D
+1039, // atomicExchange_00F00D
+1040, // atomicCompSwap_00F00D00D
+1041, // imageSize_00p
+1042, // imageSize_00v
+1043, // imageSize_01B
+1044, // imageSize_00q
+1045, // imageSize_00w
+1046, // imageSize_01C
+1047, // imageSize_00r
+1048, // imageSize_00x
+1049, // imageSize_01D
+1050, // imageSize_00s
+1051, // imageSize_00y
+1052, // imageSize_01E
+1053, // imageSize_00t
+1056, // imageSize_00z
+1059, // imageSize_01F
+1062, // imageSize_00u
+1065, // imageSize_01A
+1068, // imageSize_01G
+1071, // imageStore_00p10C30B
+1072, // imageStore_00v10C30C
+1073, // imageStore_01B10C30D
+1074, // imageStore_00q20C30B
+1075, // imageStore_00w20C30C
+1076, // imageStore_01C20C30D
+1077, // imageStore_00r20C30B
+1078, // imageStore_00x20C30C
+1079, // imageStore_01D20C30D
+1080, // imageStore_00s20C30B
+1081, // imageStore_00y20C30C
+1082, // imageStore_01E20C30D
+1083, // imageStore_00t20C30B
+1086, // imageStore_00z20C30C
+1089, // imageStore_01F20C30D
+1092, // imageStore_00u00C30B
+1095, // imageStore_01A00C30C
+1098, // imageStore_01G00C30D
+1101, // imageLoad_00p10C
+1102, // imageLoad_00v10C
+1103, // imageLoad_01B10C
+1104, // imageLoad_00q20C
+1105, // imageLoad_00w20C
+1106, // imageLoad_01C20C
+1107, // imageLoad_00r20C
+1108, // imageLoad_00x20C
+1109, // imageLoad_01D20C
+1110, // imageLoad_00s20C
+1111, // imageLoad_00y20C
+1112, // imageLoad_01E20C
+1113, // imageLoad_00t20C
+1116, // imageLoad_00z20C
+1119, // imageLoad_01F20C
+1122, // imageLoad_00u00C
+1125, // imageLoad_01A00C
+1128, // imageLoad_01G00C
+1131, // imageAtomicAdd_00p10C00D
+1133, // imageAtomicAdd_00v10C00D
+1135, // imageAtomicAdd_01B10C00D
+1137, // imageAtomicAdd_00q20C00D
+1139, // imageAtomicAdd_00w20C00D
+1141, // imageAtomicAdd_01C20C00D
+1143, // imageAtomicAdd_00s20C00D
+1145, // imageAtomicAdd_00y20C00D
+1147, // imageAtomicAdd_01E20C00D
+1149, // imageAtomicAdd_00u00C00D
+1151, // imageAtomicAdd_01A00C00D
+1153, // imageAtomicAdd_01G00C00D
+1155, // imageAtomicAdd_00r20C00D
+1157, // imageAtomicAdd_00x20C00D
+1159, // imageAtomicAdd_01D20C00D
+1161, // imageAtomicAdd_00t20C00D
+1163, // imageAtomicAdd_00z20C00D
+1165, // imageAtomicAdd_01F20C00D
+1167, // imageAtomicAdd_00p10C00C
+1169, // imageAtomicAdd_00v10C00C
+1171, // imageAtomicAdd_01B10C00C
+1173, // imageAtomicAdd_00q20C00C
+1175, // imageAtomicAdd_00w20C00C
+1177, // imageAtomicAdd_01C20C00C
+1179, // imageAtomicAdd_00s20C00C
+1181, // imageAtomicAdd_00y20C00C
+1183, // imageAtomicAdd_01E20C00C
+1185, // imageAtomicAdd_00u00C00C
+1187, // imageAtomicAdd_01A00C00C
+1189, // imageAtomicAdd_01G00C00C
+1191, // imageAtomicAdd_00r20C00C
+1193, // imageAtomicAdd_00x20C00C
+1195, // imageAtomicAdd_01D20C00C
+1197, // imageAtomicAdd_00t20C00C
+1199, // imageAtomicAdd_00z20C00C
+1201, // imageAtomicAdd_01F20C00C
+1203, // imageAtomicMin_00p10C00D
+1205, // imageAtomicMin_00v10C00D
+1207, // imageAtomicMin_01B10C00D
+1209, // imageAtomicMin_00q20C00D
+1211, // imageAtomicMin_00w20C00D
+1213, // imageAtomicMin_01C20C00D
+1215, // imageAtomicMin_00s20C00D
+1217, // imageAtomicMin_00y20C00D
+1219, // imageAtomicMin_01E20C00D
+1221, // imageAtomicMin_00u00C00D
+1223, // imageAtomicMin_01A00C00D
+1225, // imageAtomicMin_01G00C00D
+1227, // imageAtomicMin_00r20C00D
+1229, // imageAtomicMin_00x20C00D
+1231, // imageAtomicMin_01D20C00D
+1233, // imageAtomicMin_00t20C00D
+1235, // imageAtomicMin_00z20C00D
+1237, // imageAtomicMin_01F20C00D
+1239, // imageAtomicMin_00p10C00C
+1241, // imageAtomicMin_00v10C00C
+1243, // imageAtomicMin_01B10C00C
+1245, // imageAtomicMin_00q20C00C
+1247, // imageAtomicMin_00w20C00C
+1249, // imageAtomicMin_01C20C00C
+1251, // imageAtomicMin_00s20C00C
+1253, // imageAtomicMin_00y20C00C
+1255, // imageAtomicMin_01E20C00C
+1257, // imageAtomicMin_00u00C00C
+1259, // imageAtomicMin_01A00C00C
+1261, // imageAtomicMin_01G00C00C
+1263, // imageAtomicMin_00r20C00C
+1265, // imageAtomicMin_00x20C00C
+1267, // imageAtomicMin_01D20C00C
+1269, // imageAtomicMin_00t20C00C
+1271, // imageAtomicMin_00z20C00C
+1273, // imageAtomicMin_01F20C00C
+1275, // imageAtomicMax_00p10C00D
+1277, // imageAtomicMax_00v10C00D
+1279, // imageAtomicMax_01B10C00D
+1281, // imageAtomicMax_00q20C00D
+1283, // imageAtomicMax_00w20C00D
+1285, // imageAtomicMax_01C20C00D
+1287, // imageAtomicMax_00s20C00D
+1289, // imageAtomicMax_00y20C00D
+1291, // imageAtomicMax_01E20C00D
+1293, // imageAtomicMax_00u00C00D
+1295, // imageAtomicMax_01A00C00D
+1297, // imageAtomicMax_01G00C00D
+1299, // imageAtomicMax_00r20C00D
+1301, // imageAtomicMax_00x20C00D
+1303, // imageAtomicMax_01D20C00D
+1305, // imageAtomicMax_00t20C00D
+1307, // imageAtomicMax_00z20C00D
+1309, // imageAtomicMax_01F20C00D
+1311, // imageAtomicMax_00p10C00C
+1313, // imageAtomicMax_00v10C00C
+1315, // imageAtomicMax_01B10C00C
+1317, // imageAtomicMax_00q20C00C
+1319, // imageAtomicMax_00w20C00C
+1321, // imageAtomicMax_01C20C00C
+1323, // imageAtomicMax_00s20C00C
+1325, // imageAtomicMax_00y20C00C
+1327, // imageAtomicMax_01E20C00C
+1329, // imageAtomicMax_00u00C00C
+1331, // imageAtomicMax_01A00C00C
+1333, // imageAtomicMax_01G00C00C
+1335, // imageAtomicMax_00r20C00C
+1337, // imageAtomicMax_00x20C00C
+1339, // imageAtomicMax_01D20C00C
+1341, // imageAtomicMax_00t20C00C
+1343, // imageAtomicMax_00z20C00C
+1345, // imageAtomicMax_01F20C00C
+1347, // imageAtomicAnd_00p10C00D
+1349, // imageAtomicAnd_00v10C00D
+1351, // imageAtomicAnd_01B10C00D
+1353, // imageAtomicAnd_00q20C00D
+1355, // imageAtomicAnd_00w20C00D
+1357, // imageAtomicAnd_01C20C00D
+1359, // imageAtomicAnd_00s20C00D
+1361, // imageAtomicAnd_00y20C00D
+1363, // imageAtomicAnd_01E20C00D
+1365, // imageAtomicAnd_00u00C00D
+1367, // imageAtomicAnd_01A00C00D
+1369, // imageAtomicAnd_01G00C00D
+1371, // imageAtomicAnd_00r20C00D
+1373, // imageAtomicAnd_00x20C00D
+1375, // imageAtomicAnd_01D20C00D
+1377, // imageAtomicAnd_00t20C00D
+1379, // imageAtomicAnd_00z20C00D
+1381, // imageAtomicAnd_01F20C00D
+1383, // imageAtomicAnd_00p10C00C
+1385, // imageAtomicAnd_00v10C00C
+1387, // imageAtomicAnd_01B10C00C
+1389, // imageAtomicAnd_00q20C00C
+1391, // imageAtomicAnd_00w20C00C
+1393, // imageAtomicAnd_01C20C00C
+1395, // imageAtomicAnd_00s20C00C
+1397, // imageAtomicAnd_00y20C00C
+1399, // imageAtomicAnd_01E20C00C
+1401, // imageAtomicAnd_00u00C00C
+1403, // imageAtomicAnd_01A00C00C
+1405, // imageAtomicAnd_01G00C00C
+1407, // imageAtomicAnd_00r20C00C
+1409, // imageAtomicAnd_00x20C00C
+1411, // imageAtomicAnd_01D20C00C
+1413, // imageAtomicAnd_00t20C00C
+1415, // imageAtomicAnd_00z20C00C
+1417, // imageAtomicAnd_01F20C00C
+1419, // imageAtomicOr_00p10C00D
+1421, // imageAtomicOr_00v10C00D
+1423, // imageAtomicOr_01B10C00D
+1425, // imageAtomicOr_00q20C00D
+1427, // imageAtomicOr_00w20C00D
+1429, // imageAtomicOr_01C20C00D
+1431, // imageAtomicOr_00s20C00D
+1433, // imageAtomicOr_00y20C00D
+1435, // imageAtomicOr_01E20C00D
+1437, // imageAtomicOr_00u00C00D
+1439, // imageAtomicOr_01A00C00D
+1441, // imageAtomicOr_01G00C00D
+1443, // imageAtomicOr_00r20C00D
+1445, // imageAtomicOr_00x20C00D
+1447, // imageAtomicOr_01D20C00D
+1449, // imageAtomicOr_00t20C00D
+1451, // imageAtomicOr_00z20C00D
+1453, // imageAtomicOr_01F20C00D
+1455, // imageAtomicOr_00p10C00C
+1457, // imageAtomicOr_00v10C00C
+1459, // imageAtomicOr_01B10C00C
+1461, // imageAtomicOr_00q20C00C
+1463, // imageAtomicOr_00w20C00C
+1465, // imageAtomicOr_01C20C00C
+1467, // imageAtomicOr_00s20C00C
+1469, // imageAtomicOr_00y20C00C
+1471, // imageAtomicOr_01E20C00C
+1473, // imageAtomicOr_00u00C00C
+1475, // imageAtomicOr_01A00C00C
+1477, // imageAtomicOr_01G00C00C
+1479, // imageAtomicOr_00r20C00C
+1481, // imageAtomicOr_00x20C00C
+1483, // imageAtomicOr_01D20C00C
+1485, // imageAtomicOr_00t20C00C
+1487, // imageAtomicOr_00z20C00C
+1489, // imageAtomicOr_01F20C00C
+1491, // imageAtomicXor_00p10C00D
+1493, // imageAtomicXor_00v10C00D
+1495, // imageAtomicXor_01B10C00D
+1497, // imageAtomicXor_00q20C00D
+1499, // imageAtomicXor_00w20C00D
+1501, // imageAtomicXor_01C20C00D
+1503, // imageAtomicXor_00s20C00D
+1505, // imageAtomicXor_00y20C00D
+1507, // imageAtomicXor_01E20C00D
+1509, // imageAtomicXor_00u00C00D
+1511, // imageAtomicXor_01A00C00D
+1513, // imageAtomicXor_01G00C00D
+1515, // imageAtomicXor_00r20C00D
+1517, // imageAtomicXor_00x20C00D
+1519, // imageAtomicXor_01D20C00D
+1521, // imageAtomicXor_00t20C00D
+1523, // imageAtomicXor_00z20C00D
+1525, // imageAtomicXor_01F20C00D
+1527, // imageAtomicXor_00p10C00C
+1529, // imageAtomicXor_00v10C00C
+1531, // imageAtomicXor_01B10C00C
+1533, // imageAtomicXor_00q20C00C
+1535, // imageAtomicXor_00w20C00C
+1537, // imageAtomicXor_01C20C00C
+1539, // imageAtomicXor_00s20C00C
+1541, // imageAtomicXor_00y20C00C
+1543, // imageAtomicXor_01E20C00C
+1545, // imageAtomicXor_00u00C00C
+1547, // imageAtomicXor_01A00C00C
+1549, // imageAtomicXor_01G00C00C
+1551, // imageAtomicXor_00r20C00C
+1553, // imageAtomicXor_00x20C00C
+1555, // imageAtomicXor_01D20C00C
+1557, // imageAtomicXor_00t20C00C
+1559, // imageAtomicXor_00z20C00C
+1561, // imageAtomicXor_01F20C00C
+1563, // imageAtomicExchange_00p10C00D
+1565, // imageAtomicExchange_00v10C00D
+1567, // imageAtomicExchange_01B10C00D
+1569, // imageAtomicExchange_00q20C00D
+1571, // imageAtomicExchange_00w20C00D
+1573, // imageAtomicExchange_01C20C00D
+1575, // imageAtomicExchange_00s20C00D
+1577, // imageAtomicExchange_00y20C00D
+1579, // imageAtomicExchange_01E20C00D
+1581, // imageAtomicExchange_00u00C00D
+1583, // imageAtomicExchange_01A00C00D
+1585, // imageAtomicExchange_01G00C00D
+1587, // imageAtomicExchange_00r20C00D
+1589, // imageAtomicExchange_00x20C00D
+1591, // imageAtomicExchange_01D20C00D
+1593, // imageAtomicExchange_00t20C00D
+1595, // imageAtomicExchange_00z20C00D
+1597, // imageAtomicExchange_01F20C00D
+1599, // imageAtomicExchange_00p10C00C
+1601, // imageAtomicExchange_00v10C00C
+1603, // imageAtomicExchange_01B10C00C
+1605, // imageAtomicExchange_00q20C00C
+1607, // imageAtomicExchange_00w20C00C
+1609, // imageAtomicExchange_01C20C00C
+1611, // imageAtomicExchange_00s20C00C
+1613, // imageAtomicExchange_00y20C00C
+1615, // imageAtomicExchange_01E20C00C
+1617, // imageAtomicExchange_00u00C00C
+1619, // imageAtomicExchange_01A00C00C
+1621, // imageAtomicExchange_01G00C00C
+1623, // imageAtomicExchange_00r20C00C
+1625, // imageAtomicExchange_00x20C00C
+1627, // imageAtomicExchange_01D20C00C
+1629, // imageAtomicExchange_00t20C00C
+1631, // imageAtomicExchange_00z20C00C
+1633, // imageAtomicExchange_01F20C00C
+1635, // imageAtomicExchange_00p10C00B
+1637, // imageAtomicExchange_00v10C00B
+1639, // imageAtomicExchange_01B10C00B
+1641, // imageAtomicExchange_00q20C00B
+1643, // imageAtomicExchange_00w20C00B
+1645, // imageAtomicExchange_01C20C00B
+1647, // imageAtomicExchange_00s20C00B
+1649, // imageAtomicExchange_00y20C00B
+1651, // imageAtomicExchange_01E20C00B
+1653, // imageAtomicExchange_00u00C00B
+1655, // imageAtomicExchange_01A00C00B
+1657, // imageAtomicExchange_01G00C00B
+1659, // imageAtomicExchange_00r20C00B
+1661, // imageAtomicExchange_00x20C00B
+1663, // imageAtomicExchange_01D20C00B
+1665, // imageAtomicExchange_00t20C00B
+1667, // imageAtomicExchange_00z20C00B
+1669, // imageAtomicExchange_01F20C00B
+1671, // imageAtomicCompSwap_00p10C00D00D
+1673, // imageAtomicCompSwap_00v10C00D00D
+1675, // imageAtomicCompSwap_01B10C00D00D
+1677, // imageAtomicCompSwap_00q20C00D00D
+1679, // imageAtomicCompSwap_00w20C00D00D
+1681, // imageAtomicCompSwap_01C20C00D00D
+1683, // imageAtomicCompSwap_00s20C00D00D
+1685, // imageAtomicCompSwap_00y20C00D00D
+1687, // imageAtomicCompSwap_01E20C00D00D
+1689, // imageAtomicCompSwap_00u00C00D00D
+1691, // imageAtomicCompSwap_01A00C00D00D
+1693, // imageAtomicCompSwap_01G00C00D00D
+1695, // imageAtomicCompSwap_00r20C00D00D
+1697, // imageAtomicCompSwap_00x20C00D00D
+1699, // imageAtomicCompSwap_01D20C00D00D
+1701, // imageAtomicCompSwap_00t20C00D00D
+1703, // imageAtomicCompSwap_00z20C00D00D
+1705, // imageAtomicCompSwap_01F20C00D00D
+1707, // imageAtomicCompSwap_00p10C00C00C
+1709, // imageAtomicCompSwap_00v10C00C00C
+1711, // imageAtomicCompSwap_01B10C00C00C
+1713, // imageAtomicCompSwap_00q20C00C00C
+1715, // imageAtomicCompSwap_00w20C00C00C
+1717, // imageAtomicCompSwap_01C20C00C00C
+1719, // imageAtomicCompSwap_00s20C00C00C
+1721, // imageAtomicCompSwap_00y20C00C00C
+1723, // imageAtomicCompSwap_01E20C00C00C
+1725, // imageAtomicCompSwap_00u00C00C00C
+1727, // imageAtomicCompSwap_01A00C00C00C
+1729, // imageAtomicCompSwap_01G00C00C00C
+1731, // imageAtomicCompSwap_00r20C00C00C
+1733, // imageAtomicCompSwap_00x20C00C00C
+1735, // imageAtomicCompSwap_01D20C00C00C
+1737, // imageAtomicCompSwap_00t20C00C00C
+1739, // imageAtomicCompSwap_00z20C00C00C
+1741, // imageAtomicCompSwap_01F20C00C00C
+1743, // pixelLocalLoadANGLE_01H
+1744, // pixelLocalLoadANGLE_01I
+1745, // pixelLocalLoadANGLE_01J
+1746, // pixelLocalStoreANGLE_01H30B
+1747, // pixelLocalStoreANGLE_01I30C
+1748, // pixelLocalStoreANGLE_01J30D
+1749, // beginInvocationInterlockNV_
+1750, // endInvocationInterlockNV_
+1751, // beginFragmentShaderOrderingINTEL_
+1752, // beginInvocationInterlockARB_
+1753, // endInvocationInterlockARB_
+1754, // memoryBarrier_
+1755, // memoryBarrierAtomicCounter_
+1756, // memoryBarrierBuffer_
+1757, // memoryBarrierImage_
+1758, // barrier_
+1762, // memoryBarrierShared_
+1763, // groupMemoryBarrier_
+1764, // EmitVertex_
+1767, // EndPrimitive_
+1770, // subpassLoad_01K
+1771, // subpassLoad_01L
+1772, // subpassLoad_01M
+1773, // numSamples_
+1774, // samplePosition_00D
+1775, // interpolateAtCenter_00B
+1776, // interpolateAtCenter_10B
+1777, // interpolateAtCenter_20B
+1778, // interpolateAtCenter_30B
+1779, // loopForwardProgress_
+1780, // saturate_00B
+1781, // saturate_10B
+1782, // saturate_20B
+1783, // saturate_30B
+1784, // gl_DepthRangeParameters
+1785, // gl_DepthRange
+1786, // gl_NumSamples
+1788, // gl_MaxVertexAttribs
+1789, // gl_MaxVertexUniformVectors
+1790, // gl_MaxVertexTextureImageUnits
+1791, // gl_MaxCombinedTextureImageUnits
+1792, // gl_MaxTextureImageUnits
+1793, // gl_MaxFragmentUniformVectors
+1794, // gl_MaxVaryingVectors
+1795, // gl_MaxDrawBuffers
+1796, // gl_MaxDualSourceDrawBuffersEXT
+1797, // gl_MaxVertexOutputVectors
+1798, // gl_MaxFragmentInputVectors
+1799, // gl_MinProgramTexelOffset
+1800, // gl_MaxProgramTexelOffset
+1801, // gl_MaxImageUnits
+1802, // gl_MaxVertexImageUniforms
+1803, // gl_MaxFragmentImageUniforms
+1804, // gl_MaxComputeImageUniforms
+1805, // gl_MaxCombinedImageUniforms
+1806, // gl_MaxCombinedShaderOutputResources
+1807, // gl_MaxComputeWorkGroupCount
+1808, // gl_MaxComputeWorkGroupSize
+1809, // gl_MaxComputeUniformComponents
+1810, // gl_MaxComputeTextureImageUnits
+1811, // gl_MaxComputeAtomicCounters
+1812, // gl_MaxComputeAtomicCounterBuffers
+1813, // gl_MaxVertexAtomicCounters
+1814, // gl_MaxFragmentAtomicCounters
+1815, // gl_MaxCombinedAtomicCounters
+1816, // gl_MaxAtomicCounterBindings
+1817, // gl_MaxVertexAtomicCounterBuffers
+1818, // gl_MaxFragmentAtomicCounterBuffers
+1819, // gl_MaxCombinedAtomicCounterBuffers
+1820, // gl_MaxAtomicCounterBufferSize
+1821, // gl_ShadingRateFlag2VerticalPixelsEXT
+1822, // gl_ShadingRateFlag4VerticalPixelsEXT
+1823, // gl_ShadingRateFlag2HorizontalPixelsEXT
+1824, // gl_ShadingRateFlag4HorizontalPixelsEXT
+1825, // gl_MaxGeometryInputComponents
+1828, // gl_MaxGeometryOutputComponents
+1831, // gl_MaxGeometryImageUniforms
+1834, // gl_MaxGeometryTextureImageUnits
+1837, // gl_MaxGeometryOutputVertices
+1840, // gl_MaxGeometryTotalOutputComponents
+1843, // gl_MaxGeometryUniformComponents
+1846, // gl_MaxGeometryAtomicCounters
+1849, // gl_MaxGeometryAtomicCounterBuffers
+1852, // gl_MaxTessControlInputComponents
+1855, // gl_MaxTessControlOutputComponents
+1858, // gl_MaxTessControlTextureImageUnits
+1861, // gl_MaxTessControlUniformComponents
+1864, // gl_MaxTessControlTotalOutputComponents
+1867, // gl_MaxTessControlImageUniforms
+1870, // gl_MaxTessControlAtomicCounters
+1873, // gl_MaxTessControlAtomicCounterBuffers
+1876, // gl_MaxTessPatchComponents
+1879, // gl_MaxPatchVertices
+1882, // gl_MaxTessGenLevel
+1885, // gl_MaxTessEvaluationInputComponents
+1888, // gl_MaxTessEvaluationOutputComponents
+1891, // gl_MaxTessEvaluationTextureImageUnits
+1894, // gl_MaxTessEvaluationUniformComponents
+1897, // gl_MaxTessEvaluationImageUniforms
+1900, // gl_MaxTessEvaluationAtomicCounters
+1903, // gl_MaxTessEvaluationAtomicCounterBuffers
+1906, // gl_MaxSamples
+1908, // gl_MaxClipDistances
+1911, // gl_MaxCullDistances
+1913, // gl_MaxCombinedClipAndCullDistances
+1915, // gl_FragCoord
+1917, // gl_FrontFacing
+1918, // gl_PointCoord
+1919, // gl_FragColor
+1920, // gl_FragData
+1921, // gl_FragDepth
+1922, // gl_HelperInvocation
+1923, // gl_SecondaryFragColorEXT
+1924, // gl_SecondaryFragDataEXT
+1925, // gl_FragDepthEXT
+1926, // gl_LastFragData
+1928, // gl_LastFragColorARM
+1929, // gl_LastFragDepthARM
+1930, // gl_LastFragStencilARM
+1931, // gl_PrimitiveID
+1943, // gl_Layer
+1950, // gl_ShadingRateEXT
+1951, // gl_SampleID
+1953, // gl_SamplePosition
+1955, // gl_SampleMaskIn
+1957, // gl_SampleMask
+1959, // gl_Position
+1966, // gl_PointSize
+1968, // gl_InstanceID
+1969, // gl_InstanceIndex
+1970, // gl_VertexID
+1971, // gl_VertexIndex
+1972, // gl_DrawID
+1973, // gl_BaseVertex
+1974, // gl_BaseInstance
+1975, // gl_ClipDistance
+1978, // gl_PrimitiveShadingRateEXT
+1980, // gl_NumWorkGroups
+1981, // gl_WorkGroupSize
+1982, // gl_WorkGroupID
+1983, // gl_LocalInvocationID
+1984, // gl_GlobalInvocationID
+1985, // gl_LocalInvocationIndex
+1986, // gl_PrimitiveIDIn
+1989, // gl_InvocationID
+1995, // gl_PerVertex
+2004, // gl_in
+2013, // gl_PatchVerticesIn
+2019, // gl_TessLevelOuter
+2025, // gl_TessLevelInner
+2031, // gl_out
+2034, // gl_BoundingBox
+2037, // gl_BoundingBoxEXT
+2040, // gl_BoundingBoxOES
+2043, // gl_TessCoord
+2044, // gl_ViewID_OVR
+2045, // gl_CullDistance
 };
 
 using Ext = TExtension;
@@ -7981,7 +8014,7 @@ namespace
 {
 uint16_t GetNextRuleIndex(uint32_t nameHash)
 {
-    if (nameHash == 1426 - 1)
+    if (nameHash == 1434 - 1)
         return ArraySize(BuiltInArray::kRules);
     return BuiltInArray::kMangledOffsets[nameHash + 1];
 }
@@ -7994,7 +8027,7 @@ const TSymbol *TSymbolTable::findBuiltIn(const ImmutableString &name,
         return nullptr;
 
     uint32_t nameHash = name.mangledNameHash();
-    if (nameHash >= 1426)
+    if (nameHash >= 1434)
         return nullptr;
 
     const char *actualName = BuiltInArray::kMangledNames[nameHash];
