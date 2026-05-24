@@ -15,8 +15,8 @@
 #include "common/WorkerThread.h"
 #include "image_util/AstcDecompressor.h"
 
-#include <ankerl/stl.h>
-#include <ankerl/unordered_dense.h>
+#include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
 
 namespace angle
 {
@@ -138,7 +138,7 @@ class AstcDecompressorContextCache
         }
     };
 
-    ankerl::unordered_dense::map<Key, Value, KeyHash> mContexts;
+    absl::flat_hash_map<Key, Value, KeyHash> mContexts;
 };
 
 struct DecompressTask : public Closure
