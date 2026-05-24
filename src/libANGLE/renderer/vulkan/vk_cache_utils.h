@@ -2927,7 +2927,7 @@ class SamplerYcbcrConversionCache final
 
   private:
     using SamplerYcbcrConversionMap =
-        ankerl::unordered_dense::map<vk::YcbcrConversionDesc, vk::SamplerYcbcrConversion>;
+         absl::flat_hash_map<vk::YcbcrConversionDesc, vk::SamplerYcbcrConversion>;
     SamplerYcbcrConversionMap mExternalFormatPayload;
     SamplerYcbcrConversionMap mVkFormatPayload;
 };
