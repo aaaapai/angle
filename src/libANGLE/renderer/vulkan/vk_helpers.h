@@ -24,8 +24,8 @@
 
 #include <functional>
 
-#include <ankerl/stl.h>
-#include <ankerl/unordered_dense.h>
+#include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
 
 namespace gl
 {
@@ -479,7 +479,7 @@ class MetaDescriptorPool final : angle::NonCopyable
     }
 
   private:
-    ankerl::unordered_dense::map<DescriptorSetLayoutDesc, DynamicDescriptorPoolPointer> mPayload;
+    absl::flat_hash_map<DescriptorSetLayoutDesc, DynamicDescriptorPoolPointer> mPayload;
 };
 
 template <typename Pool>
