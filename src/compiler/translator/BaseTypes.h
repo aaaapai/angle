@@ -1613,6 +1613,20 @@ inline const char *getImageInternalFormatString(TLayoutImageInternalFormat iifq)
             return "rg16f";
         case EiifRG32UI:
             return "rg32ui";
+        case EiifR11FG11FB10F:
+            return "r11fg11fb10f";
+        case EiifR16F:
+            return "r16f";
+        case EiifR16UI:
+            return "r16ui";
+        case EiifRGBA16:
+            return "rgba16";
+        case EiifRG8UI:
+            return "rg8ui";
+        case EiifRG16UI:
+            return "rg16ui";
+        case EiifRGBA16_SNORM:
+            return "rgba16_snorm";
         case EiifRGBA8:
             return "rgba8";
         case EiifRGBA8_SNORM:
