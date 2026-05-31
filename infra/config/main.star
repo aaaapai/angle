@@ -336,14 +336,14 @@ consoles.list_view(
     title = "ANGLE Try Builders",
 )
 
-luci.list_view_entry(
-    list_view = "try",
-    builder = "try/presubmit",
-)
-
 # Run other non-builder setup.
+exec("@chromium-targets//mixins.star")
+exec("//binaries.star")
+exec("//bundles.star")
 exec("//gn_args.star")
+exec("//mixins.star")
 exec("//recipes.star")
+exec("//tests.star")
 
 # Handle any other builders defined in other files.
 exec("//angle_v2_ci.star")
