@@ -532,7 +532,7 @@ const TSymbol *SymbolRule::get(ShShaderSpec shaderSpec,
                                const ShBuiltInResources &resources,
                                const TSymbolTableBase &symbolTable) const
 {
-    if (mVersion == kESSL1Only && shaderVersion != static_cast<int>(kESSL1Only))
+    /*if (mVersion == kESSL1Only && shaderVersion != static_cast<int>(kESSL1Only))
         return nullptr;
 
     if (mVersion > shaderVersion)
@@ -542,7 +542,7 @@ const TSymbol *SymbolRule::get(ShShaderSpec shaderSpec,
         return nullptr;
 
     if (mExtensionIndex != 0 && !CheckExtension(mExtensionIndex, resources))
-        return nullptr;
+        return nullptr;*/
 
     return mIsVar > 0 ? symbolTable.*(mSymbolOrVar.var) : mSymbolOrVar.symbol;
 }
@@ -578,7 +578,7 @@ bool UnmangledEntry::matches(const ImmutableString &name,
     if (name != mName)
         return false;
 
-    if (!CheckShaderType(static_cast<Shader>(mShaderType), shaderType))
+    /*if (!CheckShaderType(static_cast<Shader>(mShaderType), shaderType))
         return false;
 
     if (mESSLVersion == kESSL1Only && shaderVersion != static_cast<int>(kESSL1Only))
@@ -601,6 +601,8 @@ bool UnmangledEntry::matches(const ImmutableString &name,
     if (!anyExtension)
         return true;
 
-    return anyExtensionEnabled;
+    return anyExtensionEnabled;*/
+
+    return true;
 }
 }  // namespace sh
