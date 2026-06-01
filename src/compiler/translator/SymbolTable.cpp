@@ -464,13 +464,20 @@ void TSymbolTable::initializeBuiltIns(sh::GLenum type,
     // We need just one precision stack level for predefined precisions.
     mPrecisionStack.emplace_back(new PrecisionStackLevel);
 
+    if (std::getenv("ANGLE_DEFAULT_UNDEFINED")) {
     setDefaultPrecision(EbtInt, EbpUndefined);
     setDefaultPrecision(EbtFloat, EbpUndefined);
+    } else {
 
     switch (type)
     {
         case GL_FRAGMENT_SHADER:
+            if (!std::getenv("ANGLE_DEFAULT_EbpHIGH")) {
             setDefaultPrecision(EbtInt, EbpMedium);
+            } else {
+            setDefaultPrecision(EbtInt, EbpHigh);
+            setDefaultPrecision(EbtFloat, EbpHigh);
+            }
             break;
         case GL_VERTEX_SHADER:
         case GL_COMPUTE_SHADER:
@@ -482,6 +489,8 @@ void TSymbolTable::initializeBuiltIns(sh::GLenum type,
             break;
         default:
             UNREACHABLE();
+    }
+
     }
 
     // Set defaults for sampler types that have default precision, even those that are
