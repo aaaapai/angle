@@ -2590,6 +2590,14 @@ void TParseContext::nonEmptyDeclarationErrorCheck(const TPublicType &publicType,
                 break;
             case EiifRG16F:
                 break;
+            case EiifR11FG11FB10F:
+            case EiifR16F:
+            case EiifRGBA16:
+            case EiifRG8UI:
+            case EiifRG16UI:
+            case EiifRGBA16_SNORM:
+            case EiifR16UI:
+                break;
             case EiifUnspecified:
                 warning(identifierLocation, "layout qualifier", "No image internal format specified");
                 break;
@@ -2627,6 +2635,14 @@ void TParseContext::nonEmptyDeclarationErrorCheck(const TPublicType &publicType,
         }
         switch (layoutQualifier.imageInternalFormat)
         {
+            case EiifR11FG11FB10F:
+            case EiifR16F:
+            case EiifRGBA16:
+            case EiifRG8UI:
+            case EiifRG16UI:
+            case EiifRGBA16_SNORM:
+            case EiifR16UI:
+                break;
             case EiifRG16F:
             case EiifRG32UI:
             case EiifR32F:
@@ -7541,6 +7557,34 @@ TLayoutQualifier TParseContext::parseLayoutQualifier(const ImmutableString &qual
     else if (qualifierType == "rg16f")
     {
         qualifier.imageInternalFormat = EiifRG16F;
+    }
+    else if (qualifierType == "r11fg11fb10f")
+    {
+        qualifier.imageInternalFormat = EiifR11FG11FB10F;
+    }
+    else if (qualifierType == "r16f")
+    {
+        qualifier.imageInternalFormat = EiifR16F;
+    }
+    else if (qualifierType == "rgba16")
+    {
+        qualifier.imageInternalFormat = EiifRGBA16;
+    }
+    else if (qualifierType == "rg8ui")
+    {
+        qualifier.imageInternalFormat = EiifRG8UI;
+    }
+    else if (qualifierType == "rg16ui")
+    {
+        qualifier.imageInternalFormat = EiifRG16UI;
+    }
+    else if (qualifierType == "rgba16_snorm")
+    {
+        qualifier.imageInternalFormat = EiifRGBA16_SNORM;
+    }
+    else if (qualifierType == "r16ui")
+    {
+        qualifier.imageInternalFormat = EiifR16UI;
     }
     else if (mShaderType == GL_GEOMETRY_SHADER_EXT &&
              (mShaderVersion >= 320 ||
