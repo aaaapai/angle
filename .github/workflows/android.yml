@@ -19,11 +19,6 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Setup Python
-        uses: actions/setup-python@v6.2.0
-        with:
-           python-version: '3'
-
       - name: Cache depot_tools
         id: cache-depot-tools
         uses: actions/cache@main
@@ -41,6 +36,7 @@ jobs:
         if: steps.cache-depot-tools.outputs.cache-hit != 'true'
         shell: bash
         run: |
+          sudo rm -rf /usr/local/lib/android/sdk
           git clone --depth 1 https://chromium.googlesource.com/chromium/tools/depot_tools.git
 
       - name: Run gclient sync
