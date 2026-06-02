@@ -7,7 +7,7 @@ jobs:
   build:
     strategy:
       matrix:
-        arch: ["x86_64", "arm32", "arm64", "arm64-fastdebug"] # "x86_64", "arm32",
+        arch: [ "arm64", "arm64-fastdebug"] # "x86_64", "arm32",
       fail-fast: false
 
     name: "Build for Android ${{matrix.arch}}"
@@ -25,7 +25,6 @@ jobs:
         with:
           path: |
                 depot_tools
-                .gclient
                 third_party/llvm-build
                 tools/flex-bison
           key: depot-tools-${{ runner.os }}-${{ hashFiles('.gclient') }}
@@ -36,7 +35,7 @@ jobs:
         if: steps.cache-depot-tools.outputs.cache-hit != 'true'
         shell: bash
         run: |
-          sudo rm -rf /usr/local/lib/android/sdk
+          rm -rf /usr/local/lib/android/sdk
           git clone --depth 1 https://chromium.googlesource.com/chromium/tools/depot_tools.git
 
       - name: Run gclient sync
@@ -45,7 +44,7 @@ jobs:
           export PATH=`pwd`/depot_tools:$PATH
 
           if [ ! -f .gclient ]; then
-            vpython3 scripts/bootstrap.py
+            python3 scripts/bootstrap.py
           fi
 
           COMMIT_COUNT=$(git ls-remote origin | wc -l)
@@ -71,6 +70,7 @@ jobs:
           export PATH=`pwd`/depot_tools:$PATH
           export NDK_CCACHE="ccache"
           echo $PATH
+          cp .gn .gn.bak 2>/dev/null; if grep -q 'expand_directory_allowlist' .gn 2>/dev/null; then sed -i 's|]|,\n  "//build/modules/BUILD.gn"\n]|' .gn; else echo 'expand_directory_allowlist = [ "//build/modules/BUILD.gn" ]' >> .gn; fi
           gn gen out/Android-${{matrix.arch}} --threads=$(nproc)
           gn args out/Android-${{ matrix.arch }} --list --short
           autoninja -C out/Android-${{matrix.arch}} -j $(nproc)
