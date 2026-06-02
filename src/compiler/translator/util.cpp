@@ -20,6 +20,8 @@
 #include "compiler/translator/ImmutableStringBuilder.h"
 #include "compiler/translator/Symbol.h"
 
+#include "../../libANGLE/renderer/gl/functionsgl_enums.h"
+
 bool atoi_clamp(const char *str, unsigned int *value)
 {
     bool success = angle::pp::numeric_lex_int(str, value);
