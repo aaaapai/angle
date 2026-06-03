@@ -1764,6 +1764,7 @@ pub enum ImageInternalFormat {
     R32F,
     RG32UI,
     RG16F,
+    RG16UI,
     RGBA32UI,
     RGBA16UI,
     RGBA8UI,
@@ -1773,6 +1774,10 @@ pub enum ImageInternalFormat {
     RGBA8I,
     R32I,
     RGBA8,
+    R16F,
+    RGBA16,
+    RGBA16SNORM,
+    R11FG11FB10F,
     RGBA8SNORM,
 }
 
