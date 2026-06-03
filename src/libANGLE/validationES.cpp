@@ -1317,10 +1317,10 @@ bool ValidCompressedSubImageSize(const Context *context,
     }
 
     // Negative dimensions already checked in ValidImageSizeParameters called by
-    // ValidateES2TexImageParametersBase or ValidateES3TexImageParametersBase.
+    // ValidateES2TexImageParameters or ValidateES3TexImageParametersBase.
     ASSERT(width >= 0 && height >= 0 && depth >= 0);
 
-    // Negative and overflowed offsets already checked in ValidateES2TexImageParametersBase or
+    // Negative and overflowed offsets already checked in ValidateES2TexImageParameters or
     // ValidateES3TexImageParametersBase.
     ASSERT(xoffset >= 0 && yoffset >= 0 && zoffset >= 0);
     ASSERT(std::numeric_limits<GLsizei>::max() - xoffset >= width &&
@@ -6860,14 +6860,6 @@ bool ValidateGetTexParameterBase(const Context *context,
             }
             break;
 
-        case GL_TEXTURE_NATIVE_ID_ANGLE:
-            if (!context->getExtensions().textureExternalUpdateANGLE)
-            {
-                ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kExtensionNotEnabled);
-                return false;
-            }
-            break;
-
         case GL_IMPLEMENTATION_COLOR_READ_FORMAT:
         case GL_IMPLEMENTATION_COLOR_READ_TYPE:
             if (!context->getExtensions().getImageANGLE)
@@ -8352,66 +8344,6 @@ bool ValidateLoseContextCHROMIUM(const Context *context,
         default:
             ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidResetStatus);
             return false;
-    }
-
-    return true;
-}
-
-bool ValidateTexImage2DExternalANGLE(const Context *context,
-                                     angle::EntryPoint entryPoint,
-                                     TextureTarget target,
-                                     GLint level,
-                                     GLint internalformat,
-                                     GLsizei width,
-                                     GLsizei height,
-                                     GLint border,
-                                     GLenum format,
-                                     GLenum type)
-{
-    if (!ValidTexture2DDestinationTarget(context, target) &&
-        !ValidTextureExternalTarget(context, target))
-    {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidTextureTarget);
-        return false;
-    }
-
-    if (context->getClientVersion() < ES_3_0)
-    {
-        if (!ValidateES2TexImageParametersBase(context, entryPoint, target, level, internalformat,
-                                               false, false, 0, 0, width, height, border, format,
-                                               type, nullptr, nullptr))
-        {
-            return false;
-        }
-    }
-    else
-    {
-        if (!ValidateES3TexImageParametersBase(context, entryPoint, target, level, internalformat,
-                                               false, false, 0, 0, 0, width, height, 1, border,
-                                               format, type, nullptr, nullptr))
-        {
-            return false;
-        }
-    }
-
-    return true;
-}
-
-bool ValidateInvalidateTextureANGLE(const Context *context,
-                                    angle::EntryPoint entryPoint,
-                                    TextureType target)
-{
-    if (!ValidTextureTarget(context, target) && !ValidTextureExternalTarget(context, target))
-    {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidTextureTarget);
-        return false;
-    }
-
-    Texture *texture = context->getTextureByType(target);
-    if (texture != nullptr && context->getState().isTextureBoundToActivePLS(texture->id()))
-    {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kActivePLSBackingTexture);
-        return false;
     }
 
     return true;
