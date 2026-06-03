@@ -989,6 +989,8 @@ impl From<ImageInternalFormat> for ffi::ASTLayoutImageInternalFormat {
             ImageInternalFormat::RGBA16UI => ffi::ASTLayoutImageInternalFormat::RGBA16UI,
             ImageInternalFormat::RGBA8UI => ffi::ASTLayoutImageInternalFormat::RGBA8UI,
             ImageInternalFormat::R32UI => ffi::ASTLayoutImageInternalFormat::R32UI,
+            ImageInternalFormat::R16F => ffi::ASTLayoutImageInternalFormat::R16F,
+            ImageInternalFormat::RG8UI => ffi::ASTLayoutImageInternalFormat::RG8UI,
             ImageInternalFormat::R11FG11FB10F => ffi::ASTLayoutImageInternalFormat::R11FG11FB10F,
             ImageInternalFormat::RGBA16SNORM => ffi::ASTLayoutImageInternalFormat::RGBA16SNORM,
             ImageInternalFormat::R16UI => ffi::ASTLayoutImageInternalFormat::R16UI,
