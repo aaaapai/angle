@@ -3020,6 +3020,8 @@ pub mod ffi {
         RGBA8I,
         R32I,
         RGBA8,
+        R16F,
+        RG8UI,
         RGBA8SNORM,
     }
 
