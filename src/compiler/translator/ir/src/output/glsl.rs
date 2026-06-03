@@ -191,6 +191,8 @@ impl Generator {
             ImageInternalFormat::R32I => "r32i",
             ImageInternalFormat::RGBA8 => "rgba8",
             ImageInternalFormat::RGBA16 => "rgba16",
+            ImageInternalFormat::RG8UI => "rg8ui",
+            ImageInternalFormat::R16F => "r16f",
             ImageInternalFormat::R11FG11FB10F => "r11fg11fb10f",
             ImageInternalFormat::RGBA16SNORM => "rgba16snorm",
             ImageInternalFormat::RGBA8SNORM => "rgba8snorm",
