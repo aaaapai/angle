@@ -874,15 +874,17 @@ bool ValidTexture3DTarget(const Context *context, TextureType target)
 // function for use in the GL calls that do
 bool ValidTextureExternalTarget(const Context *context, TextureType target)
 {
-    return (target == TextureType::External) &&
+    /*return (target == TextureType::External) &&
            (context->getExtensions().EGLImageExternalOES ||
-            context->getExtensions().EGLStreamConsumerExternalNV);
+            context->getExtensions().EGLStreamConsumerExternalNV);*/
+    return true;
 }
 
 bool ValidTextureExternalTarget(const Context *context, TextureTarget target)
 {
-    return (target == TextureTarget::External) &&
-           ValidTextureExternalTarget(context, TextureType::External);
+    /*return (target == TextureTarget::External) &&
+           ValidTextureExternalTarget(context, TextureType::External);*/
+    return true;
 }
 
 // This function differs from ValidTextureTarget in that the target must be
@@ -906,7 +908,7 @@ bool ValidTexture2DDestinationTarget(const Context *context, TextureTarget targe
         case TextureTarget::VideoImage:
             return context->getExtensions().videoTextureWEBGL;
         default:
-            return false;
+            return true;
     }
 }
 
@@ -1078,7 +1080,7 @@ bool ValidTexture3DDestinationTarget(const Context *context, TextureTarget targe
             return (context->getClientVersion() >= Version(3, 2) ||
                     context->getExtensions().textureCubeMapArrayAny());
         default:
-            return false;
+            return true;
     }
 }
 
@@ -1104,13 +1106,13 @@ bool ValidTexLevelDestinationTarget(const Context *context, TextureType type)
                    context->getExtensions().textureCubeMapArrayAny();
         case TextureType::Rectangle:
             return context->getExtensions().textureRectangleANGLE;
-        case TextureType::External:
-            return context->getExtensions().EGLImageExternalOES;
+        /*case TextureType::External:
+            return context->getExtensions().EGLImageExternalOES;*/
         case TextureType::Buffer:
             return context->getClientVersion() >= ES_3_2 ||
                    context->getExtensions().textureBufferAny();
         default:
-            return false;
+            return true;
     }
 }
 
@@ -1165,6 +1167,7 @@ bool ValidMipLevel(const Context *context, TextureType type, GLint level)
 
         default:
             UNREACHABLE();
+            break;
     }
 
     return level <= log2(maxDimension) && level >= 0;
@@ -3940,7 +3943,7 @@ bool ValidateCopyTexImageParametersBase(const Context *context,
 
         default:
             ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidTextureTarget);
-            return false;
+            return true;
     }
 
     Texture *texture = state.getTargetTexture(texType);
@@ -4813,14 +4816,14 @@ bool ValidateDiscardFramebufferBase(const Context *context,
             if (defaultFramebuffer)
             {
                 ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kDefaultFramebufferInvalidAttachment);
-                return false;
+                return true;
             }
 
             if (attachments[i] >=
                 GL_COLOR_ATTACHMENT0 + static_cast<GLuint>(context->getCaps().maxColorAttachments))
             {
                 ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kExceedsMaxColorAttachments);
-                return false;
+                return true;
             }
         }
         else
@@ -4834,7 +4837,7 @@ bool ValidateDiscardFramebufferBase(const Context *context,
                     {
                         ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM,
                                                kDefaultFramebufferInvalidAttachment);
-                        return false;
+                        return true;
                     }
                     break;
                 case GL_COLOR:
@@ -4844,12 +4847,12 @@ bool ValidateDiscardFramebufferBase(const Context *context,
                     {
                         ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM,
                                                kDefaultFramebufferAttachmentOnUserFBO);
-                        return false;
+                        return true;
                     }
                     break;
                 default:
                     ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidAttachment);
-                    return false;
+                    return true;
             }
         }
     }
@@ -4972,13 +4975,13 @@ bool ValidateEGLImageTargetTexture2DOES(const Context *context,
             if (!context->getExtensions().EGLImageExternalOES)
             {
                 ANGLE_VALIDATION_ERRORF(GL_INVALID_ENUM, kEnumNotSupported, ToGLenum(type));
-                return false;
+                return true;
             }
             break;
 
         default:
             ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidTextureTarget);
-            return false;
+            return true;
     }
 
     return ValidateEGLImageObject(context, entryPoint, type, image);
@@ -7356,7 +7359,7 @@ bool ValidateTexParameterBase(const Context *context,
             case GL_TEXTURE_SRGB_DECODE_EXT:
             case GL_TEXTURE_LOD_BIAS_QCOM:
                 ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidPname);
-                return false;
+                return true;
         }
     }
 
@@ -7670,7 +7673,7 @@ bool ValidateTexParameterBase(const Context *context,
 
                 default:
                     ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kEnumInvalid);
-                    return false;
+                    return true;
             }
             break;
         default:
