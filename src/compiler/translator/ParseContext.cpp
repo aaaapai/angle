@@ -620,35 +620,35 @@ bool TParseContext::checkShaderVersion(const TSourceLoc &loc)
         std::stringstream reasonStream = sh::InitializeStream<std::stringstream>();
         reasonStream << "unsupported shader version ";
         reasonStream << mShaderVersion;
-        fatal(loc, reasonStream.str().c_str());
-        return false;
+        warning(loc, reasonStream.str().c_str());
+        return true;
     }
 
     switch (mShaderType)
     {
         case GL_COMPUTE_SHADER:
-            if (mShaderVersion < 310)
+            /*if (mShaderVersion < 310)
             {
                 fatal(loc, "Compute shader is not supported in this shader version.");
                 return false;
-            }
+            }*/
             break;
 
         case GL_GEOMETRY_SHADER_EXT:
-            if (mShaderVersion < 310)
+            /*if (mShaderVersion < 310)
             {
                 fatal(loc, "Geometry shader is not supported in this shader version.");
                 return false;
-            }
+            }*/
             break;
 
         case GL_TESS_CONTROL_SHADER_EXT:
         case GL_TESS_EVALUATION_SHADER_EXT:
-            if (mShaderVersion < 310)
+            /*if (mShaderVersion < 310)
             {
                 fatal(loc, "Tessellation shaders are not supported in this shader version.");
                 return false;
-            }
+            }*/
             break;
 
         default:
@@ -665,12 +665,12 @@ bool TParseContext::checkCanUseShaderType(const TSourceLoc &loc)
         case GL_GEOMETRY_SHADER_EXT:
             if (mShaderVersion == 310)
             {
-                if (!checkCanUseOneOfExtensions(
+                /*if (!checkCanUseOneOfExtensions(
                         loc, std::array<TExtension, 2u>{{TExtension::EXT_geometry_shader,
                                                          TExtension::OES_geometry_shader}}))
                 {
                     return false;
-                }
+                }*/
             }
             break;
 
@@ -678,12 +678,12 @@ bool TParseContext::checkCanUseShaderType(const TSourceLoc &loc)
         case GL_TESS_EVALUATION_SHADER_EXT:
             if (mShaderVersion == 310)
             {
-                if (!checkCanUseOneOfExtensions(
+                /*if (!checkCanUseOneOfExtensions(
                         loc, std::array<TExtension, 2u>{{TExtension::EXT_tessellation_shader,
                                                          TExtension::OES_tessellation_shader}}))
                 {
                     return false;
-                }
+                }*/
             }
             break;
 
