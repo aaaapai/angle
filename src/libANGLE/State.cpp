@@ -485,10 +485,7 @@ void PrivateState::initialize(Context *context)
     mNoUnclampedBlendColor = context->getLimitations().noUnclampedBlendColor;
 
     // GLES1 emulation: Initialize state for GLES1 if version applies
-    if (context->getClientVersion() < Version(2, 0))
-    {
-        mGLES1State.initialize(context, this);
-    }
+    mGLES1State.initialize(context, this);
 }
 
 void PrivateState::initializeForCapture(const Context *context)
@@ -1508,12 +1505,6 @@ void PrivateState::setEnableFeature(GLenum feature, bool enabled)
             setDither(enabled);
             return;
         case GL_COLOR_LOGIC_OP:
-            if (mClientVersion < ES_2_0)
-            {
-                // Handle logicOp in GLES1 through the GLES1 state management and emulation.
-                // Otherwise this state could be set as part of ANGLE_logic_op.
-                break;
-            }
             setLogicOpEnabled(enabled);
             return;
         case GL_PRIMITIVE_RESTART_FIXED_INDEX:
@@ -1567,7 +1558,7 @@ void PrivateState::setEnableFeature(GLenum feature, bool enabled)
             break;
     }
 
-    ASSERT(mClientVersion < ES_2_0);
+    //ASSERT(mClientVersion < ES_2_0);
 
     // GLES1 emulation. Need to separate from main switch due to conflict enum between
     // GL_CLIP_DISTANCE0_EXT & GL_CLIP_PLANE0
@@ -1628,7 +1619,8 @@ void PrivateState::setEnableFeature(GLenum feature, bool enabled)
             mGLES1State.setLogicOpEnabled(enabled);
             break;
         default:
-            UNREACHABLE();
+            //UNREACHABLE();
+            break;
     }
 }
 
@@ -1640,7 +1632,8 @@ void PrivateState::setEnableFeatureIndexed(GLenum feature, bool enabled, GLuint 
             setBlendIndexed(enabled, index);
             break;
         default:
-            UNREACHABLE();
+            //UNREACHABLE();
+            break;
     }
 }
 
@@ -1679,11 +1672,6 @@ bool PrivateState::getEnableFeature(GLenum feature) const
         case GL_DITHER:
             return isDitherEnabled();
         case GL_COLOR_LOGIC_OP:
-            if (mClientVersion < ES_2_0)
-            {
-                // Handle logicOp in GLES1 through the GLES1 state management and emulation.
-                break;
-            }
             return isLogicOpEnabled();
         case GL_PRIMITIVE_RESTART_FIXED_INDEX:
             return isPrimitiveRestartEnabled();
@@ -1860,15 +1848,8 @@ void PrivateState::getBooleanv(GLenum pname, GLboolean *params) const
             *params = mRasterizer.dither;
             break;
         case GL_COLOR_LOGIC_OP:
-            if (mClientVersion < ES_2_0)
-            {
-                // Handle logicOp in GLES1 through the GLES1 state management.
-                *params = getEnableFeature(pname);
-            }
-            else
-            {
-                *params = mLogicOpEnabled;
-            }
+            // Handle logicOp in GLES1 through the GLES1 state management.
+            *params = getEnableFeature(pname);
             break;
         case GL_PRIMITIVE_RESTART_FIXED_INDEX:
             *params = mPrimitiveRestart;
@@ -1948,14 +1929,7 @@ void PrivateState::getBooleanv(GLenum pname, GLboolean *params) const
                 mCaps.fragmentShadingRateProperties.fragmentShadingRateNonTrivialCombinersSupport;
             break;
         default:
-            if (mClientVersion < ES_2_0)
-            {
-                *params = getEnableFeature(pname);
-            }
-            else
-            {
-                UNREACHABLE();
-            }
+            *params = getEnableFeature(pname);
             break;
     }
 }

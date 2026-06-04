@@ -32,6 +32,7 @@
 #include "libANGLE/Uniform.h"
 #include "libANGLE/VertexArray.h"
 #include "libANGLE/formatutils.h"
+#include "libANGLE/renderer/gl/functionsgl_enums.h"
 #include "libANGLE/validationES.h"
 #include "libANGLE/validationES2.h"
 #include "libANGLE/validationES32.h"
@@ -226,7 +227,7 @@ bool IsValidCopyTextureDestinationTarget(const Context *context,
 
 bool IsValidCopyTextureSourceTarget(const Context *context, TextureType type)
 {
-    switch (type)
+    /*switch (type)
     {
         case TextureType::_2D:
             return true;
@@ -238,7 +239,8 @@ bool IsValidCopyTextureSourceTarget(const Context *context, TextureType type)
             return context->getExtensions().videoTextureWEBGL;
         default:
             return false;
-    }
+    }*/
+    return true;
 }
 
 bool IsValidCopyTextureSourceLevel(const Context *context,
@@ -634,6 +636,8 @@ bool ValidCapUncommon(const PrivateState &state, ErrorSet *errors, GLenum cap, b
         case GL_SAMPLE_ALPHA_TO_ONE_EXT:
             return state.getExtensions().multisampleCompatibilityEXT;
 
+        case GL_TEXTURE_CUBE_MAP_SEAMLESS:
+        case GL_PROGRAM_POINT_SIZE:
         case GL_SAMPLE_ALPHA_TO_COVERAGE:
         case GL_SAMPLE_COVERAGE:
         case GL_DITHER:
@@ -1667,7 +1671,7 @@ bool ValidateES2TexImageParameters(const Context *context,
                                       internalFormatInfo.sizedInternalFormat))
         {
             // Error already generated
-            return false;
+            //return false;
         }
     }
 
@@ -1676,11 +1680,18 @@ bool ValidateES2TexImageParameters(const Context *context,
     // TexImage2D. The restriction in section 3.7.1 of the OpenGL ES 2.0 spec that the
     // internalformat parameter and format parameter of TexImage2D must match is lifted for this
     // case.
+#ifdef ANGLE_ENABLE_DEBUG_ANNOTATIONS
     if (!isSubImage && !isCompressed && internalformat != format && !nonEqualFormatsAllowed)
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInvalidFormatCombination);
+        WARN() << "ValidateTexImageFormatCombination: target=" << static_cast<int>(target)
+            << ", internalFormat=0x" << std::hex << internalformat
+            << ", format=0x" << format
+            << ", type=0x" << type
+            << std::dec;
         return false;
     }
+#endif
 
     GLenum sizeCheckFormat = isSubImage ? format : internalformat;
     return ValidImageDataSize(context, entryPoint, texType, width, height, 1, sizeCheckFormat, type,
@@ -3452,11 +3463,13 @@ bool ValidateCopySubTextureCHROMIUM(const Context *context,
     }
 
     const InternalFormat &destFormat = *dest->getFormat(destTarget, destLevel).info;
+#ifdef ANGLE_ENABLE_DEBUG_ANNOTATIONS
     if (!IsValidCopySubTextureDestionationInternalFormat(destFormat.internalFormat))
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInvalidFormatCombination);
         return false;
     }
+#endif
 
     if (sourceType == TextureType::External && destFormat.isInt() &&
         !context->getExtensions().EGLImageExternalEssl3OES)
@@ -4535,7 +4548,7 @@ bool ValidateGetAttribLocation(const Context *context,
         return false;
     }
 
-    if (!programObject->isLinked())
+    if (!programObject->isLinked() && !std::getenv("ANGLE_IGNORE_PROGEAMNOTLINKED"))
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kProgramNotLinked);
         return false;
@@ -4710,7 +4723,7 @@ bool ValidateGetUniformLocation(const Context *context,
         return false;
     }
 
-    if (!programObject->isLinked())
+    if (!programObject->isLinked() && !std::getenv("ANGLE_IGNORE_PROGEAMNOTLINKED"))
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kProgramNotLinked);
         return false;
@@ -5596,7 +5609,7 @@ bool ValidateUseProgram(const Context *context,
                 return false;
             }
         }
-        if (!programObject->isLinked())
+        if (!programObject->isLinked() && !std::getenv("ANGLE_IGNORE_PROGEAMNOTLINKED"))
         {
             ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kProgramNotLinked);
             return false;
@@ -6052,6 +6065,10 @@ void RecordBindTextureTypeError(const Context *context,
                                 angle::EntryPoint entryPoint,
                                 TextureType target)
 {
+    WARN() << "RecordBindTextureTypeError called: context=" << context
+           << ", entryPoint=" << static_cast<int>(entryPoint)
+           << ", target=" << static_cast<int>(target);
+
     ASSERT(!context->getStateCache().isValidBindTextureType(target));
 
     switch (target)
@@ -6099,6 +6116,7 @@ void RecordBindTextureTypeError(const Context *context,
         default:
             ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidTextureTarget);
     }
+
 }
 
 }  // namespace gl

@@ -20,6 +20,8 @@
 #include "compiler/translator/ImmutableStringBuilder.h"
 #include "compiler/translator/Symbol.h"
 
+#include "../../libANGLE/renderer/gl/functionsgl_enums.h"
+
 bool atoi_clamp(const char *str, unsigned int *value)
 {
     bool success = angle::pp::numeric_lex_int(str, value);
@@ -439,6 +441,9 @@ GLenum GLVariablePrecision(const TType &type)
                 return GL_MEDIUM_FLOAT;
             case EbpLow:
                 return GL_LOW_FLOAT;
+            case EbpUndefined:
+                // Desktop specs do not use precision
+                return GL_NONE;
             default:
                 UNREACHABLE();
         }
@@ -453,6 +458,9 @@ GLenum GLVariablePrecision(const TType &type)
                 return GL_MEDIUM_INT;
             case EbpLow:
                 return GL_LOW_INT;
+            case EbpUndefined:
+                // Desktop specs do not use precision
+                return GL_NONE;
             default:
                 UNREACHABLE();
         }
@@ -933,6 +941,20 @@ GLenum GetImageInternalFormatType(TLayoutImageInternalFormat iifq)
             return GL_RGBA8I;
         case EiifR32I:
             return GL_R32I;
+        case EiifRG16F:
+            return GL_RG16F;
+        case EiifRG32UI:
+            return GL_RG32UI;
+        case EiifR16F:
+            return GL_R16F;
+        case EiifRGBA16:
+            return GL_RGBA16;
+        case EiifRG8UI:
+            return GL_RG8UI;
+        case EiifRG16UI:
+            return GL_RG16UI;
+        case EiifRGBA16_SNORM:
+            return GL_RGBA16_SNORM;
         case EiifRGBA8:
             return GL_RGBA8;
         case EiifRGBA8_SNORM:
@@ -945,6 +967,114 @@ GLenum GetImageInternalFormatType(TLayoutImageInternalFormat iifq)
 bool IsSpecWithFunctionBodyNewScope(ShShaderSpec shaderSpec, int shaderVersion)
 {
     return (shaderVersion == 100 && !sh::IsWebGLBasedSpec(shaderSpec));
+}
+
+ImplicitTypeConversion GetConversion(TBasicType t1, TBasicType t2)
+{
+    if (t1 == t2)
+        return ImplicitTypeConversion::Same;
+
+    switch (t1)
+    {
+        case EbtInt:
+            switch (t2)
+            {
+                case EbtInt:
+                    UNREACHABLE();
+                    break;
+                case EbtUInt:
+                    return ImplicitTypeConversion::Invalid;
+                case EbtFloat:
+                    return ImplicitTypeConversion::Left;
+                default:
+                    return ImplicitTypeConversion::Invalid;
+            }
+            break;
+        case EbtUInt:
+            switch (t2)
+            {
+                case EbtInt:
+                    return ImplicitTypeConversion::Invalid;
+                case EbtUInt:
+                    UNREACHABLE();
+                    break;
+                case EbtFloat:
+                    return ImplicitTypeConversion::Left;
+                default:
+                    return ImplicitTypeConversion::Invalid;
+            }
+            break;
+        case EbtFloat:
+            switch (t2)
+            {
+                case EbtInt:
+                case EbtUInt:
+                    return ImplicitTypeConversion::Right;
+                case EbtFloat:
+                    UNREACHABLE();
+                    break;
+                default:
+                    return ImplicitTypeConversion::Invalid;
+            }
+            break;
+        default:
+            return ImplicitTypeConversion::Invalid;
+    }
+    return ImplicitTypeConversion::Invalid;
+}
+
+bool IsValidImplicitConversion(sh::ImplicitTypeConversion conversion, TOperator op)
+{
+    switch (conversion)
+    {
+        case sh::ImplicitTypeConversion::Same:
+            return true;
+        case sh::ImplicitTypeConversion::Left:
+            switch (op)
+            {
+                case EOpEqual:
+                case EOpNotEqual:
+                case EOpLessThan:
+                case EOpGreaterThan:
+                case EOpLessThanEqual:
+                case EOpGreaterThanEqual:
+                case EOpAdd:
+                case EOpSub:
+                case EOpMul:
+                case EOpDiv:
+                    return true;
+                default:
+                    break;
+            }
+            break;
+        case sh::ImplicitTypeConversion::Right:
+            switch (op)
+            {
+                case EOpAssign:
+                case EOpInitialize:
+                case EOpEqual:
+                case EOpNotEqual:
+                case EOpLessThan:
+                case EOpGreaterThan:
+                case EOpLessThanEqual:
+                case EOpGreaterThanEqual:
+                case EOpAdd:
+                case EOpSub:
+                case EOpMul:
+                case EOpDiv:
+                case EOpAddAssign:
+                case EOpSubAssign:
+                case EOpMulAssign:
+                case EOpDivAssign:
+                    return true;
+                default:
+                    break;
+            }
+            break;
+        case sh::ImplicitTypeConversion::Invalid:
+            break;
+    }
+    return false;
 }
 
 bool IsPrecisionApplicableToType(TBasicType type)
