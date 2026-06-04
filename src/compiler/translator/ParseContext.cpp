@@ -617,10 +617,11 @@ bool TParseContext::checkShaderVersion(const TSourceLoc &loc)
 {
     if (GetMaxShaderVersionForSpec(mShaderSpec) < mShaderVersion)
     {
-        std::stringstream reasonStream = sh::InitializeStream<std::stringstream>();
-        reasonStream << "unsupported shader version ";
-        reasonStream << mShaderVersion;
-        warning(loc, reasonStream.str().c_str());
+        //std::stringstream reasonStream = sh::InitializeStream<std::stringstream>();
+        //reasonStream << "unsupported shader version ";
+        //reasonStream << mShaderVersion;
+        //error(loc, reasonStream.str().c_str());
+        //printf("unsupported shader version\n");
         return true;
     }
 
