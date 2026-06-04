@@ -3633,7 +3633,7 @@ bool ValidateEGLImageTargetTexStorageEXT(const Context *context,
                                          const GLint *attrib_list)
 {
     gl::TextureType targetType = FromGLenum<TextureType>(target);
-    switch (targetType)
+    /*switch (targetType)
     {
         case TextureType::External:
             if (!context->getExtensions().EGLImageExternalOES)
@@ -3658,7 +3658,7 @@ bool ValidateEGLImageTargetTexStorageEXT(const Context *context,
         default:
             ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidTextureTarget);
             return false;
-    }
+    }*/
 
     // Validate egl source image is valid
     egl::Image *imageObject = context->getDisplay()->getImage(image);
