@@ -227,7 +227,7 @@ bool IsValidCopyTextureDestinationTarget(const Context *context,
 
 bool IsValidCopyTextureSourceTarget(const Context *context, TextureType type)
 {
-    switch (type)
+    /*switch (type)
     {
         case TextureType::_2D:
             return true;
@@ -239,7 +239,8 @@ bool IsValidCopyTextureSourceTarget(const Context *context, TextureType type)
             return context->getExtensions().videoTextureWEBGL;
         default:
             return false;
-    }
+    }*/
+    return true;
 }
 
 bool IsValidCopyTextureSourceLevel(const Context *context,
@@ -6120,6 +6121,7 @@ void RecordBindTextureTypeError(const Context *context,
         default:
             ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidTextureTarget);
     }
+
 }
 
 }  // namespace gl
