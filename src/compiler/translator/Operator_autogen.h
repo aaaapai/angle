@@ -249,6 +249,7 @@ enum TOperator : uint16_t
     EOpTextureCube,
     EOpTexture3D,
     EOpTexture3DProj,
+    EOpShadow2D,
     EOpShadow2DEXT,
     EOpShadow2DProjEXT,
     EOpTexture2DRect,
