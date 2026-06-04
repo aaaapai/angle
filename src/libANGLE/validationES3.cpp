@@ -493,7 +493,7 @@ bool ValidateES3TexImageParametersBase(const Context *context,
 
     const Caps &caps = context->getCaps();
 
-    switch (texType)
+    /*switch (texType)
     {
         case TextureType::_2D:
         case TextureType::VideoImage:
@@ -583,7 +583,7 @@ bool ValidateES3TexImageParametersBase(const Context *context,
         default:
             ANGLE_VALIDATION_ERRORF(GL_INVALID_ENUM, kEnumNotSupported, ToGLenum(texType));
             return false;
-    }
+    }*/
 
     Texture *texture = context->getTextureByType(texType);
     if (!texture)
