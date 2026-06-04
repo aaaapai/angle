@@ -931,6 +931,12 @@ bool ValidateES2TexImageParameters(const Context *context,
         return false;
     }
 
+    if (ANGLE_UNLIKELY(isCompressed && target == TextureTarget::Rectangle))
+    {
+        ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kRectangleTextureCompressed);
+        return false;
+    }
+
     TextureType texType = TextureTargetToType(target);
     if (!ValidImageSizeParameters(context, entryPoint, texType, level, width, height, 1,
                                   isSubImage))
@@ -965,11 +971,6 @@ bool ValidateES2TexImageParameters(const Context *context,
             if (width > caps.maxRectangleTextureSize || height > caps.maxRectangleTextureSize)
             {
                 ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kResourceMaxTextureSize);
-                return false;
-            }
-            if (isCompressed)
-            {
-                ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kRectangleTextureCompressed);
                 return false;
             }
             break;
@@ -2944,12 +2945,6 @@ bool ValidateCompressedTexImage2D(const Context *context,
     if (imageSize < 0 || static_cast<GLuint>(imageSize) != expectedImageSize)
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kCompressedTextureDimensionsMustMatchData);
-        return false;
-    }
-
-    if (target == TextureTarget::Rectangle)
-    {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kRectangleTextureCompressed);
         return false;
     }
 
