@@ -428,6 +428,7 @@
 497533569 MAC INTEL OPENGL : TransformFeedbackTest.ProgramSwitchDuringPauseAndResume/* = SKIP
 497533569 MAC INTEL OPENGL : TransformFeedbackTest.ProgramSwitchDuringPauseAndResumeWithBufferChange/* = SKIP
 513172707 MAC INTEL OPENGL : DrawBaseVertexBaseInstanceTest_ES3.InstanceIDDoesNotIncludeBaseInstance/* = SKIP
+519471062 MAC OPENGL : GLSLTest_ES3.SamplerInStructRHSOfCommaWithSideEffect/* = SKIP
 
 // BlitFramebufferTest.ScissoredMultisampleStencil failures
 42262159 MAC INTEL OPENGL : BlitFramebufferTest.ScissoredMultisampleStencil/* = SKIP
@@ -879,6 +880,9 @@
 465140993 PIXEL6 VULKAN : GLSLTest_ES3_PackUnpackEmulation.PackHalf2x16/* = SKIP
 465140993 PIXEL6 VULKAN : GLSLTest_ES3_PackUnpackEmulation.PackSnorm2x16/* = SKIP
 491488984 PIXEL6 VULKAN : GLSLTest_ES31.HelperInvocationsAfterDiscard/* = SKIP
+
+// Blocked on preferBGR565ToRGB565 availability
+519580088 PIXEL6 VULKAN : VulkanImageTest.ImportRGB565/ES3_Vulkan_ForceFallbackFormat = SKIP
 
 // Pixel 10 expectations.
 480069042 PIXEL10 GLES : AtomicCounterBufferTest31.DependentAtomicCounterBufferChange/* = SKIP
@@ -2812,6 +2816,9 @@
 
 // Timeout on Intel/Vulkan
 517981272 WIN INTEL VULKAN : EGLMultiContextTest.RepeatedEglInitAndTerminate/* = SKIP
+
+// Crashing on Win and Linux Vulkan
+519817006 VULKAN : VulkanPerformanceCounterTest_TileMemory.RedefineSharedDepthTextureWithOpenRenderPasses/* = SKIP
 
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 // Slow tests, should appear last in this file

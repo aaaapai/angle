@@ -587,10 +587,20 @@ bool ValidateES3TexImageParametersBase(const Context *context,
         return false;
     }
 
-    if (context->getState().isTextureBoundToActivePLS(texture->id()))
+    if (isSubImage)
     {
-        ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kActivePLSBackingTexture);
-        return false;
+        if (context->getState().isTextureBoundToActivePLS(texture->id()))
+        {
+            ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kActivePLSBackingTexture);
+            return false;
+        }
+    }
+    else
+    {
+        if (!ValidateNoActivePLSConflict(context, entryPoint, texture->id()))
+        {
+            return false;
+        }
     }
 
     if (texture->getImmutableFormat() && !isSubImage)
@@ -684,11 +694,24 @@ bool ValidateES3TexImageParametersBase(const Context *context,
         }
         else
         {
-            if (!ValidCompressedImageSize(context, actualInternalFormat, level, width, height,
-                                          depth))
+            if (actualFormatInfo.compressed)
             {
-                ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInvalidCompressedImageSize);
-                return false;
+                if (!ValidCompressedImageSize(context, actualInternalFormat, level, width, height,
+                                              depth))
+                {
+                    ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInvalidCompressedImageSize);
+                    return false;
+                }
+            }
+            else
+            {
+                ASSERT(actualFormatInfo.paletted);
+                // TODO(http://anglebug.com/42266155): multi-level paletted images
+                if (level != 0)
+                {
+                    UNIMPLEMENTED();
+                    return false;
+                }
             }
         }
 
@@ -1450,6 +1473,11 @@ bool ValidateES3TexStorageParametersTexObject(const Context *context,
     if (texture->getImmutableFormat())
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kTextureIsImmutable);
+        return false;
+    }
+
+    if (!ValidateNoActivePLSConflict(context, entryPoint, texture->id()))
+    {
         return false;
     }
 
