@@ -422,6 +422,10 @@ class RewritePLSToImagesTraverser : public RewritePLSTraverser
                 imageType->setBasicType(EbtUImage2D);
                 imageType->setPrecision(EbpHigh);
                 break;
+            case EiifR16UI:
+                imageType->setBasicType(EbtUImage2D);
+                imageType->setPrecision(EbpHigh);
+                break;
             default:
                 UNREACHABLE();
         }
@@ -850,6 +854,10 @@ class RewritePLSToFramebufferFetchTraverser : public RewritePLSTraverser
                     break;
                 case EiifR11FG11FB10F:
                     accessVarType = new TType(EbtFloat, 3);
+                    break;
+                case EiifR16UI:
+                    imageType->setBasicType(EbtUImage2D);
+                    imageType->setPrecision(EbpHigh);
                     break;
                 case EiifR16F:
                     accessVarType = new TType(EbtFloat, 1);
