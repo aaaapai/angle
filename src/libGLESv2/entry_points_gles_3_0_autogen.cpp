@@ -3741,10 +3741,10 @@ void GL_APIENTRY GL_TexImage3D(GLenum target,
                                const void *pixels)
 {
 
-    if (target == 0) {
+    /*if (target == 0) {
         WARN() << "GL_TexImage3D: target is 0, which is not a valid texture target. Set to GL_TEXTURE_3D by default.";
         target = GL_TEXTURE_3D;
-    }
+    }*/
 
     ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
