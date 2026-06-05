@@ -620,8 +620,8 @@ bool TParseContext::checkShaderVersion(const TSourceLoc &loc)
         std::stringstream reasonStream = sh::InitializeStream<std::stringstream>();
         reasonStream << "unsupported shader version ";
         reasonStream << mShaderVersion;
-        fatal(loc, reasonStream.str().c_str());
-        return false;
+        /*fatal(loc, reasonStream.str().c_str());
+        return false;*/
     }
 
     switch (mShaderType)
