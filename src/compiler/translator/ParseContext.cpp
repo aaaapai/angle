@@ -904,7 +904,7 @@ void TParseContext::assignError(const TSourceLoc &line,
 {
     TInfoSinkBase reasonStream;
     reasonStream << "cannot convert from '" << right << "' to '" << left << "'";
-    error(line, reasonStream.c_str(), op);
+    warning(line, reasonStream.c_str(), op);
 }
 
 //
@@ -939,7 +939,7 @@ void TParseContext::checkPrecisionSpecified(const TSourceLoc &line,
                                             TPrecision precision,
                                             TBasicType type)
 {
-    if (precision != EbpUndefined && !SupportsPrecision(type))
+    /*if (precision != EbpUndefined && !SupportsPrecision(type))
     {
         error(line, "illegal type for precision qualifier", getBasicString(type));
     }
@@ -963,7 +963,7 @@ void TParseContext::checkPrecisionSpecified(const TSourceLoc &line,
                     return;
                 }
         }
-    }
+    }*/
 }
 
 void TParseContext::markStaticUseIfSymbol(TIntermNode *node)
@@ -2515,10 +2515,10 @@ void TParseContext::declarationQualifierErrorCheck(const sh::TQualifier qualifie
 
     // If multiview extension is enabled, "in" qualifier is allowed in the vertex shader in previous
     // parsing steps. So it needs to be checked here.
-    if (anyMultiviewExtensionAvailable() && mShaderVersion < 300 && qualifier == EvqVertexIn)
+    /*if (anyMultiviewExtensionAvailable() && mShaderVersion < 300 && qualifier == EvqVertexIn)
     {
         error(location, "storage qualifier supported in GLSL ES 3.00 and above only", "in");
-    }
+    }*/
 
     bool canHaveLocation = qualifier == EvqVertexIn || qualifier == EvqFragmentOut;
     if (mShaderVersion >= 300 &&
@@ -2695,8 +2695,8 @@ void TParseContext::nonEmptyDeclarationErrorCheck(const TPublicType &publicType,
                 }
                 break;
             case EiifUnspecified:
-                error(identifierLocation, "layout qualifier", "No image internal format specified");
-                return;
+                warning(identifierLocation, "layout qualifier", "No image internal format specified");
+                break;
             default:
                 error(identifierLocation, "layout qualifier", "unrecognized token");
                 return;
@@ -2712,10 +2712,10 @@ void TParseContext::nonEmptyDeclarationErrorCheck(const TPublicType &publicType,
             default:
                 if (!publicType.memoryQualifier.readonly && !publicType.memoryQualifier.writeonly)
                 {
-                    error(identifierLocation, "layout qualifier",
+                    warning(identifierLocation, "layout qualifier",
                           "Except for images with the r32f, r32i and r32ui format qualifiers, "
                           "image variables must be qualified readonly and/or writeonly");
-                    return;
+                    //return;
                 }
                 break;
         }
@@ -2917,7 +2917,7 @@ void TParseContext::checkIndexIsNotSpecified(const TSourceLoc &location, int ind
 {
     if (index != -1)
     {
-        error(location,
+        warning(location,
               "invalid layout qualifier: only valid when used with a fragment shader output in "
               "ESSL version >= 3.00 and EXT_blend_func_extended is enabled",
               "index");
@@ -3704,11 +3704,11 @@ bool TParseContext::executeInitializer(const TSourceLoc &line,
             //
             // Note: the "Expression too complex" check can be removed once IR is the only path, as
             // it's not sensitive to expression depth.
-            error(line,
+            warning(line,
                   tooComplex ? "Expression too complex"
                              : "global variable initializers must be constant expressions",
                   "=");
-            return false;
+            //return false;
         }
         if (globalInitWarning)
         {
@@ -3723,9 +3723,9 @@ bool TParseContext::executeInitializer(const TSourceLoc &line,
     // identifier must be of type constant, a global, or a temporary
     if ((qualifier != EvqTemporary) && (qualifier != EvqGlobal) && (qualifier != EvqConst))
     {
-        error(line, " cannot initialize this type of qualifier ",
+        warning(line, " cannot initialize this type of qualifier ",
               variable->getType().getQualifierString());
-        return false;
+        //return false;
     }
 
     TIntermSymbol *intermSymbol = new TIntermSymbol(variable);
@@ -6167,8 +6167,8 @@ TFunction *TParseContext::parseFunctionDeclarator(const TSourceLoc &location, TF
         {
             // With ESSL 3.00 and above, names of built-in functions cannot be redeclared as
             // functions. Therefore overloading or redefining builtin functions is an error.
-            error(location, "Name of a built-in function cannot be redeclared as function",
-                  function->name());
+            /*error(location, "Name of a built-in function cannot be redeclared as function",
+                  function->name());*/
         }
     }
     else
@@ -6179,7 +6179,7 @@ TFunction *TParseContext::parseFunctionDeclarator(const TSourceLoc &location, TF
             symbolTable.findBuiltIn(function->getMangledName(), getShaderVersion());
         if (builtIn)
         {
-            error(location, "built-in functions cannot be redefined", function->name());
+            //error(location, "built-in functions cannot be redefined", function->name());
         }
     }
 
@@ -8105,18 +8105,18 @@ TStorageQualifierWrapper *TParseContext::parseInQualifier(const TSourceLoc &loc)
     {
         case GL_VERTEX_SHADER:
         {
-            if (mShaderVersion < 300 && !anyMultiviewExtensionAvailable())
+            /*if (mShaderVersion < 300 && !anyMultiviewExtensionAvailable())
             {
                 error(loc, "storage qualifier supported in GLSL ES 3.00 and above only", "in");
-            }
+            }*/
             return new TStorageQualifierWrapper(EvqVertexIn, loc);
         }
         case GL_FRAGMENT_SHADER:
         {
-            if (mShaderVersion < 300)
+            /*if (mShaderVersion < 300)
             {
                 error(loc, "storage qualifier supported in GLSL ES 3.00 and above only", "in");
-            }
+            }*/
             return new TStorageQualifierWrapper(EvqFragmentIn, loc);
         }
         case GL_COMPUTE_SHADER:
@@ -8153,18 +8153,18 @@ TStorageQualifierWrapper *TParseContext::parseOutQualifier(const TSourceLoc &loc
     {
         case GL_VERTEX_SHADER:
         {
-            if (mShaderVersion < 300)
+            /*if (mShaderVersion < 300)
             {
                 error(loc, "storage qualifier supported in GLSL ES 3.00 and above only", "out");
-            }
+            }*/
             return new TStorageQualifierWrapper(EvqVertexOut, loc);
         }
         case GL_FRAGMENT_SHADER:
         {
-            if (mShaderVersion < 300)
+            /*if (mShaderVersion < 300)
             {
                 error(loc, "storage qualifier supported in GLSL ES 3.00 and above only", "out");
-            }
+            }*/
             return new TStorageQualifierWrapper(EvqFragmentOut, loc);
         }
         case GL_COMPUTE_SHADER:
@@ -8196,10 +8196,10 @@ TStorageQualifierWrapper *TParseContext::parseInOutQualifier(const TSourceLoc &l
 {
     if (!declaringFunction())
     {
-        if (mShaderVersion < 300)
+        /*if (mShaderVersion < 300)
         {
             error(loc, "storage qualifier supported in GLSL ES 3.00 and above only", "inout");
-        }
+        }*/
 
         if (getShaderType() != GL_FRAGMENT_SHADER)
         {
@@ -8896,10 +8896,10 @@ bool TParseContext::binaryOpCommonCheck(TOperator op,
     }
 
     // Implicit type casting is not allowed in ESSL.
-    if (!isBitShift && left->getBasicType() != right->getBasicType())
+    /*if (!isBitShift && left->getBasicType() != right->getBasicType())
     {
         return false;
-    }
+    }*/
 
     // Check that:
     // 1. Type sizes match exactly on ops that require that.
@@ -9827,6 +9827,8 @@ TIntermTyped *TParseContext::addNonConstructorFunctionCallImpl(TFunctionLookup *
         // global scope.
         const TSymbol *symbol = symbolTable.findGlobal(fnCall->getMangledName());
 
+        symbol = symbolTable.findGlobalWithConversion(
+                fnCall->getMangledNamesForImplicitConversions());
         if (symbol != nullptr)
         {
             // A user-defined function - could be an overloaded built-in as well.
@@ -9843,7 +9845,10 @@ TIntermTyped *TParseContext::addNonConstructorFunctionCallImpl(TFunctionLookup *
             return callNode;
         }
 
-        symbol = symbolTable.findBuiltIn(fnCall->getMangledName(), mShaderVersion);
+        //symbol = symbolTable.findBuiltIn(fnCall->getMangledName(), mShaderVersion);
+
+        symbol = symbolTable.findBuiltInWithConversion(
+                fnCall->getMangledNamesForImplicitConversions(), mShaderVersion);
 
         if (symbol != nullptr)
         {
@@ -10402,7 +10407,7 @@ void TParseContext::postParseValidateFragmentOutputLocations()
         mFragmentOutputsWithoutLocation.size() > 1)
     {
         const char *unspecifiedLocationErrorMessage = nullptr;
-        if (!isExtensionEnabled(TExtension::EXT_blend_func_extended))
+        /*if (!isExtensionEnabled(TExtension::EXT_blend_func_extended))
         {
             unspecifiedLocationErrorMessage =
                 "when EXT_blend_func_extended extension is not enabled, must explicitly specify "
@@ -10419,7 +10424,7 @@ void TParseContext::postParseValidateFragmentOutputLocations()
             unspecifiedLocationErrorMessage =
                 "must explicitly specify all locations when using multiple fragment outputs "
                 "in WebGL contexts, even if EXT_blend_func_extended is enabled";
-        }
+        }*/
         if (unspecifiedLocationErrorMessage != nullptr)
         {
             for (const VariableAndLocation &variable : mFragmentOutputsWithoutLocation)
