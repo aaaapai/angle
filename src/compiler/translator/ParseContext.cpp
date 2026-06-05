@@ -615,16 +615,16 @@ void TParseContext::fatal(const TSourceLoc &loc, const char *reason)
 
 bool TParseContext::checkShaderVersion(const TSourceLoc &loc)
 {
-    if (GetMaxShaderVersionForSpec(mShaderSpec) < mShaderVersion)
+    /*if (GetMaxShaderVersionForSpec(mShaderSpec) < mShaderVersion)
     {
         std::stringstream reasonStream = sh::InitializeStream<std::stringstream>();
         reasonStream << "unsupported shader version ";
         reasonStream << mShaderVersion;
         fatal(loc, reasonStream.str().c_str());
         return false;
-    }
+    }*/
 
-    switch (mShaderType)
+    /*switch (mShaderType)
     {
         case GL_COMPUTE_SHADER:
             if (mShaderVersion < 310)
@@ -653,7 +653,7 @@ bool TParseContext::checkShaderVersion(const TSourceLoc &loc)
 
         default:
             break;
-    }
+    }*/
 
     return true;
 }
