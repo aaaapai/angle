@@ -15,6 +15,9 @@
 #include "common/WorkerThread.h"
 #include "image_util/AstcDecompressor.h"
 
+#include <ankerl/stl.h>
+#include <ankerl/unordered_dense.h>
+
 namespace angle
 {
 namespace
@@ -135,7 +138,7 @@ class AstcDecompressorContextCache
         }
     };
 
-    std::unordered_map<Key, Value, KeyHash> mContexts;
+    ankerl::unordered_dense::map<Key, Value, KeyHash> mContexts;
 };
 
 struct DecompressTask : public Closure

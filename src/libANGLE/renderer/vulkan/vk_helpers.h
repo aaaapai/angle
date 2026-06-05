@@ -24,6 +24,9 @@
 
 #include <functional>
 
+#include <ankerl/stl.h>
+#include <ankerl/unordered_dense.h>
+
 namespace gl
 {
 class ImageIndex;
@@ -476,7 +479,7 @@ class MetaDescriptorPool final : angle::NonCopyable
     }
 
   private:
-    std::unordered_map<DescriptorSetLayoutDesc, DynamicDescriptorPoolPointer> mPayload;
+    ankerl::unordered_dense::map<DescriptorSetLayoutDesc, DynamicDescriptorPoolPointer> mPayload;
 };
 
 template <typename Pool>

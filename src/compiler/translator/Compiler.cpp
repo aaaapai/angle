@@ -564,8 +564,6 @@ TIntermBlock *TCompiler::compileTreeImpl(angle::Span<const char *const> shaderSt
     return root;
 }
 
-
-
 void TCompiler::setShaderMetadata(const TParseContext &parseContext)
 {
     mShaderVersion = parseContext.getShaderVersion();
@@ -750,6 +748,8 @@ bool TCompiler::checkAndSimplifyAST(TIntermBlock *root,
                                     const ShCompileOptions &compileOptions)
 {
     ASSERT(!compileOptions.useIR);
+
+    mValidateASTOptions.validatePrecision = false;
 
     // Disallow expressions deemed too complex.
     // This needs to be checked before other functions that will traverse the AST
