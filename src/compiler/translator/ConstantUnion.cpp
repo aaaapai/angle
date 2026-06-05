@@ -305,7 +305,7 @@ bool TConstantUnion::operator==(const TYuvCscStandardEXT s) const
 bool TConstantUnion::operator==(const TConstantUnion &constant) const
 {
     ImplicitTypeConversion conversion = GetConversion(constant.type, type);
-    if (conversion == ImplicitTypeConversion::Same || !std::getenv("ANGLE_CONSTANT_UNION_LAB"))
+    if (conversion == ImplicitTypeConversion::Same)
     {
     switch (type)
     {
@@ -365,7 +365,7 @@ bool TConstantUnion::operator>(const TConstantUnion &constant) const
 {
 
     ImplicitTypeConversion conversion = GetConversion(constant.type, type);
-    if (conversion == ImplicitTypeConversion::Same  || !std::getenv("ANGLE_CONSTANT_UNION_LAB"))
+    if (conversion == ImplicitTypeConversion::Same)
     {
     switch (type)
     {
@@ -390,7 +390,7 @@ bool TConstantUnion::operator>(const TConstantUnion &constant) const
 bool TConstantUnion::operator<(const TConstantUnion &constant) const
 {
     ImplicitTypeConversion conversion = GetConversion(constant.type, type);
-    if (conversion == ImplicitTypeConversion::Same || !std::getenv("ANGLE_CONSTANT_UNION_LAB"))
+    if (conversion == ImplicitTypeConversion::Same)
     {
     switch (type)
     {
@@ -420,7 +420,7 @@ TConstantUnion TConstantUnion::add(const TConstantUnion &lhs,
     TConstantUnion returnValue;
 
     ImplicitTypeConversion conversion = GetConversion(lhs.type, rhs.type);
-    if (conversion == ImplicitTypeConversion::Same || !std::getenv("ANGLE_CONSTANT_UNION_LAB"))
+    if (conversion == ImplicitTypeConversion::Same)
     {
     switch (lhs.type)
     {
@@ -453,7 +453,7 @@ TConstantUnion TConstantUnion::sub(const TConstantUnion &lhs,
     TConstantUnion returnValue;
 
     ImplicitTypeConversion conversion = GetConversion(lhs.type, rhs.type);
-    if (conversion == ImplicitTypeConversion::Same || !std::getenv("ANGLE_CONSTANT_UNION_LAB")) {
+    if (conversion == ImplicitTypeConversion::Same) {
     switch (lhs.type)
     {
         case EbtInt:
@@ -485,7 +485,7 @@ TConstantUnion TConstantUnion::mul(const TConstantUnion &lhs,
     TConstantUnion returnValue;
 
     ImplicitTypeConversion conversion = GetConversion(lhs.type, rhs.type);
-    if (conversion == ImplicitTypeConversion::Same || !std::getenv("ANGLE_CONSTANT_UNION_LAB")) {
+    if (conversion == ImplicitTypeConversion::Same) {
     switch (lhs.type)
     {
         case EbtInt:
