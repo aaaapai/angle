@@ -2563,7 +2563,7 @@ const TConstantUnion *TIntermConstantUnion::FoldBinary(TOperator op,
             resultArray = new TConstantUnion[objectSize];
             for (size_t i = 0; i < objectSize; i++)
             {
-                if ( (!std::getenv("ANGLE_FLOATDIVISION") && leftType.getBasicType() == EbtFloat) || (std::getenv("ANGLE_FLOATDIVISION") && IsFloatDivision(leftType.getBasicType(), rightType.getBasicType())) )
+                if (IsFloatDivision(leftType.getBasicType(), rightType.getBasicType()))
                 {
                     // Float division requested, possibly with implicit conversion
                     ASSERT(op == EOpDiv);
