@@ -532,11 +532,13 @@ const TSymbol *SymbolRule::get(ShShaderSpec shaderSpec,
                                const ShBuiltInResources &resources,
                                const TSymbolTableBase &symbolTable) const
 {
+    if (!std::getenv("ANGLE_SYMBOLTABAL_RELIEF")) {
     if (mVersion == kESSL1Only && shaderVersion != static_cast<int>(kESSL1Only))
         return nullptr;
 
     if (mVersion > shaderVersion)
         return nullptr;
+    }
 
     if (!CheckShaderType(static_cast<Shader>(mShaders), shaderType))
         return nullptr;
@@ -581,11 +583,13 @@ bool UnmangledEntry::matches(const ImmutableString &name,
     if (!CheckShaderType(static_cast<Shader>(mShaderType), shaderType))
         return false;
 
+    if (!std::getenv("ANGLE_SYMBOLTABAL_RELIEF")) {
     if (mESSLVersion == kESSL1Only && shaderVersion != static_cast<int>(kESSL1Only))
         return false;
 
     if (mESSLVersion > shaderVersion)
         return false;
+    }
 
     bool anyExtension        = false;
     bool anyExtensionEnabled = false;
@@ -603,6 +607,5 @@ bool UnmangledEntry::matches(const ImmutableString &name,
 
     return anyExtensionEnabled;
 
-    //return true;
 }
 }  // namespace sh
