@@ -2201,8 +2201,7 @@ bool ValidateGenerateMipmapBase(const Context *context,
                                    ? TextureTarget::CubeMapPositiveX
                                    : NonCubeTextureTypeToTarget(target);
     const auto &format       = *(texture->getFormat(baseTarget, effectiveBaseLevel).info);
-    if (format.sizedInternalFormat == GL_NONE || format.compressed || format.paletted ||
-        format.depthBits > 0 || format.stencilBits > 0)
+    if (format.sizedInternalFormat == GL_NONE || format.compressed || format.paletted || ( (format.depthBits > 0 || format.stencilBits > 0) && !std::getenv("ANGLE_NO_MIPMAPLIMITS") ) )
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kGenerateMipmapNotAllowed);
         return false;
@@ -2213,7 +2212,7 @@ bool ValidateGenerateMipmapBase(const Context *context,
     bool formatColorRenderableAndFilterable =
         format.filterSupport(context->getClientVersion(), context->getExtensions()) &&
         format.textureAttachmentSupport(context->getClientVersion(), context->getExtensions());
-    if (!formatUnsized && !formatColorRenderableAndFilterable)
+    if ( (!formatUnsized && !std::getenv("ANGLE_NO_MIPMAPLIMITS") ) && !formatColorRenderableAndFilterable)
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kGenerateMipmapNotAllowed);
         return false;
@@ -2221,7 +2220,7 @@ bool ValidateGenerateMipmapBase(const Context *context,
 
     // GL_EXT_sRGB adds an unsized SRGB (no alpha) format which has explicitly disabled mipmap
     // generation
-    if (format.colorEncoding == GL_SRGB && format.format == GL_RGB)
+    if (format.colorEncoding == GL_SRGB && format.format == GL_RGB && !std::getenv("ANGLE_ALLOW_SRGB_uSRGB_MIPMAP"))
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kGenerateMipmapNotAllowed);
         return false;
@@ -2839,6 +2838,10 @@ bool ValidateStateQuery(const Context *context,
 {
     if (data == nullptr)
     {
+        WARN() << "ValidateStateQuery: data is nullptr, context=" << context
+               << ", entryPoint=" << static_cast<int>(entryPoint)
+               << ", pname=0x" << std::hex << pname << std::dec
+               << ", outNumParams=" << outNumParams;
         ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kDataNULL);
         return false;
     }
@@ -2847,6 +2850,10 @@ bool ValidateStateQuery(const Context *context,
     unsigned int numParams;
     if (!context->getQueryParameterInfo(pname, &nativeType, &numParams))
     {
+        WARN() << "ValidateStateQuery: getQueryParameterInfo failed, context=" << context
+               << ", entryPoint=" << static_cast<int>(entryPoint)
+               << ", pname=0x" << std::hex << pname << std::dec
+               << ", data=" << data << ", outNumParams=" << outNumParams;
         ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidPname);
         return false;
     }
@@ -2859,6 +2866,11 @@ bool ValidateStateQuery(const Context *context,
 
         if (colorAttachment >= caps.maxDrawBuffers)
         {
+            WARN() << "ValidateStateQuery: colorAttachment " << colorAttachment
+                   << " >= maxDrawBuffers " << caps.maxDrawBuffers
+                   << ", context=" << context << ", entryPoint=" << static_cast<int>(entryPoint)
+                   << ", pname=0x" << std::hex << pname << std::dec
+                   << ", data=" << data << ", outNumParams=" << outNumParams;
             ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kIndexExceedsMaxDrawBuffer);
             return false;
         }
@@ -2877,6 +2889,10 @@ bool ValidateStateQuery(const Context *context,
         case GL_TEXTURE_BINDING_RECTANGLE_ANGLE:
             if (!context->getExtensions().textureRectangleANGLE)
             {
+                WARN() << "ValidateStateQuery: GL_TEXTURE_BINDING_RECTANGLE_ANGLE not supported, context="
+                       << context << ", entryPoint=" << static_cast<int>(entryPoint)
+                       << ", pname=0x" << std::hex << pname << std::dec
+                       << ", data=" << data << ", outNumParams=" << outNumParams;
                 ANGLE_VALIDATION_ERRORF(GL_INVALID_ENUM, kEnumNotSupported, pname);
                 return false;
             }
@@ -2886,6 +2902,10 @@ bool ValidateStateQuery(const Context *context,
             if (!context->getExtensions().EGLStreamConsumerExternalNV &&
                 !context->getExtensions().EGLImageExternalOES)
             {
+                WARN() << "ValidateStateQuery: GL_TEXTURE_BINDING_EXTERNAL_OES not supported, context="
+                       << context << ", entryPoint=" << static_cast<int>(entryPoint)
+                       << ", pname=0x" << std::hex << pname << std::dec
+                       << ", data=" << data << ", outNumParams=" << outNumParams;
                 ANGLE_VALIDATION_ERRORF(GL_INVALID_ENUM, kEnumNotSupported, pname);
                 return false;
             }
@@ -2898,6 +2918,10 @@ bool ValidateStateQuery(const Context *context,
             if (context->getClientVersion() < Version(3, 2) &&
                 !context->getExtensions().textureBufferAny())
             {
+                WARN() << "ValidateStateQuery: texture buffer not available, context=" << context
+                       << ", entryPoint=" << static_cast<int>(entryPoint)
+                       << ", pname=0x" << std::hex << pname << std::dec
+                       << ", data=" << data << ", outNumParams=" << outNumParams;
                 ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kTextureBufferExtensionNotAvailable);
                 return false;
             }
@@ -2912,11 +2936,20 @@ bool ValidateStateQuery(const Context *context,
             if (!ValidateFramebufferComplete<GL_INVALID_OPERATION>(context, entryPoint,
                                                                    readFramebuffer))
             {
+                WARN() << "ValidateStateQuery: read framebuffer not complete, context=" << context
+                       << ", entryPoint=" << static_cast<int>(entryPoint)
+                       << ", pname=0x" << std::hex << pname << std::dec
+                       << ", data=" << data << ", outNumParams=" << outNumParams;
+                // ValidateFramebufferComplete already generates an error
                 return false;
             }
 
             if (readFramebuffer->getReadBufferState() == GL_NONE)
             {
+                WARN() << "ValidateStateQuery: read buffer state is GL_NONE, context=" << context
+                       << ", entryPoint=" << static_cast<int>(entryPoint)
+                       << ", pname=0x" << std::hex << pname << std::dec
+                       << ", data=" << data << ", outNumParams=" << outNumParams;
                 ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kReadBufferNone);
                 return false;
             }
@@ -2924,6 +2957,10 @@ bool ValidateStateQuery(const Context *context,
             const FramebufferAttachment *attachment = readFramebuffer->getReadColorAttachment();
             if (!attachment)
             {
+                WARN() << "ValidateStateQuery: read color attachment missing, context=" << context
+                       << ", entryPoint=" << static_cast<int>(entryPoint)
+                       << ", pname=0x" << std::hex << pname << std::dec
+                       << ", data=" << data << ", outNumParams=" << outNumParams;
                 ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kReadBufferNotAttached);
                 return false;
             }
@@ -2933,6 +2970,10 @@ bool ValidateStateQuery(const Context *context,
         case GL_PRIMITIVE_BOUNDING_BOX:
             if (!context->getExtensions().primitiveBoundingBoxAny())
             {
+                WARN() << "ValidateStateQuery: primitive bounding box not supported, context="
+                       << context << ", entryPoint=" << static_cast<int>(entryPoint)
+                       << ", pname=0x" << std::hex << pname << std::dec
+                       << ", data=" << data << ", outNumParams=" << outNumParams;
                 ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kExtensionNotEnabled);
                 return false;
             }
@@ -2941,6 +2982,10 @@ bool ValidateStateQuery(const Context *context,
         case GL_SHADING_RATE_QCOM:
             if (!context->getExtensions().shadingRateQCOM)
             {
+                WARN() << "ValidateStateQuery: shading rate QCOM not supported, context="
+                       << context << ", entryPoint=" << static_cast<int>(entryPoint)
+                       << ", pname=0x" << std::hex << pname << std::dec
+                       << ", data=" << data << ", outNumParams=" << outNumParams;
                 ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kExtensionNotEnabled);
                 return false;
             }
@@ -2949,6 +2994,10 @@ bool ValidateStateQuery(const Context *context,
         case GL_MULTISAMPLE_LINE_WIDTH_RANGE:
             if (context->getClientVersion() < Version(3, 2))
             {
+                WARN() << "ValidateStateQuery: GL_MULTISAMPLE_LINE_WIDTH_RANGE requires GL 3.2+, context="
+                       << context << ", entryPoint=" << static_cast<int>(entryPoint)
+                       << ", pname=0x" << std::hex << pname << std::dec
+                       << ", data=" << data << ", outNumParams=" << outNumParams;
                 ANGLE_VALIDATION_ERRORF(GL_INVALID_ENUM, kEnumNotSupported, pname);
                 return false;
             }
@@ -2957,6 +3006,10 @@ bool ValidateStateQuery(const Context *context,
         case GL_MULTISAMPLE_LINE_WIDTH_GRANULARITY:
             if (context->getClientVersion() < Version(3, 2))
             {
+                WARN() << "ValidateStateQuery: GL_MULTISAMPLE_LINE_WIDTH_GRANULARITY requires GL 3.2+, context="
+                       << context << ", entryPoint=" << static_cast<int>(entryPoint)
+                       << ", pname=0x" << std::hex << pname << std::dec
+                       << ", data=" << data << ", outNumParams=" << outNumParams;
                 ANGLE_VALIDATION_ERRORF(GL_INVALID_ENUM, kEnumNotSupported, pname);
                 return false;
             }
@@ -2966,6 +3019,10 @@ bool ValidateStateQuery(const Context *context,
             if (context->getClientVersion() < Version(3, 2) &&
                 !context->getExtensions().tessellationShaderAny())
             {
+                WARN() << "ValidateStateQuery: primitive restart for patches not supported, context="
+                       << context << ", entryPoint=" << static_cast<int>(entryPoint)
+                       << ", pname=0x" << std::hex << pname << std::dec
+                       << ", data=" << data << ", outNumParams=" << outNumParams;
                 ANGLE_VALIDATION_ERRORF(GL_INVALID_ENUM, kEnumNotSupported, pname);
                 return false;
             }
@@ -4267,7 +4324,7 @@ const char *ValidateDrawStates(const Context *context, GLenum *outErrorCode)
             }
 
             // Validate that we are rendering with a linked program.
-            if (program != nullptr && !program->isLinked())
+            if (program != nullptr && !program->isLinked() && !std::getenv("ANGLE_IGNORE_PROGEAMNOTLINKED"))
             {
                 return kProgramNotLinked;
             }
@@ -4557,7 +4614,7 @@ bool ValidateGetUniformBase(const Context *context,
         return false;
     }
 
-    if (!programObject->isLinked())
+    if (!programObject->isLinked() && !std::getenv("ANGLE_IGNORE_PROGEAMNOTLINKED") )
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kProgramNotLinked);
         return false;
@@ -4942,7 +4999,7 @@ bool ValidateGetProgramBinaryBase(const Context *context,
         return false;
     }
 
-    if (!programObject->isLinked())
+    if (!programObject->isLinked() && !std::getenv("ANGLE_IGNORE_PROGEAMNOTLINKED") )
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kProgramNotLinked);
         return false;
@@ -5841,7 +5898,7 @@ bool ValidateGetProgramivBase(const Context *context,
             // An INVALID_OPERATION error is generated if COMPUTE_WORK_GROUP_SIZE is queried for a
             // program which has not been linked successfully, or which does not contain objects to
             // form a compute shader.
-            if (!programObject->isLinked())
+            if (!programObject->isLinked() && !std::getenv("ANGLE_IGNORE_PROGEAMNOTLINKED") )
             {
                 ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kProgramNotLinked);
                 return false;
@@ -5869,7 +5926,7 @@ bool ValidateGetProgramivBase(const Context *context,
             // GEOMETRY_LINKED_INPUT_TYPE_EXT, GEOMETRY_LINKED_OUTPUT_TYPE_EXT, or
             // GEOMETRY_SHADER_INVOCATIONS_EXT are queried for a program which has not been linked
             // successfully, or which does not contain objects to form a geometry shader.
-            if (!programObject->isLinked())
+            if (!programObject->isLinked() && !std::getenv("ANGLE_IGNORE_PROGEAMNOTLINKED"))
             {
                 ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kProgramNotLinked);
                 return false;
@@ -5895,7 +5952,7 @@ bool ValidateGetProgramivBase(const Context *context,
                 ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kTessellationShaderEXTNotEnabled);
                 return false;
             }
-            if (!programObject->isLinked())
+            if (!programObject->isLinked() && !std::getenv("ANGLE_IGNORE_PROGEAMNOTLINKED"))
             {
                 ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kProgramNotLinked);
                 return false;
@@ -5917,7 +5974,7 @@ bool ValidateGetProgramivBase(const Context *context,
                 ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kTessellationShaderEXTNotEnabled);
                 return false;
             }
-            if (!programObject->isLinked())
+            if (!programObject->isLinked()  && !std::getenv("ANGLE_IGNORE_PROGEAMNOTLINKED"))
             {
                 ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kProgramNotLinked);
                 return false;
@@ -6706,11 +6763,6 @@ bool ValidateGetTexParameterBase(const Context *context,
         case GL_TEXTURE_CROP_RECT_OES:
             // TODO(lfy@google.com): Restrict to GL_OES_draw_texture
             // after GL_OES_draw_texture functionality implemented
-            if (context->getClientVersion() >= ES_2_0)
-            {
-                ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kGLES1Only);
-                return false;
-            }
             break;
 
         case GL_MEMORY_SIZE_ANGLE:
@@ -7201,11 +7253,6 @@ bool ValidateTexParameterBase(const Context *context,
 
         case GL_GENERATE_MIPMAP:
         case GL_TEXTURE_CROP_RECT_OES:
-            if (context->getClientVersion() >= ES_2_0)
-            {
-                ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kGLES1Only);
-                return false;
-            }
             break;
 
         default:
@@ -7406,19 +7453,9 @@ bool ValidateTexParameterBase(const Context *context,
             break;
 
         case GL_GENERATE_MIPMAP:
-            if (context->getClientVersion() >= ES_2_0)
-            {
-                ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kGLES1Only);
-                return false;
-            }
             break;
 
         case GL_TEXTURE_CROP_RECT_OES:
-            if (context->getClientVersion() >= ES_2_0)
-            {
-                ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kGLES1Only);
-                return false;
-            }
             if (entryPoint == angle::EntryPoint::GLTexParameterf ||
                 entryPoint == angle::EntryPoint::GLTexParameteri ||
                 entryPoint == angle::EntryPoint::GLTexParameterx)
