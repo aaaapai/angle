@@ -4273,6 +4273,27 @@ impl BuilderWrapper {
             ffi::ASTLayoutImageInternalFormat::R32I => decorations
                 .decorations
                 .push(Decoration::ImageInternalFormat(ImageInternalFormat::R32I)),
+            ffi::ASTLayoutImageInternalFormat::RGBA16 => decorations
+                .decorations
+                .push(Decoration::ImageInternalFormat(ImageInternalFormat::RGBA16)),
+            ffi::ASTLayoutImageInternalFormat::RG16UI => decorations
+                .decorations
+                .push(Decoration::ImageInternalFormat(ImageInternalFormat::RG16UI)),
+            ffi::ASTLayoutImageInternalFormat::R16UI => decorations
+                .decorations
+                .push(Decoration::ImageInternalFormat(ImageInternalFormat::R16UI)),
+            ffi::ASTLayoutImageInternalFormat::RGBA16SNORM => decorations
+                .decorations
+                .push(Decoration::ImageInternalFormat(ImageInternalFormat::RGBA16SNORM)),
+            ffi::ASTLayoutImageInternalFormat::R11FG11FB10F => decorations
+                .decorations
+                .push(Decoration::ImageInternalFormat(ImageInternalFormat::R11FG11FB10F)),
+            ffi::ASTLayoutImageInternalFormat::R16F => decorations
+                .decorations
+                .push(Decoration::ImageInternalFormat(ImageInternalFormat::R16F)),
+            ffi::ASTLayoutImageInternalFormat::RG8UI => decorations
+                .decorations
+                .push(Decoration::ImageInternalFormat(ImageInternalFormat::RG8UI)),
             ffi::ASTLayoutImageInternalFormat::RGBA8 => decorations
                 .decorations
                 .push(Decoration::ImageInternalFormat(ImageInternalFormat::RGBA8)),
