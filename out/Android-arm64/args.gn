@@ -143,11 +143,10 @@ ldflags = [
 
 treat_warnings_as_errors = false
 libcxx_abi_unstable = true
-android_ndk_version = "r30-beta1"
 
 # Whether the ANGLE translator should be built with IR instead
 # THIS IS CURRENTLY EXPERIMENTAL.
-angle_ir = true
+angle_ir = false
 
 angle_enable_perf_counter_output = false
 
