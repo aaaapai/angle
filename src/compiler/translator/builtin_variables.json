@@ -796,7 +796,7 @@
         "shader_type": "FRAGMENT",
         "variables":{
             "gl_FragCoord":{
-                "essl_level":"COMMON_BUILTINS",
+                "essl_level":"ESSL1_BUILTINS",
                 "type":{
                     "basic":"Float",
                     "precision":"Medium",
@@ -868,7 +868,6 @@
                 "variables":{
                     "gl_SecondaryFragColorEXT":{
                         "essl_level":"COMMON_BUILTINS",
-                        "essl_extension":"EXT_blend_func_extended",
                         "type":{
                             "basic":"Float",
                             "precision":"Medium",
@@ -1031,7 +1030,7 @@
                 }
             },
             "gl_PointSize":{
-                "essl_level":"COMMON_BUILTINS",
+                "essl_level":"ESSL1_BUILTINS",
                 "type":{
                     "basic":"Float",
                     "precision":"Medium",
