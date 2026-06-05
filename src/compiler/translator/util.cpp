@@ -925,6 +925,10 @@ GLenum GetImageInternalFormatType(TLayoutImageInternalFormat iifq)
             return GL_RGBA16F;
         case EiifR32F:
             return GL_R32F;
+        case EiifR11FG11FB10F:
+            return GL_R11F_G11F_B10F;
+        case EiifR16UI:
+            return GL_R16UI;
         case EiifRGBA32UI:
             return GL_RGBA32UI;
         case EiifRGBA16UI:
