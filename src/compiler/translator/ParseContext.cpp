@@ -7667,7 +7667,7 @@ TLayoutQualifier TParseContext::parseLayoutQualifier(const ImmutableString &qual
     {
         qualifier.imageInternalFormat = EiifRG16F;
     }
-    else if (qualifierType == "r11fg11fb10f")
+    else if (qualifierType == "r11f_g11f_b10f")
     {
         qualifier.imageInternalFormat = EiifR11FG11FB10F;
     }
