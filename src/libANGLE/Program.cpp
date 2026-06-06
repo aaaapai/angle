@@ -1757,12 +1757,12 @@ bool Program::linkValidateShaders()
         {
             version = shader->shaderVersion;
         }
-        else if (version != shader->shaderVersion)
+        /*else if (version != shader->shaderVersion)
         {
             mState.mInfoLog << ShaderTypeToString(shaderType)
                             << " shader version does not match other shader versions.";
             return false;
-        }
+        }*/
     }
 
     if (isComputeShaderAttached)
