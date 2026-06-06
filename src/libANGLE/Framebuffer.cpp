@@ -79,15 +79,15 @@ FramebufferStatus CheckAttachmentCompleteness(const Context *context,
     const Extents &size = attachment.getSize();
     if (size.width == 0 || size.height == 0)
     {
-        /*return FramebufferStatus::Incomplete(GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT,
-                                             err::kFramebufferIncompleteAttachmentZeroSize);*/
+        if (!std::getenv("ANGLE_LESS_FRAMEBUFFER_LIMIT")) return FramebufferStatus::Incomplete(GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT,
+                                             err::kFramebufferIncompleteAttachmentZeroSize);
         WARN() << "Framebuffer is incomplete: Attachment has zero size.";
     }
 
     if (!attachment.isRenderable(context))
     {
-        /*return FramebufferStatus::Incomplete(GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT,
-                                             err::kFramebufferIncompleteAttachmentNotRenderable);*/
+        if (!std::getenv("ANGLE_LESS_FRAMEBUFFER_LIMIT")) return FramebufferStatus::Incomplete(GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT,
+                                             err::kFramebufferIncompleteAttachmentNotRenderable);
         WARN() << "Framebuffer is incomplete: Attachment is not renderable.";
     }
 
@@ -1589,9 +1589,9 @@ FramebufferStatus Framebuffer::checkStatusWithGLFrontEnd(const Context *context)
     if ((state.getClientVersion() < ES_3_0 || state.getExtensions().webglCompatibilityANGLE) &&
         !mState.attachmentsHaveSameDimensions())
     {
-        /*return FramebufferStatus::Incomplete(
+        if (!std::getenv("ANGLE_LESS_FRAMEBUFFER_LIMIT")) return FramebufferStatus::Incomplete(
             GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS,
-            err::kFramebufferIncompleteInconsistantAttachmentSizes);*/
+            err::kFramebufferIncompleteInconsistantAttachmentSizes);
         WARN() << "Framebuffer is incomplete: Attachments are not all the same size.";
     }
 
