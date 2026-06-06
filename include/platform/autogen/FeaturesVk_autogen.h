@@ -26,6 +26,12 @@ struct FeaturesVk : FeatureSetBase
         &members,
     };
 
+    FeatureInfo supportNOPERSPECTIVE = {
+        "supportNOPERSPECTIVE",
+        FeatureCategory::VulkanWorkarounds,
+        &members,
+    };
+
     FeatureInfo appendAliasedMemoryDecorations = {
         "appendAliasedMemoryDecorations",
         FeatureCategory::VulkanWorkarounds,
