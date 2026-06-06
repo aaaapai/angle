@@ -617,10 +617,10 @@ bool TParseContext::checkShaderVersion(const TSourceLoc &loc)
 {
     if (GetMaxShaderVersionForSpec(mShaderSpec) < mShaderVersion)
     {
-        //std::stringstream reasonStream = sh::InitializeStream<std::stringstream>();
-        //reasonStream << "unsupported shader version ";
-        //reasonStream << mShaderVersion;
-        //error(loc, reasonStream.str().c_str());
+        std::stringstream reasonStream = sh::InitializeStream<std::stringstream>();
+        reasonStream << "unsupported shader version ";
+        reasonStream << mShaderVersion;
+        warning(loc, reasonStream.str().c_str(), " ");
         //printf("unsupported shader version\n");
         return true;
     }
@@ -3691,7 +3691,7 @@ bool TParseContext::executeInitializer(const TSourceLoc &line,
         {
             TInfoSinkBase reasonStream;
             reasonStream << "assigning non-constant to '" << *type << "'";
-            error(line, reasonStream.c_str(), "=");
+            warning(line, reasonStream.c_str(), "=");
 
             // We're still going to declare the variable to avoid extra error messages.
             type->setQualifier(EvqTemporary);
@@ -9397,7 +9397,7 @@ TIntermBranch *TParseContext::addBranch(TOperator op,
         }
         else if (mCurrentFunction->getReturnType() != expression->getType())
         {
-            error(loc, "function return is not matching type:", "return");
+            warning(loc, "function return is not matching type:", "return");
         }
         if (!mControlFlow.empty())
         {
