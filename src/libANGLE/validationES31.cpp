@@ -1422,8 +1422,9 @@ bool ValidateBindImageTexture(const Context *context,
         case GL_RGBA8_SNORM:
             break;
         default:
-            ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kInvalidImageFormat);
-            return false;
+            //ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kInvalidImageFormat);
+            WARN() << "format is not one of supported image unit formats.";
+            return true;
     }
 
     if (texture.value != 0)
