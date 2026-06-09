@@ -18,6 +18,7 @@ enable_resource_allowlist_generation = false
 angle_enable_vulkan = true
 angle_enable_vulkan_validation_layers = false
 angle_enable_gl = true
+angle_enable_cl = true
 angle_enable_d3d9 = false
 angle_enable_d3d11 = false
 angle_enable_null = false
