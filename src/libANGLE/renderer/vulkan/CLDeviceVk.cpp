@@ -64,11 +64,11 @@ CLDeviceVk::CLDeviceVk(const cl::Device &device, vk::Renderer *renderer)
         halfFPConfig |= CL_FP_ROUND_TO_NEAREST | CL_FP_INF_NAN;
     }
 
-    if (mRenderer->getFeatures().supportsShaderFloat64.enabled)
-    {
+    //if (mRenderer->getFeatures().supportsShaderFloat64.enabled)
+    //{
         doubleFPConfig |= CL_FP_FMA | CL_FP_ROUND_TO_NEAREST | CL_FP_ROUND_TO_ZERO |
                           CL_FP_ROUND_TO_INF | CL_FP_INF_NAN | CL_FP_DENORM;
-    }
+    //}
 
     mInfoULong = {
         {cl::DeviceInfo::LocalMemSize, props.limits.maxComputeSharedMemorySize},
@@ -265,11 +265,11 @@ CLDeviceImpl::Info CLDeviceVk::createInfo(cl::DeviceType type) const
         versionedExtensionList.push_back(
             cl_name_version{.version = CL_MAKE_VERSION(1, 0, 0), .name = "cl_khr_fp16"});
     }
-    if (mRenderer->getFeatures().supportsShaderFloat64.enabled)
-    {
+    //if (mRenderer->getFeatures().supportsShaderFloat64.enabled)
+    //{
         versionedExtensionList.push_back(
             cl_name_version{.version = CL_MAKE_VERSION(1, 0, 0), .name = "cl_khr_fp64"});
-    }
+    //}
     if (info.imageSupport && info.image3D_MaxDepth > 1)
     {
         versionedExtensionList.push_back(
