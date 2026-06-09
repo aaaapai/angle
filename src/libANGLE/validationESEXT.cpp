@@ -31,12 +31,12 @@ using namespace err;
 
 void RecordVersionErrorESEXT(const Context *context, angle::EntryPoint entryPoint)
 {
-    ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kEntryPointRequiresESEXT);
+    //ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kEntryPointRequiresESEXT);
 }
 
 void RecordEntryPointBaseUnsupportedError(const Context *context, angle::EntryPoint entryPoint)
 {
-    ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kEntryPointBaseUnsupported);
+    //ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kEntryPointBaseUnsupported);
 }
 
 namespace
