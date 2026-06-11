@@ -132,6 +132,10 @@
 448658624 WIN INTEL VULKAN : GLSLTest_ES31.ConstantPrecisionPropagation/* = SKIP
 452159379 WIN INTEL VULKAN : ProgramBinaryTest.ReturnedBinaryTwiceShouldMatch/* = SKIP
 519062400 WIN INTEL OPENGL : CopyTextureTestES3.ChangeBaseLevel/* = SKIP
+521956634 WIN INTEL OPENGL : UniformBufferTest.BufferBlockBindingChange/* = SKIP
+521956634 WIN INTEL OPENGL : UniformBufferTest.BlockContainingArrayOfStructsContainingArrays/* = SKIP
+521956634 WIN INTEL OPENGL : UniformBufferTest31.UniformBufferBindingRangeChangeWithACB/* = SKIP
+521956634 WIN INTEL OPENGL : UniformTestES31.PackUniformFP16Test/* = SKIP
 
 42266241 PIXEL6 VULKAN : VertexAttributeTestES31.MismatchingSignsChangingAttributeType/* = SKIP
 42266241 PIXEL6 VULKAN : VertexAttributeTestES31.MismatchingSignsChangingProgramType/* = SKIP
@@ -579,10 +583,6 @@
 448658631 WIN D3D11 : GLSLTest_ES3.SwitchConstantFoldWithVariables/* = SKIP
 494938700 WIN D3D11 : CopyTexImageTest.CopyTexImageFromTexture3D/* = SKIP
 494938700 WIN D3D11 : CopyTexImageTest.CopyTexSubImageFromTexture3D/* = SKIP
-496259841 WIN D3D11 : RobustResourceInitTestES3.InvalidateThenReadBack/* = SKIP
-496259841 WIN D3D11 : RobustResourceInitTestES3.DrawThenInvalidateThenReadBack/* = SKIP
-496259841 WIN D3D11 : RobustResourceInitTestES3.DrawThenInvalidateThenVerifyDepthStencil/* = SKIP
-514927166 WIN D3D11 : RobustResourceInitTestES3.ClearThenInvalidateThenReadBack/* = SKIP
 512896813 WIN D3D11 : LineLoopTestES3.LineLoopDrawArraysInstancedBaseInstance/* = SKIP
 512896813 WIN D3D11 : LineLoopTestES3.LineLoopDrawElementsInstancedBaseVertexBaseInstance/* = SKIP
 514615434 D3D11 : DrawBaseVertexBaseInstanceTest.NegativeBaseVertex/* = SKIP
@@ -2818,9 +2818,6 @@
 
 // Timeout on Intel/Vulkan
 517981272 WIN INTEL VULKAN : EGLMultiContextTest.RepeatedEglInitAndTerminate/* = SKIP
-
-// Crashing on Win and Linux Vulkan
-519817006 VULKAN : VulkanPerformanceCounterTest_TileMemory.RedefineSharedDepthTextureWithOpenRenderPasses/* = SKIP
 
 // This test fails because of incorrect GLX MakeCurrent calls in other tests
 520248049 LINUX OPENGL : EGLSurfacelessContextTest.CheckFramebufferStatus/* = SKIP

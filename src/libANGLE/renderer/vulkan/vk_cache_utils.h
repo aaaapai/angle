@@ -1697,38 +1697,6 @@ class PipelineHelper final : public Resource
     WaitableMonolithicPipelineCreationTask mMonolithicPipelineCreationTask;
 };
 
-class FramebufferHelper : public Resource
-{
-  public:
-    FramebufferHelper();
-    ~FramebufferHelper() override;
-
-    FramebufferHelper(FramebufferHelper &&other);
-    FramebufferHelper &operator=(FramebufferHelper &&other);
-
-    angle::Result init(ErrorContext *context, const VkFramebufferCreateInfo &createInfo);
-    void destroy(Renderer *renderer);
-    void release(ContextVk *contextVk);
-
-    bool valid() { return mFramebuffer.valid(); }
-
-    const Framebuffer &getFramebuffer() const
-    {
-        ASSERT(mFramebuffer.valid());
-        return mFramebuffer;
-    }
-
-    Framebuffer &getFramebuffer()
-    {
-        ASSERT(mFramebuffer.valid());
-        return mFramebuffer;
-    }
-
-  private:
-    // Vulkan object.
-    Framebuffer mFramebuffer;
-};
-
 ANGLE_INLINE PipelineHelper::PipelineHelper(Pipeline &&pipeline, CacheLookUpFeedback feedback)
     : mPipeline(std::move(pipeline)), mCacheLookUpFeedback(feedback)
 {}
@@ -2603,14 +2571,14 @@ class FramebufferCache final : angle::NonCopyable
     bool get(ContextVk *contextVk, const vk::FramebufferDesc &desc, vk::Framebuffer &framebuffer);
     void insert(ContextVk *contextVk,
                 const vk::FramebufferDesc &desc,
-                vk::FramebufferHelper &&framebufferHelper);
+                vk::Framebuffer &&framebuffer);
     void erase(ContextVk *contextVk, const vk::FramebufferDesc &desc);
 
     size_t getSize() const { return mPayload.size(); }
     bool empty() const { return mPayload.empty(); }
 
   private:
-    angle::HashMap<vk::FramebufferDesc, vk::FramebufferHelper> mPayload;
+    angle::HashMap<vk::FramebufferDesc, vk::Framebuffer> mPayload;
     CacheStats mCacheStats;
 };
 
@@ -2901,7 +2869,7 @@ class SamplerCache final : public HasCacheStats<VulkanCacheType::Sampler>
     SamplerCache();
     ~SamplerCache() override;
 
-    void destroy(vk::Renderer *renderer, bool orphanReferencedSamplers);
+    void destroy(vk::Renderer *renderer);
 
     angle::Result getSampler(ContextVk *contextVk,
                              const vk::SamplerDesc &desc,
@@ -2919,7 +2887,7 @@ class SamplerYcbcrConversionCache final
     SamplerYcbcrConversionCache();
     ~SamplerYcbcrConversionCache() override;
 
-    void destroy(vk::Renderer *renderer, bool orphanConversionInfo);
+    void destroy(vk::Renderer *renderer);
 
     angle::Result getSamplerYcbcrConversion(vk::ErrorContext *context,
                                             const vk::YcbcrConversionDesc &ycbcrConversionDesc,

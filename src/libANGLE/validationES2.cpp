@@ -1954,14 +1954,6 @@ bool ValidateGenVertexArraysOES(const Context *context,
     return ValidateGenOrDelete(context->getMutableErrorSetForValidation(), entryPoint, n, arrays);
 }
 
-bool ValidateIsVertexArrayOES(const PrivateState &state,
-                              ErrorSet *errors,
-                              angle::EntryPoint entryPoint,
-                              VertexArrayID array)
-{
-    return true;
-}
-
 bool ValidateProgramBinaryOES(const Context *context,
                               angle::EntryPoint entryPoint,
                               ShaderProgramID program,
@@ -2181,14 +2173,6 @@ bool ValidateDebugMessageInsertKHR(const Context *context,
 {
     return ValidateDebugMessageInsertBase(context, entryPoint, source, type, id, severity, length,
                                           buf);
-}
-
-bool ValidateDebugMessageCallbackKHR(const Context *context,
-                                     angle::EntryPoint entryPoint,
-                                     GLDEBUGPROCKHR callback,
-                                     const void *userParam)
-{
-    return true;
 }
 
 bool ValidateGetDebugMessageLogKHR(const Context *context,
@@ -3963,17 +3947,6 @@ static bool ValidAdvancedBlendEquationMode(const PrivateState &state, GLenum mod
     }
 }
 
-bool ValidateBlendColor(const PrivateState &state,
-                        ErrorSet *errors,
-                        angle::EntryPoint entryPoint,
-                        GLfloat red,
-                        GLfloat green,
-                        GLfloat blue,
-                        GLfloat alpha)
-{
-    return true;
-}
-
 bool ValidateBlendEquation(const PrivateState &state,
                            ErrorSet *errors,
                            angle::EntryPoint entryPoint,
@@ -4198,53 +4171,17 @@ bool ValidateCheckFramebufferStatus(const Context *context,
     return true;
 }
 
-bool ValidateClearColor(const PrivateState &state,
-                        ErrorSet *errors,
-                        angle::EntryPoint entryPoint,
-                        GLfloat red,
-                        GLfloat green,
-                        GLfloat blue,
-                        GLfloat alpha)
-{
-    return true;
-}
-
-bool ValidateClearDepthf(const PrivateState &state,
-                         ErrorSet *errors,
-                         angle::EntryPoint entryPoint,
-                         GLfloat depth)
-{
-    return true;
-}
-
-bool ValidateClearStencil(const PrivateState &state,
-                          ErrorSet *errors,
-                          angle::EntryPoint entryPoint,
-                          GLint s)
-{
-    return true;
-}
-
-bool ValidateColorMask(const PrivateState &state,
-                       ErrorSet *errors,
-                       angle::EntryPoint entryPoint,
-                       GLboolean red,
-                       GLboolean green,
-                       GLboolean blue,
-                       GLboolean alpha)
-{
-    return true;
-}
-
 bool ValidateCompileShader(const Context *context,
                            angle::EntryPoint entryPoint,
                            ShaderProgramID shader)
 {
-    return true;
-}
+    Shader *shaderObject = GetValidShader(context, entryPoint, shader);
+    if (shaderObject == nullptr)
+    {
+        // Error already generated.
+        return false;
+    }
 
-bool ValidateCreateProgram(const Context *context, angle::EntryPoint entryPoint)
-{
     return true;
 }
 
@@ -4345,14 +4282,6 @@ bool ValidateDepthFunc(const PrivateState &state,
     return true;
 }
 
-bool ValidateDepthMask(const PrivateState &state,
-                       ErrorSet *errors,
-                       angle::EntryPoint entryPoint,
-                       GLboolean flag)
-{
-    return true;
-}
-
 bool ValidateDetachShader(const Context *context,
                           angle::EntryPoint entryPoint,
                           ShaderProgramID program,
@@ -4407,16 +4336,6 @@ bool ValidateEnableVertexAttribArray(const PrivateState &state,
         return false;
     }
 
-    return true;
-}
-
-bool ValidateFinish(const Context *context, angle::EntryPoint entryPoint)
-{
-    return true;
-}
-
-bool ValidateFlush(const Context *context, angle::EntryPoint entryPoint)
-{
     return true;
 }
 
@@ -4576,11 +4495,6 @@ bool ValidateGetBooleanv(const Context *context,
                          const GLboolean *data)
 {
     return ValidateStateQuery(context, entryPoint, pname, data, nullptr);
-}
-
-bool ValidateGetError(const Context *context, angle::EntryPoint entryPoint)
-{
-    return true;
 }
 
 bool ValidateGetFloatv(const Context *context,
@@ -4795,42 +4709,6 @@ bool ValidateHint(const PrivateState &state,
     return true;
 }
 
-bool ValidateIsBuffer(const Context *context, angle::EntryPoint entryPoint, BufferID buffer)
-{
-    return true;
-}
-
-bool ValidateIsFramebuffer(const Context *context,
-                           angle::EntryPoint entryPoint,
-                           FramebufferID framebuffer)
-{
-    return true;
-}
-
-bool ValidateIsProgram(const Context *context,
-                       angle::EntryPoint entryPoint,
-                       ShaderProgramID program)
-{
-    return true;
-}
-
-bool ValidateIsRenderbuffer(const Context *context,
-                            angle::EntryPoint entryPoint,
-                            RenderbufferID renderbuffer)
-{
-    return true;
-}
-
-bool ValidateIsShader(const Context *context, angle::EntryPoint entryPoint, ShaderProgramID shader)
-{
-    return true;
-}
-
-bool ValidateIsTexture(const Context *context, angle::EntryPoint entryPoint, TextureID texture)
-{
-    return true;
-}
-
 bool ValidatePixelStorei(const PrivateState &state,
                          ErrorSet *errors,
                          angle::EntryPoint entryPoint,
@@ -4890,29 +4768,6 @@ bool ValidatePixelStorei(const PrivateState &state,
         return false;
     }
 
-    return true;
-}
-
-bool ValidatePolygonOffset(const PrivateState &state,
-                           ErrorSet *errors,
-                           angle::EntryPoint entryPoint,
-                           GLfloat factor,
-                           GLfloat units)
-{
-    return true;
-}
-
-bool ValidateReleaseShaderCompiler(const Context *context, angle::EntryPoint entryPoint)
-{
-    return true;
-}
-
-bool ValidateSampleCoverage(const PrivateState &state,
-                            ErrorSet *errors,
-                            angle::EntryPoint entryPoint,
-                            GLfloat value,
-                            GLboolean invert)
-{
     return true;
 }
 
@@ -5059,14 +4914,6 @@ bool ValidateStencilFuncSeparate(const PrivateState &state,
         return false;
     }
 
-    return true;
-}
-
-bool ValidateStencilMask(const PrivateState &state,
-                         ErrorSet *errors,
-                         angle::EntryPoint entryPoint,
-                         GLuint mask)
-{
     return true;
 }
 
@@ -5694,11 +5541,6 @@ bool ValidateGetFenceivNV(const Context *context,
     return true;
 }
 
-bool ValidateGetGraphicsResetStatusEXT(const Context *context, angle::EntryPoint entryPoint)
-{
-    return true;
-}
-
 bool ValidateGetTranslatedShaderSourceANGLE(const Context *context,
                                             angle::EntryPoint entryPoint,
                                             ShaderProgramID shader,
@@ -5720,11 +5562,6 @@ bool ValidateGetTranslatedShaderSourceANGLE(const Context *context,
         return false;
     }
 
-    return true;
-}
-
-bool ValidateIsFenceNV(const Context *context, angle::EntryPoint entryPoint, FenceNVID fence)
-{
     return true;
 }
 
@@ -5848,11 +5685,6 @@ bool ValidateTexImage3DOES(const Context *context,
                               depth, border, format, type, pixels);
 }
 
-bool ValidatePopGroupMarkerEXT(const Context *context, angle::EntryPoint entryPoint)
-{
-    return true;
-}
-
 bool ValidateTexStorage3DEXT(const Context *context,
                              angle::EntryPoint entryPoint,
                              TextureType target,
@@ -5870,13 +5702,6 @@ bool ValidateTexStorage3DEXT(const Context *context,
 
     return ValidateES3TexStorage3DParameters(context, entryPoint, target, levels, internalformat,
                                              width, height, depth);
-}
-
-bool ValidateMaxShaderCompilerThreadsKHR(const Context *context,
-                                         angle::EntryPoint entryPoint,
-                                         GLuint count)
-{
-    return true;
 }
 
 bool ValidateMultiDrawArraysANGLE(const Context *context,

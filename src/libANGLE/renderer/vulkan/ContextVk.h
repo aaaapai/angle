@@ -241,6 +241,7 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
 
     // ShareGroup
     ShareGroupVk *getShareGroup() { return mShareGroupVk; }
+    FramebufferCache &getFramebufferCache() { return mFramebufferCache; }
     PipelineLayoutCache &getPipelineLayoutCache()
     {
         return mShareGroupVk->getPipelineLayoutCache();
@@ -252,6 +253,22 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
     vk::DescriptorSetArray<vk::MetaDescriptorPool> &getMetaDescriptorPools()
     {
         return mShareGroupVk->getMetaDescriptorPools();
+    }
+    SamplerCache &getSamplerCache()
+    {
+        if (hasDisplayTextureShareGroup())
+        {
+            return mRenderer->getSamplerCache();
+        }
+        return mShareGroupVk->getSamplerCache();
+    }
+    SamplerYcbcrConversionCache &getYuvConversionCache()
+    {
+        if (hasDisplayTextureShareGroup())
+        {
+            return mRenderer->getYuvConversionCache();
+        }
+        return mShareGroupVk->getYuvConversionCache();
     }
 
     // Device loss
@@ -474,6 +491,7 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
                                        gl::SamplerFormat format,
                                        gl::Texture **textureOut);
     void updateColorMasks();
+    void updateBlendEnabled();
     void updateBlendFuncsAndEquations();
 
     void handleError(VkResult errorCode,
@@ -1599,6 +1617,7 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
     vk::GarbageObjects mCurrentGarbage;
 
     RenderPassCache mRenderPassCache;
+    FramebufferCache mFramebufferCache;
     // Used with dynamic rendering as it doesn't use render passes.
     vk::RenderPass mNullRenderPass;
 

@@ -1251,10 +1251,10 @@ void ContextVk::onDestroy(const gl::Context *context)
     mIncompleteTextures.onDestroy(context);
 
     // Flush and complete current outstanding work before destruction.
-    (void)finishImpl(QueueSubmitReason::ContextDestruction);
+    const angle::Result finishResult = finishImpl(QueueSubmitReason::ContextDestruction);
 
     // The finish call could also generate device loss.
-    if (mRenderer->isDeviceLost())
+    if (mRenderer->isDeviceLost() || finishResult != angle::Result::Continue)
     {
         mRenderer->handleDeviceLost();
     }
@@ -1291,6 +1291,7 @@ void ContextVk::onDestroy(const gl::Context *context)
     mUtils.destroy(this);
 
     mRenderPassCache.destroy(this);
+    mFramebufferCache.destroy(mRenderer);
     mShaderLibrary.destroy(device);
 
     // Must release all Vulkan secondary command buffers before destroying the pools.
@@ -3686,7 +3687,7 @@ void ContextVk::syncObjectPerfCounters(const angle::VulkanPerfCounters &commandQ
         commandQueuePerfCounters.commandQueueWaitSemaphoresTotal;
 
     // Return current drawFramebuffer's cache stats
-    mPerfCounters.framebufferCacheSize = mShareGroupVk->getFramebufferCache().getSize();
+    mPerfCounters.framebufferCacheSize = mFramebufferCache.getSize();
 
     mPerfCounters.pendingSubmissionGarbageObjects =
         static_cast<uint64_t>(mRenderer->getPendingSubmissionGarbageSize());
@@ -4816,6 +4817,18 @@ void ContextVk::updateMissingAttachments()
     }
 }
 
+void ContextVk::updateBlendEnabled()
+{
+    const gl::DrawBufferMask framebufferMask = mState.getDrawFramebuffer()->getDrawBufferMask();
+    const gl::DrawBufferMask enabledBlend    = mState.getBlendStateExt().getEnabledMask();
+
+    // Filter out blend for disabled attachments.  If advanced blend is enabled, Vulkan
+    // forbids blend from being specified on the other attachments (same as GL, but GL
+    // ignores blend on disabled attachments).
+    mGraphicsPipelineDesc->updateBlendEnabled(&mGraphicsPipelineTransition,
+                                              enabledBlend & framebufferMask);
+}
+
 void ContextVk::updateBlendFuncsAndEquations()
 {
     const gl::BlendStateExt &blendStateExt = mState.getBlendStateExt();
@@ -5475,8 +5488,7 @@ angle::Result ContextVk::syncState(const gl::Context *context,
                 updateDepthRange(glState.getNearPlane(), glState.getFarPlane());
                 break;
             case gl::state::DIRTY_BIT_BLEND_ENABLED:
-                mGraphicsPipelineDesc->updateBlendEnabled(
-                    &mGraphicsPipelineTransition, glState.getBlendStateExt().getEnabledMask());
+                updateBlendEnabled();
                 updateDither();
                 updateAdvancedBlendEquations(programExecutable);
                 break;
@@ -5740,6 +5752,7 @@ angle::Result ContextVk::syncState(const gl::Context *context,
                                glState.getFarPlane());
                 updateColorMasks();
                 updateMissingAttachments();
+                updateBlendEnabled();
                 updateRasterizationSamples(drawFramebufferVk->getSamples());
                 updateRasterizerDiscardEnabled(
                     mState.isQueryActive(gl::QueryType::PrimitivesGenerated));
@@ -6515,6 +6528,7 @@ angle::Result ContextVk::onFramebufferChange(FramebufferVk *framebufferVk, gl::C
 
     // Attachments might have changed.
     updateMissingAttachments();
+    updateBlendEnabled();
 
     if (mState.getProgramExecutable())
     {

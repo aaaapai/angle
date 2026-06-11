@@ -119,9 +119,7 @@ void GL_APIENTRY GL_ClearColorx(GLfixed red, GLfixed green, GLfixed blue, GLfixe
 #if defined(ANGLE_ENABLE_ASSERTS)
                 const uint32_t errorCount = context->getPushedErrorCount();
 #endif
-                isCallValid = ValidateClearColorx(
-                    context->getPrivateState(), context->getMutableErrorSetForValidation(),
-                    angle::EntryPoint::GLClearColorx, red, green, blue, alpha);
+                isCallValid = true;
 #if defined(ANGLE_ENABLE_ASSERTS)
                 ASSERT(isCallValid || context->getPushedErrorCount() != errorCount);
 #endif
@@ -158,9 +156,7 @@ void GL_APIENTRY GL_ClearDepthx(GLfixed depth)
 #if defined(ANGLE_ENABLE_ASSERTS)
                 const uint32_t errorCount = context->getPushedErrorCount();
 #endif
-                isCallValid = ValidateClearDepthx(context->getPrivateState(),
-                                                  context->getMutableErrorSetForValidation(),
-                                                  angle::EntryPoint::GLClearDepthx, depth);
+                isCallValid = true;
 #if defined(ANGLE_ENABLE_ASSERTS)
                 ASSERT(isCallValid || context->getPushedErrorCount() != errorCount);
 #endif
@@ -312,9 +308,7 @@ void GL_APIENTRY GL_Color4f(GLfloat red, GLfloat green, GLfloat blue, GLfloat al
 #if defined(ANGLE_ENABLE_ASSERTS)
                 const uint32_t errorCount = context->getPushedErrorCount();
 #endif
-                isCallValid = ValidateColor4f(
-                    context->getPrivateState(), context->getMutableErrorSetForValidation(),
-                    angle::EntryPoint::GLColor4f, red, green, blue, alpha);
+                isCallValid = true;
 #if defined(ANGLE_ENABLE_ASSERTS)
                 ASSERT(isCallValid || context->getPushedErrorCount() != errorCount);
 #endif
@@ -351,9 +345,7 @@ void GL_APIENTRY GL_Color4ub(GLubyte red, GLubyte green, GLubyte blue, GLubyte a
 #if defined(ANGLE_ENABLE_ASSERTS)
                 const uint32_t errorCount = context->getPushedErrorCount();
 #endif
-                isCallValid = ValidateColor4ub(
-                    context->getPrivateState(), context->getMutableErrorSetForValidation(),
-                    angle::EntryPoint::GLColor4ub, red, green, blue, alpha);
+                isCallValid = true;
 #if defined(ANGLE_ENABLE_ASSERTS)
                 ASSERT(isCallValid || context->getPushedErrorCount() != errorCount);
 #endif
@@ -390,9 +382,7 @@ void GL_APIENTRY GL_Color4x(GLfixed red, GLfixed green, GLfixed blue, GLfixed al
 #if defined(ANGLE_ENABLE_ASSERTS)
                 const uint32_t errorCount = context->getPushedErrorCount();
 #endif
-                isCallValid = ValidateColor4x(
-                    context->getPrivateState(), context->getMutableErrorSetForValidation(),
-                    angle::EntryPoint::GLColor4x, red, green, blue, alpha);
+                isCallValid = true;
 #if defined(ANGLE_ENABLE_ASSERTS)
                 ASSERT(isCallValid || context->getPushedErrorCount() != errorCount);
 #endif
@@ -469,9 +459,7 @@ void GL_APIENTRY GL_DepthRangex(GLfixed n, GLfixed f)
 #if defined(ANGLE_ENABLE_ASSERTS)
                 const uint32_t errorCount = context->getPushedErrorCount();
 #endif
-                isCallValid = ValidateDepthRangex(context->getPrivateState(),
-                                                  context->getMutableErrorSetForValidation(),
-                                                  angle::EntryPoint::GLDepthRangex, n, f);
+                isCallValid = true;
 #if defined(ANGLE_ENABLE_ASSERTS)
                 ASSERT(isCallValid || context->getPushedErrorCount() != errorCount);
 #endif
@@ -1627,9 +1615,7 @@ void GL_APIENTRY GL_LoadIdentity()
 #if defined(ANGLE_ENABLE_ASSERTS)
                 const uint32_t errorCount = context->getPushedErrorCount();
 #endif
-                isCallValid = ValidateLoadIdentity(context->getPrivateState(),
-                                                   context->getMutableErrorSetForValidation(),
-                                                   angle::EntryPoint::GLLoadIdentity);
+                isCallValid = true;
 #if defined(ANGLE_ENABLE_ASSERTS)
                 ASSERT(isCallValid || context->getPushedErrorCount() != errorCount);
 #endif
@@ -1665,9 +1651,7 @@ void GL_APIENTRY GL_LoadMatrixf(const GLfloat *m)
 #if defined(ANGLE_ENABLE_ASSERTS)
                 const uint32_t errorCount = context->getPushedErrorCount();
 #endif
-                isCallValid = ValidateLoadMatrixf(context->getPrivateState(),
-                                                  context->getMutableErrorSetForValidation(),
-                                                  angle::EntryPoint::GLLoadMatrixf, m);
+                isCallValid = true;
 #if defined(ANGLE_ENABLE_ASSERTS)
                 ASSERT(isCallValid || context->getPushedErrorCount() != errorCount);
 #endif
@@ -1703,9 +1687,7 @@ void GL_APIENTRY GL_LoadMatrixx(const GLfixed *m)
 #if defined(ANGLE_ENABLE_ASSERTS)
                 const uint32_t errorCount = context->getPushedErrorCount();
 #endif
-                isCallValid = ValidateLoadMatrixx(context->getPrivateState(),
-                                                  context->getMutableErrorSetForValidation(),
-                                                  angle::EntryPoint::GLLoadMatrixx, m);
+                isCallValid = true;
 #if defined(ANGLE_ENABLE_ASSERTS)
                 ASSERT(isCallValid || context->getPushedErrorCount() != errorCount);
 #endif
@@ -1986,9 +1968,7 @@ void GL_APIENTRY GL_MultMatrixf(const GLfloat *m)
 #if defined(ANGLE_ENABLE_ASSERTS)
                 const uint32_t errorCount = context->getPushedErrorCount();
 #endif
-                isCallValid = ValidateMultMatrixf(context->getPrivateState(),
-                                                  context->getMutableErrorSetForValidation(),
-                                                  angle::EntryPoint::GLMultMatrixf, m);
+                isCallValid = true;
 #if defined(ANGLE_ENABLE_ASSERTS)
                 ASSERT(isCallValid || context->getPushedErrorCount() != errorCount);
 #endif
@@ -2024,9 +2004,7 @@ void GL_APIENTRY GL_MultMatrixx(const GLfixed *m)
 #if defined(ANGLE_ENABLE_ASSERTS)
                 const uint32_t errorCount = context->getPushedErrorCount();
 #endif
-                isCallValid = ValidateMultMatrixx(context->getPrivateState(),
-                                                  context->getMutableErrorSetForValidation(),
-                                                  angle::EntryPoint::GLMultMatrixx, m);
+                isCallValid = true;
 #if defined(ANGLE_ENABLE_ASSERTS)
                 ASSERT(isCallValid || context->getPushedErrorCount() != errorCount);
 #endif
@@ -2143,9 +2121,7 @@ void GL_APIENTRY GL_Normal3f(GLfloat nx, GLfloat ny, GLfloat nz)
 #if defined(ANGLE_ENABLE_ASSERTS)
                 const uint32_t errorCount = context->getPushedErrorCount();
 #endif
-                isCallValid = ValidateNormal3f(context->getPrivateState(),
-                                               context->getMutableErrorSetForValidation(),
-                                               angle::EntryPoint::GLNormal3f, nx, ny, nz);
+                isCallValid = true;
 #if defined(ANGLE_ENABLE_ASSERTS)
                 ASSERT(isCallValid || context->getPushedErrorCount() != errorCount);
 #endif
@@ -2181,9 +2157,7 @@ void GL_APIENTRY GL_Normal3x(GLfixed nx, GLfixed ny, GLfixed nz)
 #if defined(ANGLE_ENABLE_ASSERTS)
                 const uint32_t errorCount = context->getPushedErrorCount();
 #endif
-                isCallValid = ValidateNormal3x(context->getPrivateState(),
-                                               context->getMutableErrorSetForValidation(),
-                                               angle::EntryPoint::GLNormal3x, nx, ny, nz);
+                isCallValid = true;
 #if defined(ANGLE_ENABLE_ASSERTS)
                 ASSERT(isCallValid || context->getPushedErrorCount() != errorCount);
 #endif
@@ -2575,9 +2549,7 @@ void GL_APIENTRY GL_PolygonOffsetx(GLfixed factor, GLfixed units)
 #if defined(ANGLE_ENABLE_ASSERTS)
                 const uint32_t errorCount = context->getPushedErrorCount();
 #endif
-                isCallValid = ValidatePolygonOffsetx(
-                    context->getPrivateState(), context->getMutableErrorSetForValidation(),
-                    angle::EntryPoint::GLPolygonOffsetx, factor, units);
+                isCallValid = true;
 #if defined(ANGLE_ENABLE_ASSERTS)
                 ASSERT(isCallValid || context->getPushedErrorCount() != errorCount);
 #endif
@@ -2687,9 +2659,7 @@ void GL_APIENTRY GL_Rotatef(GLfloat angle, GLfloat x, GLfloat y, GLfloat z)
 #if defined(ANGLE_ENABLE_ASSERTS)
                 const uint32_t errorCount = context->getPushedErrorCount();
 #endif
-                isCallValid = ValidateRotatef(context->getPrivateState(),
-                                              context->getMutableErrorSetForValidation(),
-                                              angle::EntryPoint::GLRotatef, angle, x, y, z);
+                isCallValid = true;
 #if defined(ANGLE_ENABLE_ASSERTS)
                 ASSERT(isCallValid || context->getPushedErrorCount() != errorCount);
 #endif
@@ -2726,9 +2696,7 @@ void GL_APIENTRY GL_Rotatex(GLfixed angle, GLfixed x, GLfixed y, GLfixed z)
 #if defined(ANGLE_ENABLE_ASSERTS)
                 const uint32_t errorCount = context->getPushedErrorCount();
 #endif
-                isCallValid = ValidateRotatex(context->getPrivateState(),
-                                              context->getMutableErrorSetForValidation(),
-                                              angle::EntryPoint::GLRotatex, angle, x, y, z);
+                isCallValid = true;
 #if defined(ANGLE_ENABLE_ASSERTS)
                 ASSERT(isCallValid || context->getPushedErrorCount() != errorCount);
 #endif
@@ -2764,9 +2732,7 @@ void GL_APIENTRY GL_SampleCoveragex(GLclampx value, GLboolean invert)
 #if defined(ANGLE_ENABLE_ASSERTS)
                 const uint32_t errorCount = context->getPushedErrorCount();
 #endif
-                isCallValid = ValidateSampleCoveragex(
-                    context->getPrivateState(), context->getMutableErrorSetForValidation(),
-                    angle::EntryPoint::GLSampleCoveragex, value, invert);
+                isCallValid = true;
 #if defined(ANGLE_ENABLE_ASSERTS)
                 ASSERT(isCallValid || context->getPushedErrorCount() != errorCount);
 #endif
@@ -2802,9 +2768,7 @@ void GL_APIENTRY GL_Scalef(GLfloat x, GLfloat y, GLfloat z)
 #if defined(ANGLE_ENABLE_ASSERTS)
                 const uint32_t errorCount = context->getPushedErrorCount();
 #endif
-                isCallValid = ValidateScalef(context->getPrivateState(),
-                                             context->getMutableErrorSetForValidation(),
-                                             angle::EntryPoint::GLScalef, x, y, z);
+                isCallValid = true;
 #if defined(ANGLE_ENABLE_ASSERTS)
                 ASSERT(isCallValid || context->getPushedErrorCount() != errorCount);
 #endif
@@ -2840,9 +2804,7 @@ void GL_APIENTRY GL_Scalex(GLfixed x, GLfixed y, GLfixed z)
 #if defined(ANGLE_ENABLE_ASSERTS)
                 const uint32_t errorCount = context->getPushedErrorCount();
 #endif
-                isCallValid = ValidateScalex(context->getPrivateState(),
-                                             context->getMutableErrorSetForValidation(),
-                                             angle::EntryPoint::GLScalex, x, y, z);
+                isCallValid = true;
 #if defined(ANGLE_ENABLE_ASSERTS)
                 ASSERT(isCallValid || context->getPushedErrorCount() != errorCount);
 #endif
@@ -3295,9 +3257,7 @@ void GL_APIENTRY GL_Translatef(GLfloat x, GLfloat y, GLfloat z)
 #if defined(ANGLE_ENABLE_ASSERTS)
                 const uint32_t errorCount = context->getPushedErrorCount();
 #endif
-                isCallValid = ValidateTranslatef(context->getPrivateState(),
-                                                 context->getMutableErrorSetForValidation(),
-                                                 angle::EntryPoint::GLTranslatef, x, y, z);
+                isCallValid = true;
 #if defined(ANGLE_ENABLE_ASSERTS)
                 ASSERT(isCallValid || context->getPushedErrorCount() != errorCount);
 #endif
@@ -3333,9 +3293,7 @@ void GL_APIENTRY GL_Translatex(GLfixed x, GLfixed y, GLfixed z)
 #if defined(ANGLE_ENABLE_ASSERTS)
                 const uint32_t errorCount = context->getPushedErrorCount();
 #endif
-                isCallValid = ValidateTranslatex(context->getPrivateState(),
-                                                 context->getMutableErrorSetForValidation(),
-                                                 angle::EntryPoint::GLTranslatex, x, y, z);
+                isCallValid = true;
 #if defined(ANGLE_ENABLE_ASSERTS)
                 ASSERT(isCallValid || context->getPushedErrorCount() != errorCount);
 #endif
