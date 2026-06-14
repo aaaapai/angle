@@ -90,6 +90,14 @@ void BindFramebufferAttachment(const FunctionsGL *functions,
             const Texture *texture     = attachment->getTexture();
             const TextureGL *textureGL = GetImplAs<TextureGL>(texture);
 
+            if (features.reattachFboDepthStencilOnReallocation.enabled &&
+                (attachmentPoint == GL_DEPTH_ATTACHMENT ||
+                 attachmentPoint == GL_STENCIL_ATTACHMENT))
+            {
+                functions->framebufferTexture2D(GL_FRAMEBUFFER, attachmentPoint, GL_TEXTURE_2D, 0,
+                                                0);
+            }
+
             if (texture->getType() == TextureType::_2D ||
                 texture->getType() == TextureType::_2DMultisample ||
                 texture->getType() == TextureType::Rectangle ||
@@ -170,6 +178,14 @@ void BindFramebufferAttachment(const FunctionsGL *functions,
         {
             const Renderbuffer *renderbuffer     = attachment->getRenderbuffer();
             const RenderbufferGL *renderbufferGL = GetImplAs<RenderbufferGL>(renderbuffer);
+
+            if (features.reattachFboDepthStencilOnReallocation.enabled &&
+                (attachmentPoint == GL_DEPTH_ATTACHMENT ||
+                 attachmentPoint == GL_STENCIL_ATTACHMENT))
+            {
+                functions->framebufferRenderbuffer(GL_FRAMEBUFFER, attachmentPoint, GL_RENDERBUFFER,
+                                                   0);
+            }
 
             if (features.alwaysUnbindFramebufferTexture2D.enabled)
             {
@@ -266,17 +282,6 @@ bool RequiresMultiviewClear(const FramebufferState &state, bool scissorTestEnabl
     return false;
 }
 
-bool IsEmulatedAlphaChannelTextureAttachment(const FramebufferAttachment *attachment)
-{
-    if (!attachment || attachment->type() != GL_TEXTURE)
-    {
-        return false;
-    }
-
-    const Texture *texture     = attachment->getTexture();
-    const TextureGL *textureGL = GetImplAs<TextureGL>(texture);
-    return textureGL->hasEmulatedAlphaChannel(attachment->getTextureImageIndex());
-}
 
 class [[nodiscard]] ScopedEXTTextureNorm16ReadbackWorkaround
 {
@@ -449,6 +454,18 @@ bool IsNonTrivialClearColor(const GLuint *color)
 }
 
 }  // namespace
+
+bool IsEmulatedAlphaChannelTextureAttachment(const gl::FramebufferAttachment *attachment)
+{
+    if (!attachment || attachment->type() != GL_TEXTURE)
+    {
+        return false;
+    }
+
+    const Texture *texture     = attachment->getTexture();
+    const TextureGL *textureGL = GetImplAs<TextureGL>(texture);
+    return textureGL->hasEmulatedAlphaChannel(attachment->getTextureImageIndex());
+}
 
 FramebufferGL::FramebufferGL(const gl::FramebufferState &data, GLuint id, bool emulatedAlpha)
     : FramebufferImpl(data),

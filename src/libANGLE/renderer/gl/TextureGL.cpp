@@ -257,6 +257,11 @@ angle::Result TextureGL::setImageHelper(const gl::Context *context,
     StateManagerGL *stateManager      = GetStateManagerGL(context);
     const angle::FeaturesGL &features = GetFeaturesGL(context);
 
+    if (features.reattachFboDepthStencilOnReallocation.enabled)
+    {
+        onStateChange(angle::SubjectMessage::ObjectReallocated);
+    }
+
     const gl::InternalFormat &originalInternalFormatInfo =
         gl::GetInternalFormatInfo(internalFormat, type);
     nativegl::TexImageFormat texImageFormat =
@@ -1189,6 +1194,11 @@ angle::Result TextureGL::setStorage(const gl::Context *context,
     StateManagerGL *stateManager      = GetStateManagerGL(context);
     const angle::FeaturesGL &features = GetFeaturesGL(context);
 
+    if (features.reattachFboDepthStencilOnReallocation.enabled)
+    {
+        onStateChange(angle::SubjectMessage::ObjectReallocated);
+    }
+
     const gl::InternalFormat &originalInternalFormatInfo =
         gl::GetSizedInternalFormatInfo(internalFormat);
     nativegl::TexStorageFormat texStorageFormat =
@@ -1371,6 +1381,11 @@ angle::Result TextureGL::setStorageMultisample(const gl::Context *context,
     const FunctionsGL *functions      = GetFunctionsGL(context);
     StateManagerGL *stateManager      = GetStateManagerGL(context);
     const angle::FeaturesGL &features = GetFeaturesGL(context);
+
+    if (features.reattachFboDepthStencilOnReallocation.enabled)
+    {
+        onStateChange(angle::SubjectMessage::ObjectReallocated);
+    }
 
     const gl::InternalFormat &originalInternalFormatInfo =
         gl::GetSizedInternalFormatInfo(internalformat);
@@ -2415,9 +2430,9 @@ gl::TextureType TextureGL::getType() const
     return mState.getType();
 }
 
-angle::Result TextureGL::initializeContents(const gl::Context *context,
-                                            GLenum binding,
-                                            const gl::ImageIndex &imageIndex)
+angle::Result TextureGL::initializeContentsImpl(const gl::Context *context,
+                                                GLenum binding,
+                                                const gl::ImageIndex &imageIndex)
 {
     ContextGL *contextGL              = GetImplAs<ContextGL>(context);
     const FunctionsGL *functions      = GetFunctionsGL(context);
@@ -2429,9 +2444,13 @@ angle::Result TextureGL::initializeContents(const gl::Context *context,
 
     // Clearing cube maps with EXT_clear_texture has inconsistent results. The drivers often clear
     // the entire level when only one face is specified.
+    //
+    // We also skip this path for depth textures because depth needs to be initialized to 1.0 and
+    // glClearTex*Image requires a raw data representing 1.0 depending on the internal format
+    // (depth24, depth16, depth32, etc). It's easier to just use the glClear path below.
     if (functions->clearTexImage && !internalFormatInfo.compressed &&
         getType() != gl::TextureType::CubeMap &&
-        !features.disableClearTexImageForRobustInit.enabled)
+        !features.disableClearTexImageForRobustInit.enabled && internalFormatInfo.depthBits == 0)
     {
         nativegl::TexSubImageFormat nativeSubImageFormat = nativegl::GetTexSubImageFormat(
             functions, features, internalFormatInfo.format, internalFormatInfo.type);
@@ -2463,7 +2482,11 @@ angle::Result TextureGL::initializeContents(const gl::Context *context,
 
     GLenum nativeInternalFormat =
         getLevelInfo(imageIndex.getTarget(), imageIndex.getLevelIndex()).nativeInternalFormat;
-    if ((features.allowClearForRobustResourceInit.enabled ||
+    // We force using the glClear path for depth/depth-stencil textures even if
+    // allowClearForRobustResourceInit is not enabled, because glClear correctly clears depth to 1.0
+    // regardless of the texture's internal format (depth16, depth24, depth24stencil8 or
+    // depth32stencil8).
+    if ((features.allowClearForRobustResourceInit.enabled || internalFormatInfo.depthBits > 0 ||
          !nativegl::SupportsTexImage(getType())) &&
         nativegl::SupportsNativeRendering(functions, mState.getType(), nativeInternalFormat))
     {
@@ -2574,6 +2597,38 @@ angle::Result TextureGL::initializeContents(const gl::Context *context,
     stateManager->bindBuffer(gl::BufferBinding::PixelUnpack, prevUnpackBuffer);
 
     contextGL->markWorkSubmitted();
+    return angle::Result::Continue;
+}
+
+angle::Result TextureGL::initializeContents(const gl::Context *context,
+                                            GLenum binding,
+                                            const gl::ImageIndex &imageIndex)
+{
+    ANGLE_TRY(initializeContentsImpl(context, binding, imageIndex));
+
+    if (hasEmulatedAlphaChannel(imageIndex))
+    {
+        ContextGL *contextGL         = GetImplAs<ContextGL>(context);
+        const FunctionsGL *functions = GetFunctionsGL(context);
+        GLenum nativeInternalFormat  = getNativeInternalFormat(imageIndex);
+
+        if (nativegl::SupportsNativeRendering(functions, mState.getType(), nativeInternalFormat))
+        {
+            BlitGL *blitter = GetBlitGL(context);
+            ANGLE_TRY(blitter->clearRenderableTextureAlphaToOne(
+                context, mTextureID, imageIndex.getTarget(), imageIndex.getLevelIndex()));
+            contextGL->markWorkSubmitted();
+        }
+        else
+        {
+            // For emulated alpha formats that are not renderable, they are compressed formats.
+            // Initializing them with zeroes already produces the correct values (e.g. opaque black
+            // for DXT1).
+            const gl::ImageDesc &desc = mState.getImageDesc(imageIndex);
+            CHECK(desc.format.info->compressed);
+        }
+    }
+
     return angle::Result::Continue;
 }
 

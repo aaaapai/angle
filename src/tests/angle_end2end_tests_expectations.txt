@@ -132,10 +132,13 @@
 448658624 WIN INTEL VULKAN : GLSLTest_ES31.ConstantPrecisionPropagation/* = SKIP
 452159379 WIN INTEL VULKAN : ProgramBinaryTest.ReturnedBinaryTwiceShouldMatch/* = SKIP
 519062400 WIN INTEL OPENGL : CopyTextureTestES3.ChangeBaseLevel/* = SKIP
+521956634 WIN INTEL OPENGL : CopyTextureTestES3.PBOSynchronization/* = SKIP
 521956634 WIN INTEL OPENGL : UniformBufferTest.BufferBlockBindingChange/* = SKIP
 521956634 WIN INTEL OPENGL : UniformBufferTest.BlockContainingArrayOfStructsContainingArrays/* = SKIP
+521956634 WIN INTEL OPENGL : UniformBufferTest.Std140UniformBlockWithRowMajorQualifierOnStruct/* = SKIP
 521956634 WIN INTEL OPENGL : UniformBufferTest31.UniformBufferBindingRangeChangeWithACB/* = SKIP
 521956634 WIN INTEL OPENGL : UniformTestES31.PackUniformFP16Test/* = SKIP
+521956634 WIN INTEL OPENGL : VertexAttributeTestES31.MixedComputeAndRenderPipelines/* = SKIP
 
 42266241 PIXEL6 VULKAN : VertexAttributeTestES31.MismatchingSignsChangingAttributeType/* = SKIP
 42266241 PIXEL6 VULKAN : VertexAttributeTestES31.MismatchingSignsChangingProgramType/* = SKIP
@@ -290,8 +293,6 @@
 42266866 NVIDIA OPENGL : GLSLTest_ES3.LargeInterfaceBlockNestedArray/* = SKIP
 42266866 NVIDIA GLES : GLSLTest_ES3.LargeInterfaceBlockArray/* = SKIP
 42266866 NVIDIA GLES : GLSLTest_ES3.LargeInterfaceBlockNestedArray/* = SKIP
-496616811 NVIDIA OPENGL : RobustResourceInitTestES3.DrawThenInvalidateThenVerifyDepthStencil/* = SKIP
-496616811 NVIDIA GLES : RobustResourceInitTestES3.DrawThenInvalidateThenVerifyDepthStencil/* = SKIP
 // Nvidia sees same matrix type with different layouts as different types
 42262474 NVIDIA OPENGL : GLSLTest_ES31.TernaryOnStructsInDifferentBlockStorages/* = SKIP
 42262474 NVIDIA OPENGL : GLSLTest_ES31.TernaryOnMatricesInDifferentBlockStorages/* = SKIP
@@ -726,6 +727,8 @@
 458082809 PIXEL4ORXL GLES : GLSLValidationExtensionDirectiveTest_ES3.Sampler2DShadow/* = SKIP
 458082810 PIXEL4ORXL GLES : GLSLValidationExtensionDirectiveTest_ES31.TextureCubeMapArray/* = SKIP
 519218481 PIXEL4ORXL GLES : MSRTTES3Test.CubeMap/* = SKIP
+522247737 PIXEL4ORXL GLES : MSRTTES3Test.DrawDisabled/* = SKIP
+522247737 PIXEL4ORXL GLES : MSRTTES3Test.DrawThenDrawDisabled/* = SKIP
 
 42267082 PIXEL4ORXL GLES : BlobCacheTest.FragmentOutputLocationKey/* = SKIP
 42267082 PIXEL4ORXL GLES : EGLBlobCacheTest.FragmentOutputLocationKey/* = SKIP
@@ -885,7 +888,6 @@
 
 // Pixel 10 expectations.
 480069042 PIXEL10 GLES : AtomicCounterBufferTest31.DependentAtomicCounterBufferChange/* = SKIP
-510449869 PIXEL10 GLES : BasicCopyTextureTest.SelfCopyOOBWrite/* = SKIP
 480069042 PIXEL10 GLES : BlitFramebufferANGLETest.BlitWithDepthUserToDefault/* = SKIP
 480069042 PIXEL10 GLES : BlitFramebufferTest.BlitDepthStencilPixelByPixel/* = SKIP
 480069042 PIXEL10 GLES : BlitFramebufferTest.BlitStencilToDefault/* = SKIP
@@ -965,6 +967,8 @@
 480069042 PIXEL10 GLES : ComputeShaderTest.UniformDirty/* = SKIP
 480069042 PIXEL10 GLES : ComputeShaderTest.UseAsUBOThenUpdateThenDispatchComputeIndirect/* = SKIP
 480069042 PIXEL10 GLES : CopyTextureTest.IncompleteCubeMap/* = SKIP
+510449869 PIXEL10 GLES : CopyTextureTest.SelfCopyOOBWrite/* = SKIP
+516837126 PIXEL10 GLES : CopyTextureTestES3.ChangeBaseLevel/* = SKIP
 480069042 PIXEL10 GLES : CopyTextureVariationsTest.CopySubTexture/ES2_OpenGLES__BGRAToSRGBA* = SKIP
 480069042 PIXEL10 GLES : CopyTextureVariationsTest.CopySubTexture/ES2_OpenGLES__RGBAToSRGBA* = SKIP
 480069042 PIXEL10 GLES : CopyTextureVariationsTest.CopySubTexture/ES2_OpenGLES__RGBToSRGBA* = SKIP
@@ -982,6 +986,7 @@
 480069042 PIXEL10 GLES : EGLSurfaceTest.PreserveThenBlend/* = SKIP
 480069042 PIXEL10 GLES : EGLSurfaceTest.ResizeAfterSwap/* = SKIP
 480069042 PIXEL10 GLES : EGLSurfaceTest.ResizeBeforeDraw/* = SKIP
+522844888 PIXEL10 GLES : EGLSurfaceTest.ResizeInvisibleWindow/* = SKIP
 480069042 PIXEL10 GLES : FramebufferFetchES31.ProgramPipeline_Coherent/* = SKIP
 480069042 PIXEL10 GLES : FramebufferTest_ES31.ClearTextureEXT2DMSBlocks/* = SKIP
 480069042 PIXEL10 GLES : FramebufferTest_ES31.ClearTextureEXT2DMSDS/* = SKIP
@@ -1228,6 +1233,29 @@
 512394647 PIXEL10 GLES : RobustBufferAccessBehaviorTest.OutOfBoundsArrayBuffers/* = SKIP
 512394647 PIXEL10 GLES : WebGLCompatibilityTest.EXTBlendFuncExtendedMissingOutputsWithAllChannelsMaskedOut/* = SKIP
 519218481 PIXEL10 GLES : MSRTTES3Test.CubeMap/* = SKIP
+522247737 PIXEL10 GLES : MSRTTES3Test.DrawDisabled/* = SKIP
+522247737 PIXEL10 GLES : MSRTTES3Test.DrawDisabledThenDraw/* = SKIP
+522247737 PIXEL10 GLES : MSRTTES3Test.DrawThenDrawDisabled/* = SKIP
+523128541 PIXEL10 GLES : BufferDataTestES3.CopyBufferSubDataSelfDependency/* = SKIP
+523128541 PIXEL10 GLES : ComputeShaderTest.SSBOAliasOverWrite/* = SKIP
+523128541 PIXEL10 GLES : GLSLTest_ES3.LargeConstGlobalArraysOfStructs/* = SKIP
+523128541 PIXEL10 GLES : ShaderStorageBufferTest31.ComputeShaderWriteThenGraphicsShaderWrite/* = SKIP
+523128541 PIXEL10 GLES : UniformBlockWithOneLargeArrayMemberTest.MemberTypeIsMatrix/* = SKIP
+523128541 PIXEL10 GLES : UniformBlockWithOneLargeArrayMemberTest.MemberTypeIsMatrixAndInstanced/* = SKIP
+523128541 PIXEL10 GLES : UniformBlockWithOneLargeArrayMemberTest.MemberTypeIsMixStructFloatAndMat4/* = SKIP
+523128541 PIXEL10 GLES : UniformBlockWithOneLargeArrayMemberTest.MemberTypeIsMixStructFloatAndVec3/* = SKIP
+523128541 PIXEL10 GLES : UniformBlockWithOneLargeArrayMemberTest.MemberTypeIsMixStructFloatAndVec4/* = SKIP
+523128541 PIXEL10 GLES : UniformBlockWithOneLargeArrayMemberTest.MemberTypeIsMixStructMat4AndFloat/* = SKIP
+523128541 PIXEL10 GLES : UniformBlockWithOneLargeArrayMemberTest.MemberTypeIsMixStructVec2AndVec3/* = SKIP
+523128541 PIXEL10 GLES : UniformBlockWithOneLargeArrayMemberTest.MemberTypeIsMixStructVec3AndFloat/* = SKIP
+523128541 PIXEL10 GLES : UniformBlockWithOneLargeArrayMemberTest.MemberTypeIsStruct/* = SKIP
+523128541 PIXEL10 GLES : UniformBlockWithOneLargeArrayMemberTest.MemberTypeIsStructAndInstanced/* = SKIP
+523128541 PIXEL10 GLES : UniformBlockWithOneLargeArrayMemberTest.MemberTypeIsStructAndInstancedArray/* = SKIP
+523128541 PIXEL10 GLES : UniformBlockWithOneLargeArrayMemberTest.MemberTypeIsVec4/* = SKIP
+523128541 PIXEL10 GLES : UniformBlockWithOneLargeArrayMemberTest.SharedSameBufferWithOtherOne/* = SKIP
+523128541 PIXEL10 GLES : UniformBlockWithOneLargeArrayMemberTest.TwoUniformBlocksInDiffProgram/* = SKIP
+523128541 PIXEL10 GLES : UniformBlockWithOneLargeArrayMemberTest.TwoUniformBlocksInSameProgram/* = SKIP
+523128541 PIXEL10 GLES : UniformBufferTest.SameBufferDifferentMetalSize/* = SKIP
 
 480069042 PIXEL10 VULKAN : ClearTextureEXTTestES31Unrenderable.Clear/ES3_1_Vulkan*__GL_RG16_SNORM_EXT_GL_RG_GL_SHORT_GL_TEXTURE_2D_ARRAY = SKIP
 480069042 PIXEL10 VULKAN : ClearTextureEXTTestES31Unrenderable.Clear/ES3_1_Vulkan*__GL_RGB32UI_GL_RGB_INTEGER_GL_UNSIGNED_INT_GL_TEXTURE_2D_ARRAY = SKIP
@@ -1980,6 +2008,8 @@
 511737097 SAMSUNG GALAXYS24EXYNOS VULKAN : StateChangeTestES3.PrimitiveRestartWithUnsignedBytesClientIndexData/ES3_Vulkan_NoUsePrimitiveRestartEnableDynamicState = SKIP
 511737097 SAMSUNG GALAXYS24EXYNOS VULKAN : StateChangeTestES3.PrimitiveRestartWithUnsignedBytesIndexBufferUpdates/ES3_Vulkan_NoSupportsExtendedDynamicState2* = SKIP
 511737097 SAMSUNG GALAXYS24EXYNOS VULKAN : StateChangeTestES3.PrimitiveRestartWithUnsignedBytesIndexBufferUpdates/ES3_Vulkan_NoUsePrimitiveRestartEnableDynamicState = SKIP
+522843204 SAMSUNG GALAXYS24EXYNOS VULKAN : VulkanImageTest.*/*ForceFallbackFormat* = SKIP
+522843204 SAMSUNG GALAXYS24EXYNOS VULKAN : VulkanRGB565Test.*/*ForceFallbackFormat* = SKIP
 
 // Additional Xclipse failures on latest public
 410630704 SAMSUNG GALAXYS24EXYNOS GLES : AdvancedBlendTest.AdvancedBlendDisabledAndThenEnabledKHR/* = SKIP
@@ -2724,6 +2754,11 @@
 
 // Pixel4's GLES driver fails new test: TransformFeedbackTest.CaptureThenUseAsUBO.
 419403192 PIXEL4ORXL GLES : TransformFeedbackTest.CaptureThenUseAsUBO/* = SKIP
+
+// Pixel4 GLES driver fails to compile the GLES1 uber shader when robustness is enabled
+516887576 PIXEL4ORXL GLES : LightsTest.DiffuseGradient/* = SKIP
+516887576 PIXEL4ORXL GLES : LightsTest.FlatLitMesh/* = SKIP
+516887576 PIXEL4ORXL GLES : LightsTest.SmoothLitMesh/* = SKIP
 
 454067880 D3D9 : GLSLTest.ComplicatedMultielementSwizzle1/* = SKIP
 454067880 D3D11 : GLSLTest.ComplicatedMultielementSwizzle1/* = SKIP
