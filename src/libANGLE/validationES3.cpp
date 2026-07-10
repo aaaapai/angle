@@ -257,7 +257,7 @@ bool ValidateTexImageFormatCombination(const Context *context,
 {
     // The type and format are valid if any supported internal format has that type and format.
     // ANGLE_texture_external_yuv_sampling extension adds support for YUV formats
-    if (gl::IsYuvFormat(format))
+    /*if (gl::IsYuvFormat(format))
     {
         if (!context->getExtensions().yuvInternalFormatANGLE)
         {
@@ -278,7 +278,7 @@ bool ValidateTexImageFormatCombination(const Context *context,
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidType);
         return false;
-    }
+    }*/
 
     // For historical reasons, glTexImage2D and glTexImage3D pass in their internal format as a
     // GLint instead of a GLenum. Therefor an invalid internal format gives a GL_INVALID_VALUE
@@ -293,7 +293,7 @@ bool ValidateTexImageFormatCombination(const Context *context,
             << ", format=0x" << format
             << ", type=0x" << type
             << std::dec;
-        return false;
+        //return false;
     }
 #endif
 
@@ -304,12 +304,12 @@ bool ValidateTexImageFormatCombination(const Context *context,
     // INVALID_OPERATION error.
     //
     // Similar language exists in OES_texture_stencil8.
-    if (target == TextureType::_3D &&
+    /*if (target == TextureType::_3D &&
         (format == GL_DEPTH_COMPONENT || format == GL_DEPTH_STENCIL || format == GL_STENCIL_INDEX))
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, k3DDepthStencil);
         return false;
-    }
+    }*/
 
     // Check if this is a valid format combination to load texture data
     // ANGLE_texture_external_yuv_sampling extension adds support for YUV formats
@@ -324,7 +324,7 @@ bool ValidateTexImageFormatCombination(const Context *context,
             << ", format=0x" << format
             << ", type=0x" << type
             << std::dec;
-            return false;
+            //return false;
         }
 #endif
     }
@@ -333,8 +333,8 @@ bool ValidateTexImageFormatCombination(const Context *context,
         if (!ValidES3FormatCombination(format, type, internalFormat) &&
             !ValidES3ExtensionFormatCombination(format, type, internalFormat))
         {
-            ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInvalidFormatCombination);
-            return false;
+            /*ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInvalidFormatCombination);
+            return false;*/
         }
     }
 
@@ -348,7 +348,7 @@ bool ValidateTexImageFormatCombination(const Context *context,
             << ", format=0x" << format
             << ", type=0x" << type
             << std::dec;
-        return false;
+        //return false;
     }
 #endif
 
@@ -379,7 +379,7 @@ bool ValidateES3TexImageParametersBase(const Context *context,
     {
         // According to ANGLE_yuv_internal_format, the texture needs to be an immutable
         // texture, texture target can only be TEXTURE_2D and there is no mipmap support
-        if (!context->getExtensions().yuvInternalFormatANGLE || !isSubImage)
+        /*if (!context->getExtensions().yuvInternalFormatANGLE || !isSubImage)
         {
             ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidFormat);
             return false;
@@ -389,13 +389,13 @@ bool ValidateES3TexImageParametersBase(const Context *context,
         {
             ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidTextureTarget);
             return false;
-        }
+        }*/
 
-        if (level != 0)
+        /*if (level != 0)
         {
             ANGLE_VALIDATION_ERROR(GL_INVALID_VALUE, kInvalidMipLevel);
             return false;
-        }
+        }*/
     }
 
     // Validate image size
