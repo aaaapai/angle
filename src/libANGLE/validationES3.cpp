@@ -577,7 +577,7 @@ bool ValidateES3TexImageParametersBase(const Context *context,
             // GL_DEPTH_COMPONENT32_OES texture support is enabled if GL_OES_depth_texture is
             // supported (to support GL_EXT_texture_storage in ES2). But for ES3 glTexImage2D, it is
             // only valid if GL_OES_depth32 is also supported.
-            if (internalformat == GL_DEPTH_COMPONENT32_OES &&
+            /*if (internalformat == GL_DEPTH_COMPONENT32_OES &&
                 (!context->getExtensions().requiredInternalformatOES ||
                  !context->getExtensions().depth32OES))
             {
@@ -595,7 +595,7 @@ bool ValidateES3TexImageParametersBase(const Context *context,
             {
                 ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInvalidFormatCombination);
                 return false;
-            }
+            }*/
         }
 
         if (!ValidateTexImageFormatCombination(context, entryPoint, texType, actualInternalFormat,
