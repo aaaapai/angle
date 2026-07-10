@@ -2062,7 +2062,7 @@ def main():
     parser.add_argument('auto_script_command', nargs='?', default='')
     args = parser.parse_args()
 
-    test_filename = '../../tests/compiler_tests/ImmutableString_test_autogen.cpp'
+    test_filename = 'ImmutableString_test_autogen.cpp'
     variables_json_filename = 'builtin_variables.json'
     functions_txt_filename = 'builtin_function_declarations.txt'
 
@@ -2078,7 +2078,7 @@ def main():
             test_filename,
             'ImmutableString_autogen.cpp',
             'SymbolTable_autogen.cpp',
-            'tree_util/BuiltIn_autogen.h',
+            'BuiltIn_autogen.h',
         ]
 
         if args.auto_script_command == 'inputs':
@@ -2092,7 +2092,7 @@ def main():
 
     # Generate files based on ESSL symbols
     generate_files(args, functions_txt_filename, variables_json_filename,
-                   'ImmutableString_autogen.cpp', test_filename, 'tree_util/BuiltIn_autogen.h',
+                   'ImmutableString_autogen.cpp', test_filename, 'BuiltIn_autogen.h',
                    'SymbolTable_autogen.cpp', 'Operator_autogen.h', 'SymbolTable_autogen.h')
 
     return 0

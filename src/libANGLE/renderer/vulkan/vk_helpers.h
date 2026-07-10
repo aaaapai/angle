@@ -21,6 +21,9 @@
 
 #include <functional>
 
+#include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
+
 namespace gl
 {
 class ImageIndex;
@@ -473,7 +476,7 @@ class MetaDescriptorPool final : angle::NonCopyable
     }
 
   private:
-    std::unordered_map<DescriptorSetLayoutDesc, DynamicDescriptorPoolPointer> mPayload;
+    absl::flat_hash_map<DescriptorSetLayoutDesc, DynamicDescriptorPoolPointer> mPayload;
 };
 
 template <typename Pool>

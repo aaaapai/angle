@@ -142,7 +142,7 @@ GROUP BEGIN Math {"queryFunction": true}
       genType uintBitsToFloat(genUType);
     DEFAULT METADATA {"essl_level": "ESSL3_2_BUILTINS"}
       genType fma(genType, genType, genType);
-    DEFAULT METADATA {"essl_level": "ESSL3_1_BUILTINS", "essl_extension": "EXT_gpu_shader5, OES_gpu_shader5", "suffix": "Ext"}
+    DEFAULT METADATA {"essl_level": "ESSL3_1_BUILTINS", "suffix": "Ext"}
       genType fma(genType, genType, genType);
     DEFAULT METADATA {"essl_level": "ESSL3_1_BUILTINS"}
       genType frexp(genType, out genIType);
@@ -280,28 +280,28 @@ GROUP BEGIN Texture {"queryFunction": true}
       vec4 texture2DProj(sampler2D, vec3);
       vec4 texture2DProj(sampler2D, vec4);
       vec4 textureCube(samplerCube, vec3);
-    DEFAULT METADATA {"essl_level": "ESSL1_BUILTINS", "essl_extension": "OES_texture_3D"}
+    DEFAULT METADATA {"essl_level": "ESSL1_BUILTINS"}
       vec4 texture3D(sampler3D, vec3);
       vec4 texture3DProj(sampler3D, vec4);
-    DEFAULT METADATA {"essl_level": "ESSL1_BUILTINS", "essl_extension": "EXT_shadow_samplers"}
+    DEFAULT METADATA {"essl_level": "ESSL1_BUILTINS"}
       float shadow2DEXT(sampler2DShadow, vec3);
       float shadow2DProjEXT(sampler2DShadow, vec4);
-    DEFAULT METADATA {"essl_level": "ESSL1_BUILTINS", "essl_extension": "OES_EGL_image_external, NV_EGL_stream_consumer_external"}
+    DEFAULT METADATA {"essl_level": "ESSL1_BUILTINS"}
       vec4 texture2D(samplerExternalOES, vec2);
       vec4 texture2DProj(samplerExternalOES, vec3);
       vec4 texture2DProj(samplerExternalOES, vec4);
-    DEFAULT METADATA {"essl_level": "ESSL1_BUILTINS", "essl_extension": "ARB_texture_rectangle"}
+    DEFAULT METADATA {"essl_level": "ESSL1_BUILTINS"}
       vec4 texture2DRect(sampler2DRect, vec2);
       vec4 texture2DRectProj(sampler2DRect, vec3);
       vec4 texture2DRectProj(sampler2DRect, vec4);
     // The *Grad* variants are new to both vertex and fragment shaders; the fragment
     // shader specific pieces are added separately below.
-    DEFAULT METADATA {"essl_level": "ESSL1_BUILTINS", "essl_extension": "EXT_shader_texture_lod"}
+    DEFAULT METADATA {"essl_level": "ESSL1_BUILTINS"}
       vec4 texture2DGradEXT(sampler2D, vec2, vec2, vec2);
       vec4 texture2DProjGradEXT(sampler2D, vec3, vec2, vec2);
       vec4 texture2DProjGradEXT(sampler2D, vec4, vec2, vec2);
       vec4 textureCubeGradEXT(samplerCube, vec3, vec3, vec3);
-    DEFAULT METADATA {"essl_level": "ESSL1_BUILTINS", "extension": "WEBGL_video_texture"}
+    DEFAULT METADATA {"essl_level": "COMMON_BUILTINS"}
       vec4 textureVideoWEBGL(samplerVideoWEBGL, vec2);
 
     // Variants with bias are limited to fragment shaders
@@ -311,7 +311,7 @@ GROUP BEGIN Texture {"queryFunction": true}
         vec4 texture2DProj(sampler2D, vec3, float);
         vec4 texture2DProj(sampler2D, vec4, float);
         vec4 textureCube(samplerCube, vec3, float);
-      DEFAULT METADATA {"essl_level": "ESSL1_BUILTINS", "essl_extension": "OES_texture_3D"}
+      DEFAULT METADATA {"essl_level": "ESSL1_BUILTINS"}
         vec4 texture3D(sampler3D, vec3, float);
         vec4 texture3DProj(sampler3D, vec4, float);
     GROUP END Bias
@@ -320,7 +320,7 @@ GROUP BEGIN Texture {"queryFunction": true}
       // The GLES spec mentioning that lod variants are limited to vertex shaders, and the
       // OES_texture_3D spec doesn't mention otherwise.  However, these functions are used in tests
       // and seem to be expected to be available in fragment shaders too.
-      DEFAULT METADATA {"essl_level": "ESSL1_BUILTINS", "essl_extension": "OES_texture_3D"}
+      DEFAULT METADATA {"essl_level": "ESSL1_BUILTINS"}
         vec4 texture3DLod(sampler3D, vec3, float);
         vec4 texture3DProjLod(sampler3D, vec4, float);
     GROUP END Lod
@@ -336,7 +336,7 @@ GROUP BEGIN Texture {"queryFunction": true}
 
     // EXT_shader_texture_lod brings some lod variants to fragment shaders
     GROUP BEGIN LodFS {"shader_type": "FRAGMENT", "opSuffix": "FS"}
-      DEFAULT METADATA {"essl_level": "ESSL1_BUILTINS", "essl_extension": "EXT_shader_texture_lod"}
+      DEFAULT METADATA {"essl_level": "ESSL1_BUILTINS"}
         vec4 texture2DLodEXT(sampler2D, vec2, float);
         vec4 texture2DProjLodEXT(sampler2D, vec3, float);
         vec4 texture2DProjLodEXT(sampler2D, vec4, float);
@@ -357,7 +357,7 @@ GROUP BEGIN Texture {"queryFunction": true}
     DEFAULT METADATA {"essl_level": "ESSL3_2_BUILTINS"}
       gvec4 texture(gsamplerCubeArray, vec4);
       float texture(samplerCubeArrayShadow, vec4, float);
-    DEFAULT METADATA {"essl_level": "ESSL3_1_BUILTINS", "essl_extension": "OES_texture_cube_map_array, EXT_texture_cube_map_array", "suffix": "Ext"}
+    DEFAULT METADATA {"essl_level": "ESSL3_1_BUILTINS", "suffix": "Ext"}
       gvec4 texture(gsamplerCubeArray, vec4);
       float texture(samplerCubeArrayShadow, vec4, float);
     DEFAULT METADATA {"essl_level": "ESSL3_BUILTINS", "essl_extension": "OES_EGL_image_external_essl3"}
@@ -655,7 +655,7 @@ GROUP BEGIN EXT_YUV_target
 GROUP END EXT_YUV_target
 
 GROUP BEGIN DerivativesFS {"queryFunction": true, "shader_type": "FRAGMENT"}
-  DEFAULT METADATA {"essl_level": "ESSL1_BUILTINS", "essl_extension": "OES_standard_derivatives", "suffix": "Ext"}
+  DEFAULT METADATA {"essl_level": "ESSL1_BUILTINS", "suffix": "Ext"}
     genType dFdx(genType);
     genType dFdy(genType);
     genType fwidth(genType);
@@ -719,6 +719,17 @@ GROUP BEGIN AtomicMemory {"queryFunction": true}
     int atomicExchange(inout int, int);
     uint atomicCompSwap(inout uint, uint, uint);
     int atomicCompSwap(inout int, int, int);
+
+  DEFAULT METADATA {"essl_level": "ESSL3_1_BUILTINS", "hasSideEffects": true}
+    uint atomicAdd(inout atomic_uint, uint);
+    uint atomicMin(inout atomic_uint, uint);
+    uint atomicMax(inout atomic_uint, uint);
+    uint atomicAnd(inout atomic_uint, uint);
+    uint atomicOr(inout atomic_uint, uint);
+    uint atomicXor(inout atomic_uint, uint);
+    uint atomicExchange(inout atomic_uint, uint);
+    uint atomicCompSwap(inout atomic_uint, uint, uint);
+
 GROUP END AtomicMemory
 
 GROUP BEGIN Image {"queryFunction": true}
