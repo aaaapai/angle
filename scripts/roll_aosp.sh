@@ -52,7 +52,6 @@ function generate_Android_bp_file() {
             # Disable all backends except Vulkan
             "angle_enable_vulkan = true"
             "angle_enable_gl = false"
-            "angle_enable_d3d9 = false"
             "angle_enable_d3d11 = false"
             "angle_enable_null = false"
             "angle_enable_metal = false"
@@ -358,6 +357,7 @@ done
 # Delete the .git files in each dep so that it can be copied to this repo. Some deps like jsoncpp
 # have multiple layers of deps so delete everything before adding them.
 for dep in "${copy_to_aosp_paths[@]}"; do
+   git rm -rf --cached --ignore-unmatch "$dep"
    rm -rf "$dep"/.git
 done
 

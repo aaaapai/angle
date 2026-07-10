@@ -828,8 +828,6 @@ GPUTestConfig::API getTestConfigAPIFromRenderer(angle::GLESDriverType driverType
     {
         case EGL_PLATFORM_ANGLE_TYPE_D3D11_ANGLE:
             return GPUTestConfig::kAPID3D11;
-        case EGL_PLATFORM_ANGLE_TYPE_D3D9_ANGLE:
-            return GPUTestConfig::kAPID3D9;
         case EGL_PLATFORM_ANGLE_TYPE_OPENGL_ANGLE:
             return GPUTestConfig::kAPIGLDesktop;
         case EGL_PLATFORM_ANGLE_TYPE_OPENGLES_ANGLE:
@@ -880,6 +878,7 @@ void TracePerfTest::initializeConfigParams(GPUTestConfig::API api)
     configParams.alphaBits         = mParams->traceInfo.configAlphaBits;
     configParams.depthBits         = mParams->traceInfo.configDepthBits;
     configParams.stencilBits       = mParams->traceInfo.configStencilBits;
+    configParams.robustAccess      = mParams->traceInfo.isRobustAccessEnabled;
     configParams.colorSpace        = mParams->traceInfo.drawSurfaceColorSpace;
 
     // TODO (b/423680521): App traces shouldn't be relying on these extensions anyway, since they

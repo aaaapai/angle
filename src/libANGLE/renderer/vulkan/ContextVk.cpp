@@ -7,11 +7,8 @@
 //    Implements the class methods for ContextVk.
 //
 
-#ifdef UNSAFE_BUFFERS_BUILD
-#    pragma allow_unsafe_buffers
-#endif
-
 #include "libANGLE/renderer/vulkan/ContextVk.h"
+#include "common/unsafe_buffers.h"
 
 #include "common/bitset_utils.h"
 #include "common/debug.h"
@@ -876,10 +873,12 @@ ContextVk::ContextVk(const gl::State &state, gl::ErrorSet *errorSet, vk::Rendere
       mGraphicsDriverUniforms(renderer)
 {
     ANGLE_TRACE_EVENT0("gpu.angle", "ContextVk::ContextVk");
-    memset(&mClearColorValue, 0, sizeof(mClearColorValue));
-    memset(&mClearDepthStencilValue, 0, sizeof(mClearDepthStencilValue));
-    memset(&mViewport, 0, sizeof(mViewport));
-    memset(&mScissor, 0, sizeof(mScissor));
+    ANGLE_UNSAFE_TODO({
+        memset(&mClearColorValue, 0, sizeof(mClearColorValue));
+        memset(&mClearDepthStencilValue, 0, sizeof(mClearDepthStencilValue));
+        memset(&mViewport, 0, sizeof(mViewport));
+        memset(&mScissor, 0, sizeof(mScissor));
+    })
 
     // Ensure viewport is within Vulkan requirements
     vk::ClampViewport(&mViewport);
@@ -1756,7 +1755,7 @@ angle::Result ContextVk::setupIndexedDraw(const gl::Context *context,
                     ANGLE_TRY(
                         bufferVk->mapForReadAccessOnly(this, reinterpret_cast<void **>(&src)));
                     // Note: bufferOffset is not added here because mapImpl already adds it.
-                    src += reinterpret_cast<uintptr_t>(indices);
+                    ANGLE_UNSAFE_TODO(src += reinterpret_cast<uintptr_t>(indices));
                     const size_t byteCount = static_cast<size_t>(elementArrayBuffer->getSize()) -
                                              reinterpret_cast<uintptr_t>(indices);
                     BufferBindingDirty bindingDirty;
@@ -2705,10 +2704,12 @@ angle::Result ContextVk::handleDirtyGraphicsVertexBuffersVertexInputDynamicState
         gl::AttribArray<VkVertexInputBindingDescription2EXT> bindingDescs;
         gl::AttribArray<VkVertexInputAttributeDescription2EXT> attributeDescs;
 
-        memcpy(bindingDescs.data(), vertexArrayVk->getVertexInputBindingDescs().data(),
-               maxAttrib * sizeof(VkVertexInputBindingDescription2EXT));
-        memcpy(attributeDescs.data(), vertexArrayVk->getVertexInputAttribDescs().data(),
-               maxAttrib * sizeof(VkVertexInputAttributeDescription2EXT));
+        ANGLE_UNSAFE_TODO({
+            memcpy(bindingDescs.data(), vertexArrayVk->getVertexInputBindingDescs().data(),
+                   maxAttrib * sizeof(VkVertexInputBindingDescription2EXT));
+            memcpy(attributeDescs.data(), vertexArrayVk->getVertexInputAttribDescs().data(),
+                   maxAttrib * sizeof(VkVertexInputAttributeDescription2EXT));
+        })
 
         for (size_t attribIndex : activeAttribLocations)
         {
@@ -3083,7 +3084,7 @@ angle::Result ContextVk::handleDirtyGraphicsTransformFeedbackBuffersExtension(
     const gl::ProgramExecutable *executable = mState.getProgramExecutable();
     ASSERT(executable);
 
-    if (!executable->hasTransformFeedbackOutput() || !mState.isTransformFeedbackActive())
+    if (!executable->hasTransformFeedbackOutput() || !mState.isTransformFeedbackActiveUnpaused())
     {
         return angle::Result::Continue;
     }
@@ -3129,11 +3130,6 @@ angle::Result ContextVk::handleDirtyGraphicsTransformFeedbackBuffersExtension(
     mRenderPassCommandBuffer->bindTransformFeedbackBuffers(
         0, static_cast<uint32_t>(bufferCount), bufferHandles.data(), bufferOffsets.data(),
         bufferSizes.data());
-
-    if (!mState.isTransformFeedbackActiveUnpaused())
-    {
-        return angle::Result::Continue;
-    }
 
     // We should have same number of counter buffers as xfb buffers have
     const gl::TransformFeedbackBuffersArray<VkBuffer> &counterBufferHandles =
@@ -3626,7 +3622,8 @@ void ContextVk::syncObjectPerfCounters(const angle::VulkanPerfCounters &commandQ
     mPerfCounters.dynamicBufferAllocations                   = 0;
 
     // Share group descriptor set allocations and caching stats.
-    memset(mVulkanCacheStats.data(), 0, sizeof(CacheStats) * mVulkanCacheStats.size());
+    ANGLE_UNSAFE_TODO(
+        memset(mVulkanCacheStats.data(), 0, sizeof(CacheStats) * mVulkanCacheStats.size()));
     if (getFeatures().descriptorSetCache.enabled)
     {
         mShareGroupVk->getMetaDescriptorPools()[DescriptorSetIndex::UniformsAndXfb]
@@ -4248,8 +4245,8 @@ angle::Result ContextVk::multiDrawArraysIndirectHelper(const gl::Context *contex
         ANGLE_TRY(currentIndirectBuf->invalidate(mRenderer, 0, sizeof(VkDrawIndirectCommand)));
         uint8_t *buffPtr;
         ANGLE_TRY(currentIndirectBuf->map(this, &buffPtr));
-        const VkDrawIndirectCommand *indirectData =
-            reinterpret_cast<VkDrawIndirectCommand *>(buffPtr + currentIndirectBufOffset);
+        const VkDrawIndirectCommand *indirectData = reinterpret_cast<VkDrawIndirectCommand *>(
+            ANGLE_UNSAFE_TODO(buffPtr + currentIndirectBufOffset));
 
         ANGLE_TRY(drawArraysInstanced(context, mode, indirectData->firstVertex,
                                       indirectData->vertexCount, indirectData->instanceCount));
@@ -4356,7 +4353,8 @@ angle::Result ContextVk::multiDrawElementsIndirectHelper(const gl::Context *cont
         uint8_t *buffPtr;
         ANGLE_TRY(currentIndirectBuf->map(this, &buffPtr));
         const VkDrawIndexedIndirectCommand *indirectData =
-            reinterpret_cast<VkDrawIndexedIndirectCommand *>(buffPtr + currentIndirectBufOffset);
+            reinterpret_cast<VkDrawIndexedIndirectCommand *>(
+                ANGLE_UNSAFE_TODO(buffPtr + currentIndirectBufOffset));
 
         ANGLE_TRY(drawElementsInstanced(context, mode, indirectData->indexCount, type, nullptr,
                                         indirectData->instanceCount));
@@ -5813,6 +5811,7 @@ angle::Result ContextVk::syncState(const gl::Context *context,
                 invalidateDefaultAttributes(context->getActiveDefaultAttribsMask());
                 ANGLE_TRY(onVertexArrayChange(vertexArrayVk->getCurrentEnabledAttribsMask()));
                 ANGLE_TRY(onIndexBufferChange(vertexArrayVk->getCurrentElementArrayBuffer()));
+                vertexArrayVk->resetInactiveStreamedAttribs(context);
                 break;
             }
             case gl::state::DIRTY_BIT_DRAW_INDIRECT_BUFFER_BINDING:
@@ -6349,7 +6348,7 @@ FenceNVImpl *ContextVk::createFenceNV()
     return new FenceNVVk();
 }
 
-SyncImpl *ContextVk::createSync(const gl::Context *)
+SyncImpl *ContextVk::createSync()
 {
     return new SyncVk();
 }
@@ -7081,6 +7080,9 @@ void ContextVk::handleError(VkResult errorCode,
     }
     collector.releaseCommandBuffers();
 
+    mGraphicsDirtyBits |= mNewRenderPassDirtyBits;
+    mComputeDirtyBits |= mNewComputeCommandBufferDirtyBits;
+
     mOutsideRenderPassSerialFactory.reset();
     generateOutsideRenderPassCommandsQueueSerial();
 
@@ -7351,7 +7353,8 @@ angle::Result ContextVk::initBufferForImageCopy(vk::BufferHelper *bufferHelper,
                                    BufferUsageType::Static));
 
     *offset  = roundUp(bufferHelper->getOffset(), static_cast<VkDeviceSize>(imageCopyAlignment));
-    *dataPtr = bufferHelper->getMappedMemory() + (*offset) - bufferHelper->getOffset();
+    *dataPtr =
+        ANGLE_UNSAFE_TODO(bufferHelper->getMappedMemory() + (*offset) - bufferHelper->getOffset());
 
     return angle::Result::Continue;
 }
@@ -8580,11 +8583,12 @@ void ContextVk::setDefaultUniformBlocksMinSizeForTesting(size_t minSize)
 angle::Result ContextVk::initializeMultisampleTextureToBlack(const gl::Context *context,
                                                              gl::Texture *glTexture)
 {
-    ASSERT(glTexture->getType() == gl::TextureType::_2DMultisample);
-    TextureVk *textureVk = vk::GetImpl(glTexture);
+    const gl::TextureType type = glTexture->getType();
+    ASSERT(type == gl::TextureType::_2DMultisample || type == gl::TextureType::_2DMultisampleArray);
+    const gl::ImageIndex imageIndex = gl::ImageIndex::MakeFromType(type, 0);
 
-    return textureVk->initializeContentsWithBlack(context, GL_NONE,
-                                                  gl::ImageIndex::Make2DMultisample());
+    TextureVk *textureVk = vk::GetImpl(glTexture);
+    return textureVk->initializeContentsWithBlack(context, GL_NONE, imageIndex);
 }
 
 void ContextVk::onProgramExecutableReset(ProgramExecutableVk *executableVk)

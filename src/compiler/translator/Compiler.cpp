@@ -4,11 +4,8 @@
 // found in the LICENSE file.
 //
 
-#ifdef UNSAFE_BUFFERS_BUILD
-#    pragma allow_unsafe_buffers
-#endif
-
 #include "compiler/translator/Compiler.h"
+#include "common/unsafe_buffers.h"
 
 #include <sstream>
 
@@ -416,13 +413,11 @@ TCompiler::TCompiler(sh::GLenum type, ShShaderSpec spec, ShShaderOutput output)
 
 TCompiler::~TCompiler() {}
 
-bool TCompiler::shouldRunLoopAndIndexingValidation(const ShCompileOptions &compileOptions) const
+bool TCompiler::shouldRunLoopAndIndexingValidation() const
 {
-    // If compiling an ESSL 1.00 shader for WebGL, or if its been requested through the API,
-    // validate loop and indexing as well (to verify that the shader only uses minimal functionality
-    // of ESSL 1.00 as in Appendix A of the spec).
-    return (IsWebGLBasedSpec(mShaderSpec) && mShaderVersion == 100) ||
-           compileOptions.validateLoopIndexing;
+    // If compiling an ESSL 1.00 shader for WebGL, validate loop and indexing as well (to verify
+    // that the shader only uses minimal functionality of ESSL 1.00 as in Appendix A of the spec).
+    return IsWebGLBasedSpec(mShaderSpec) && mShaderVersion == 100;
 }
 
 bool TCompiler::Init(const ShBuiltInResources &resources)
@@ -702,7 +697,8 @@ bool TCompiler::validateAST(TIntermNode *root)
         if (!valid)
         {
             OutputTree(root, mInfoSink.info);
-            fprintf(stderr, "AST validation error(s):\n%s\n", mInfoSink.info.c_str());
+            ANGLE_UNSAFE_TODO(
+                fprintf(stderr, "AST validation error(s):\n%s\n", mInfoSink.info.c_str()));
         }
 #endif
         // In debug, assert validation.  In release, validation errors will be returned back to the
@@ -1120,7 +1116,7 @@ bool TCompiler::checkAndSimplifyAST(TIntermBlock *root,
         // init statements can declare arrays or nameless structs and have multiple
         // declarations.
 
-        if (!shouldRunLoopAndIndexingValidation(compileOptions))
+        if (!shouldRunLoopAndIndexingValidation())
         {
             if (!SimplifyLoopConditions(this, root,
                                         IntermNodePatternMatcher::kArrayDeclaration |

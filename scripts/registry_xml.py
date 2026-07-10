@@ -362,7 +362,6 @@ supported_egl_extensions = [
     "EGL_ANGLE_device_creation",
     "EGL_ANGLE_device_d3d",
     "EGL_ANGLE_device_d3d11",
-    "EGL_ANGLE_device_d3d9",
     "EGL_ANGLE_device_vulkan",
     "EGL_ANGLE_display_semaphore_share_group",
     "EGL_ANGLE_display_texture_share_group",
@@ -452,8 +451,10 @@ supported_cl_extensions = [
     "cl_khr_subgroups",
 ]
 
-# Strip these suffixes from Context entry point names. NV is excluded (for now).
-strip_suffixes = ["AMD", "ANDROID", "ANGLE", "CHROMIUM", "EXT", "KHR", "OES", "OVR", "QCOM"]
+# Strip these suffixes from Context entry point names.
+strip_suffixes = [
+    "AMD", "ANDROID", "ANGLE", "CHROMIUM", "EXT", "KHR", "MESA", "NV", "OES", "OVR", "QCOM"
+]
 check_sorted('strip_suffixes', strip_suffixes)
 
 # The EGL_ANGLE_explicit_context extension is generated differently from other extensions.

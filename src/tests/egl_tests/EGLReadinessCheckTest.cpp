@@ -7,11 +7,8 @@
 // EGLReadinessCheckTest.cpp:
 //      Tests used to check environment in which other tests are run.
 
-#ifdef UNSAFE_BUFFERS_BUILD
-#    pragma allow_unsafe_libc_calls
-#endif
-
 #include <gtest/gtest.h>
+#include "common/unsafe_buffers.h"
 
 #include "gpu_info_util/SystemInfo.h"
 #include "test_utils/ANGLETest.h"
@@ -27,7 +24,7 @@ TEST_P(EGLReadinessCheckTest, IsRunningOnANGLE)
 {
     const char *extensionString =
         static_cast<const char *>(eglQueryString(EGL_NO_DISPLAY, EGL_EXTENSIONS));
-    ASSERT_NE(strstr(extensionString, "EGL_ANGLE_platform_angle"), nullptr);
+    ANGLE_UNSAFE_TODO(ASSERT_NE(strstr(extensionString, "EGL_ANGLE_platform_angle"), nullptr));
 }
 
 // Checks that getting function pointer works
@@ -76,9 +73,6 @@ TEST_P(EGLReadinessCheckTest, DISABLED_AllowlistMatchesSupport)
     check(ES2_OPENGLES());
     check(ES3_OPENGLES());
     check(ES31_OPENGLES());
-
-    check(ES1_D3D9());
-    check(ES2_D3D9());
 
     check(ES1_D3D11());
     check(ES2_D3D11());

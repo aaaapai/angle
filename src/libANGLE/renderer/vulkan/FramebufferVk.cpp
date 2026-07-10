@@ -7,11 +7,8 @@
 //    Implements the class methods for FramebufferVk.
 //
 
-#ifdef UNSAFE_BUFFERS_BUILD
-#    pragma allow_unsafe_buffers
-#endif
-
 #include "libANGLE/renderer/vulkan/FramebufferVk.h"
+#include "common/unsafe_buffers.h"
 
 #include <array>
 
@@ -738,6 +735,7 @@ angle::Result FramebufferVk::clearImpl(const gl::Context *context,
     const bool isMidRenderPassClear =
         contextVk->hasStartedRenderPassWithQueueSerial(mLastRenderPassQueueSerial) &&
         !contextVk->getStartedRenderPassCommands().getCommandBuffer().empty();
+
     if (isMidRenderPassClear)
     {
         // Emit debug-util markers for this mid-render-pass clear
@@ -820,8 +818,8 @@ angle::Result FramebufferVk::clearImpl(const gl::Context *context,
             ASSERT(!preferDrawOverClearAttachments);
 
             // clearWithCommand will operate on deferred clears.
-            clearWithCommand(contextVk, scissoredRenderArea, ClearWithCommand::OptimizeWithLoadOp,
-                             &mDeferredClears);
+            clearWithCommand(contextVk, scissoredClear, scissoredRenderArea,
+                             ClearWithCommand::OptimizeWithLoadOp, &mDeferredClears);
 
             // clearWithCommand will clear only those attachments that have been used in the render
             // pass, and removes them from mDeferredClears.  Any deferred clears that are left can
@@ -932,7 +930,8 @@ angle::Result FramebufferVk::clearImpl(const gl::Context *context,
             clears.store(vk::kUnpackedDepthIndex, dsAspectFlags, dsClearValue);
         }
 
-        clearWithCommand(contextVk, scissoredRenderArea, ClearWithCommand::Always, &clears);
+        clearWithCommand(contextVk, scissoredClear, scissoredRenderArea, ClearWithCommand::Always,
+                         &clears);
 
         if (!clearColorBuffers.any() && !clearStencilWithDraw)
         {
@@ -967,9 +966,9 @@ angle::Result FramebufferVk::clearBufferfv(const gl::Context *context,
     {
         clearColorBuffers.set(drawbuffer);
         clearValue.color.float32[0] = values[0];
-        clearValue.color.float32[1] = values[1];
-        clearValue.color.float32[2] = values[2];
-        clearValue.color.float32[3] = values[3];
+        clearValue.color.float32[1] = ANGLE_UNSAFE_TODO(values[1]);
+        clearValue.color.float32[2] = ANGLE_UNSAFE_TODO(values[2]);
+        clearValue.color.float32[3] = ANGLE_UNSAFE_TODO(values[3]);
     }
 
     return clearImpl(context, clearColorBuffers, clearDepth, false, clearValue.color,
@@ -987,9 +986,9 @@ angle::Result FramebufferVk::clearBufferuiv(const gl::Context *context,
     clearColorBuffers.set(drawbuffer);
 
     clearValue.color.uint32[0] = values[0];
-    clearValue.color.uint32[1] = values[1];
-    clearValue.color.uint32[2] = values[2];
-    clearValue.color.uint32[3] = values[3];
+    clearValue.color.uint32[1] = ANGLE_UNSAFE_TODO(values[1]);
+    clearValue.color.uint32[2] = ANGLE_UNSAFE_TODO(values[2]);
+    clearValue.color.uint32[3] = ANGLE_UNSAFE_TODO(values[3]);
 
     return clearImpl(context, clearColorBuffers, false, false, clearValue.color,
                      clearValue.depthStencil);
@@ -1014,9 +1013,9 @@ angle::Result FramebufferVk::clearBufferiv(const gl::Context *context,
     {
         clearColorBuffers.set(drawbuffer);
         clearValue.color.int32[0] = values[0];
-        clearValue.color.int32[1] = values[1];
-        clearValue.color.int32[2] = values[2];
-        clearValue.color.int32[3] = values[3];
+        clearValue.color.int32[1] = ANGLE_UNSAFE_TODO(values[1]);
+        clearValue.color.int32[2] = ANGLE_UNSAFE_TODO(values[2]);
+        clearValue.color.int32[3] = ANGLE_UNSAFE_TODO(values[3]);
     }
 
     return clearImpl(context, clearColorBuffers, false, clearStencil, clearValue.color,
@@ -1114,9 +1113,9 @@ angle::Result FramebufferVk::readPixels(const gl::Context *context,
         params.reverseRowOrder = !params.reverseRowOrder;
     }
 
-    ANGLE_TRY(readPixelsImpl(contextVk, params.area, params, getReadPixelsAspectFlags(format),
-                             getReadPixelsRenderTarget(format),
-                             static_cast<uint8_t *>(pixels) + outputSkipBytes));
+    ANGLE_UNSAFE_TODO(ANGLE_TRY(readPixelsImpl(
+        contextVk, params.area, params, getReadPixelsAspectFlags(format),
+        getReadPixelsRenderTarget(format), static_cast<uint8_t *>(pixels) + outputSkipBytes)));
     return angle::Result::Continue;
 }
 
@@ -1917,7 +1916,7 @@ angle::Result FramebufferVk::generateFragmentShadingRateWithCPU(
     uint8_t *mappedBuffer;
     ANGLE_TRY(buffer->map(contextVk, &mappedBuffer));
     uint8_t val = 0;
-    memset(mappedBuffer, 0, bufferSize);
+    ANGLE_UNSAFE_TODO(memset(mappedBuffer, 0, bufferSize));
 
     // The spec requires min_pixel_density to be computed thusly -
     //
@@ -1985,7 +1984,7 @@ angle::Result FramebufferVk::generateFragmentShadingRateWithCPU(
                 // Use shading rate 2x2
                 val = (1 << 2) | 1;
             }
-            mappedBuffer[y * fragmentShadingRateWidth + x] = val;
+            ANGLE_UNSAFE_TODO(mappedBuffer[y * fragmentShadingRateWidth + x]) = val;
         }
     }
 
@@ -2035,7 +2034,8 @@ angle::Result FramebufferVk::generateFragmentShadingRateWithCompute(
     for (const gl::FocalPoint &focalPoint : activeFocalPoints)
     {
         ASSERT(focalPoint.valid());
-        shadingRateParams.focalPoints[shadingRateParams.numFocalPoints] = focalPoint;
+        ANGLE_UNSAFE_TODO(shadingRateParams.focalPoints[shadingRateParams.numFocalPoints]) =
+            focalPoint;
         shadingRateParams.numFocalPoints++;
     }
 
@@ -2251,7 +2251,7 @@ angle::Result FramebufferVk::invalidateImpl(ContextVk *contextVk,
 
     for (size_t i = 0; i < count; ++i)
     {
-        const GLenum attachment = attachments[i];
+        const GLenum attachment = ANGLE_UNSAFE_TODO(attachments[i]);
 
         switch (attachment)
         {
@@ -3532,6 +3532,7 @@ void FramebufferVk::restageDeferredClearsImpl(ContextVk *contextVk)
 }
 
 void FramebufferVk::clearWithCommand(ContextVk *contextVk,
+                                     const bool scissoredClear,
                                      const gl::Rectangle &scissoredRenderArea,
                                      ClearWithCommand behavior,
                                      vk::ClearValuesArray *clears)
@@ -3546,6 +3547,8 @@ void FramebufferVk::clearWithCommand(ContextVk *contextVk,
     gl::AttachmentVector<VkClearAttachment> attachments;
 
     const bool optimizeWithLoadOp = behavior == ClearWithCommand::OptimizeWithLoadOp;
+    uint32_t cmdCountAfterClear    = renderPassCommands->getRenderPassWriteCommandCount() + 1;
+    uint32_t redundantClearSkipped = 0;
 
     // Go through deferred clears and add them to the list of attachments to clear.  If any
     // attachment is unused, skip the clear.  clearWithLoadOp will follow and move the remaining
@@ -3562,19 +3565,35 @@ void FramebufferVk::clearWithCommand(ContextVk *contextVk,
                 renderPassCommands->getRenderPassDesc().hasColorUnresolveAttachment(colorIndexGL) ||
                 !optimizeWithLoadOp)
             {
-                // With render pass objects, the clears are indexed by the subpass-mapped locations.
-                // With dynamic rendering, they are indexed by the actual attachment index.
-                const uint32_t clearAttachmentIndex =
-                    contextVk->getFeatures().preferDynamicRendering.enabled
-                        ? colorIndexVk.get()
-                        : static_cast<uint32_t>(colorIndexGL);
+                if (!scissoredClear && renderPassCommands->isColorClearRedundant(
+                                           colorIndexVk, (*clears)[colorIndexGL]))
+                {
+                    clears->reset(colorIndexGL);
+                    ++redundantClearSkipped;
+                }
+                else
+                {
+                    // With render pass objects, the clears are indexed by the subpass-mapped
+                    // locations. With dynamic rendering, they are indexed by the actual attachment
+                    // index.
+                    const uint32_t clearAttachmentIndex =
+                        contextVk->getFeatures().preferDynamicRendering.enabled
+                            ? colorIndexVk.get()
+                            : static_cast<uint32_t>(colorIndexGL);
 
-                attachments.emplace_back(VkClearAttachment{
-                    VK_IMAGE_ASPECT_COLOR_BIT, clearAttachmentIndex, (*clears)[colorIndexGL]});
-                clears->reset(colorIndexGL);
-                ++contextVk->getPerfCounters().colorClearAttachments;
+                    attachments.emplace_back(VkClearAttachment{
+                        VK_IMAGE_ASPECT_COLOR_BIT, clearAttachmentIndex, (*clears)[colorIndexGL]});
 
-                renderPassCommands->onColorAccess(colorIndexVk, vk::ResourceAccess::ReadWrite);
+                    renderPassCommands->onColorAccess(colorIndexVk, vk::ResourceAccess::ReadWrite);
+                    if (!scissoredClear)
+                    {
+                        renderPassCommands->setColorAttachmentCleared(
+                            colorIndexVk, cmdCountAfterClear, (*clears)[colorIndexGL]);
+                    }
+
+                    clears->reset(colorIndexGL);
+                    ++contextVk->getPerfCounters().colorClearAttachments;
+                }
             }
             else
             {
@@ -3598,11 +3617,23 @@ void FramebufferVk::clearWithCommand(ContextVk *contextVk,
          renderPassCommands->getRenderPassDesc().hasDepthUnresolveAttachment() ||
          !optimizeWithLoadOp))
     {
-        dsAspectFlags |= VK_IMAGE_ASPECT_DEPTH_BIT;
-        // Explicitly mark a depth write because we are clearing the depth buffer.
-        renderPassCommands->onDepthAccess(vk::ResourceAccess::ReadWrite);
-        clears->reset(vk::kUnpackedDepthIndex);
-        ++contextVk->getPerfCounters().depthClearAttachments;
+        if (!scissoredClear && renderPassCommands->isDepthClearRedundant(dsClearValue))
+        {
+            clears->reset(vk::kUnpackedDepthIndex);
+            ++redundantClearSkipped;
+        }
+        else
+        {
+            dsAspectFlags |= VK_IMAGE_ASPECT_DEPTH_BIT;
+            // Explicitly mark a depth write because we are clearing the depth buffer.
+            renderPassCommands->onDepthAccess(vk::ResourceAccess::ReadWrite);
+            if (!scissoredClear)
+            {
+                renderPassCommands->setDepthAttachmentCleared(cmdCountAfterClear, dsClearValue);
+            }
+            clears->reset(vk::kUnpackedDepthIndex);
+            ++contextVk->getPerfCounters().depthClearAttachments;
+        }
     }
 
     if (clears->testStencil() &&
@@ -3611,11 +3642,23 @@ void FramebufferVk::clearWithCommand(ContextVk *contextVk,
          renderPassCommands->getRenderPassDesc().hasStencilUnresolveAttachment() ||
          !optimizeWithLoadOp))
     {
-        dsAspectFlags |= VK_IMAGE_ASPECT_STENCIL_BIT;
-        // Explicitly mark a stencil write because we are clearing the stencil buffer.
-        renderPassCommands->onStencilAccess(vk::ResourceAccess::ReadWrite);
-        clears->reset(vk::kUnpackedStencilIndex);
-        ++contextVk->getPerfCounters().stencilClearAttachments;
+        if (renderPassCommands->isStencilClearRedundant(dsClearValue))
+        {
+            clears->reset(vk::kUnpackedStencilIndex);
+            ++redundantClearSkipped;
+        }
+        else
+        {
+            dsAspectFlags |= VK_IMAGE_ASPECT_STENCIL_BIT;
+            // Explicitly mark a stencil write because we are clearing the stencil buffer.
+            renderPassCommands->onStencilAccess(vk::ResourceAccess::ReadWrite);
+            if (!scissoredClear)
+            {
+                renderPassCommands->setStencilAttachmentCleared(cmdCountAfterClear, dsClearValue);
+            }
+            clears->reset(vk::kUnpackedStencilIndex);
+            ++contextVk->getPerfCounters().stencilClearAttachments;
+        }
     }
 
     if (dsAspectFlags != 0)
@@ -3632,7 +3675,7 @@ void FramebufferVk::clearWithCommand(ContextVk *contextVk,
     {
         // If called with the intent to definitely clear something with vkCmdClearAttachments, there
         // must have been something to clear!
-        ASSERT(optimizeWithLoadOp);
+        ASSERT(optimizeWithLoadOp || redundantClearSkipped > 0);
         return;
     }
 

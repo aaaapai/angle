@@ -171,6 +171,53 @@ void main()
     EXPECT_GL_NO_ERROR();
 }
 
+TEST_P(TransformFeedbackTest, QueryVaryingZeroBufferSize)
+{
+    constexpr char kFS[] = R"(#version 300 es
+out mediump vec4 color;
+void main()
+{
+  color = vec4(0.6, 0.0, 0.0, 1.0);
+})";
+
+    std::string captureVarying = "gl_Position";
+
+    // Set the program's transform feedback varyings (just gl_Position)
+    std::vector<std::string> tfVaryings;
+    tfVaryings.push_back(captureVarying);
+    ANGLE_GL_PROGRAM_TRANSFORM_FEEDBACK(program, essl3_shaders::vs::Simple(), kFS, tfVaryings,
+                                        GL_INTERLEAVED_ATTRIBS);
+
+    {
+        // Typical case, query the varying with a large-enough buffer.
+        GLsizei length  = 0;
+        GLsizei size    = 0;
+        GLenum type     = GL_NONE;
+        GLchar name[16] = {0};
+        glGetTransformFeedbackVarying(program, 0, sizeof(name), &length, &size, &type, name);
+        EXPECT_GL_NO_ERROR();
+        EXPECT_EQ(static_cast<GLsizei>(captureVarying.length()), length);
+        EXPECT_EQ(1, size);
+        EXPECT_GLENUM_EQ(GL_FLOAT_VEC4, type);
+        EXPECT_EQ(captureVarying, std::string(name));
+    }
+
+    {
+        // Query the varying with a zero-sized buffer. Nothing should be written to the output
+        GLsizei length = 0;
+        GLsizei size   = 0;
+        GLenum type    = GL_NONE;
+        GLchar name[1] = {'a'};
+        glGetTransformFeedbackVarying(program, 0, 0, &length, &size, &type, name);
+        EXPECT_GL_NO_ERROR();
+        EXPECT_EQ(0, length);
+        EXPECT_EQ(1, size);
+        EXPECT_GLENUM_EQ(GL_FLOAT_VEC4, type);
+        // Verify the output is unchanged
+        EXPECT_EQ(name[0], 'a');
+    }
+}
+
 TEST_P(TransformFeedbackTest, ZeroSizedViewport)
 {
     // http://anglebug.com/42263715
@@ -607,9 +654,6 @@ TEST_P(TransformFeedbackTest, BufferRebinding)
 // afterward.
 TEST_P(TransformFeedbackTest, RecordAndDraw)
 {
-    // TODO(anglebug.com/40096690) This fails after the upgrade to the 26.20.100.7870 driver.
-    ANGLE_SKIP_TEST_IF(IsWindows() && IsIntel() && IsVulkan());
-
     // Fails on Mac GL drivers. http://anglebug.com/42263565
     ANGLE_SKIP_TEST_IF(IsOpenGL() && IsMac());
 
@@ -5243,6 +5287,65 @@ TEST_P(TransformFeedbackTest, StaleBufferBindingInactiveXfb)
     ASSERT_GL_NO_ERROR();
 }
 
+// Test that deleting a buffer bound to a transform feedback slot, and then drawing with a different
+// program that has transform feedback varyings (causing a default-uniform descriptor-set cache
+// miss) while transform feedback is inactive, doesn't cause a use-after-free.
+TEST_P(TransformFeedbackTest, StaleBufferBindingInactiveXfbWithUniforms)
+{
+    std::vector<std::string> tfVaryings = {"gl_Position"};
+    constexpr char kVS1[]               = R"(#version 300 es
+in vec4 a_position;
+uniform vec4 uOff;
+void main() {
+    gl_Position = a_position + uOff;
+})";
+    ANGLE_GL_PROGRAM_TRANSFORM_FEEDBACK(program1, kVS1, essl3_shaders::fs::Red(), tfVaryings,
+                                        GL_INTERLEAVED_ATTRIBS);
+    ASSERT_NE(0u, program1);
+    glUseProgram(program1);
+
+    GLBuffer buf0;
+    glBindBuffer(GL_TRANSFORM_FEEDBACK_BUFFER, buf0);
+    glBufferData(GL_TRANSFORM_FEEDBACK_BUFFER, 1024, nullptr, GL_DYNAMIC_COPY);
+
+    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, buf0);
+
+    GLint uOffLocation = glGetUniformLocation(program1, "uOff");
+    ASSERT_NE(-1, uOffLocation);
+    glUniform4f(uOffLocation, 0.0f, 0.0f, 0.0f, 0.0f);
+
+    glBeginTransformFeedback(GL_TRIANGLES);
+    drawQuad(program1, "a_position", 0.5f);
+    glEndTransformFeedback();
+
+    glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, 0);
+    buf0.reset();
+
+    // Create a new program with TF varyings and a uniform to force a descriptor set cache miss.
+    constexpr char kVS2[] = R"(#version 300 es
+in vec4 a_position;
+uniform vec4 uOff2;
+void main() {
+    gl_Position = a_position + uOff2;
+})";
+    ANGLE_GL_PROGRAM_TRANSFORM_FEEDBACK(program2, kVS2, essl3_shaders::fs::Green(), tfVaryings,
+                                        GL_INTERLEAVED_ATTRIBS);
+    ASSERT_NE(0u, program2);
+    glUseProgram(program2);
+
+    GLint uOff2Location = glGetUniformLocation(program2, "uOff2");
+    ASSERT_NE(-1, uOff2Location);
+    glUniform4f(uOff2Location, 0.0f, 0.0f, 0.0f, 0.0f);
+
+    // Regular draw while TF inactive, but still using a program that was compiled with transform
+    // feedback to trigger a default-uniform descriptor-set cache miss.
+    drawQuad(program2, "a_position", 0.5f);
+
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
+
+    ASSERT_GL_NO_ERROR();
+}
+
 class TransformFeedbackTestVkEvent : public TransformFeedbackTest
 {};
 
@@ -5428,11 +5531,12 @@ TEST_P(TransformFeedbackTest, InstancedOverflowIncompletePrimitive)
 }
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(TransformFeedbackTest);
-ANGLE_INSTANTIATE_TEST_ES3_AND(TransformFeedbackTest,
-                               ES3_VULKAN().disable(Feature::SupportsTransformFeedbackExtension),
-                               ES3_VULKAN()
-                                   .disable(Feature::SupportsTransformFeedbackExtension)
-                                   .disable(Feature::SupportsSPIRV14));
+ANGLE_INSTANTIATE_TEST_ES3_AND_ES31_AND_ES32_AND(
+    TransformFeedbackTest,
+    ES3_VULKAN().disable(Feature::SupportsTransformFeedbackExtension),
+    ES3_VULKAN()
+        .disable(Feature::SupportsTransformFeedbackExtension)
+        .disable(Feature::SupportsSPIRV14));
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(TransformFeedbackLifetimeTest);
 ANGLE_INSTANTIATE_TEST_ES3_AND(TransformFeedbackLifetimeTest,

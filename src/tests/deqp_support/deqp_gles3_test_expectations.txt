@@ -84,8 +84,6 @@
 42262706 WIN7 D3D11 NVIDIA : dEQP-GLES3.functional.rasterization.flatshading.triangles = FAIL
 
 // Vertex attribute aliasing is not supported on D3D
-42262131 D3D9 : dEQP-GLES3.functional.attribute_location.bind_aliasing.cond* = FAIL
-42262131 D3D9 : dEQP-GLES3.functional.attribute_location.bind_aliasing.max_cond* = FAIL
 42262131 D3D11 : dEQP-GLES3.functional.attribute_location.bind_aliasing.cond* = FAIL
 42262131 D3D11 : dEQP-GLES3.functional.attribute_location.bind_aliasing.max_cond* = FAIL
 
@@ -988,9 +986,6 @@
 376899587 PIXEL4ORXL : dEQP-GLES3.functional.negative_api.vertex_array.draw_elements_instanced_incomplete_primitive = SKIP
 376899587 PIXEL4ORXL : dEQP-GLES3.functional.negative_api.vertex_array.draw_range_elements = SKIP
 376899587 PIXEL4ORXL : dEQP-GLES3.functional.negative_api.vertex_array.draw_range_elements_incomplete_primitive = SKIP
-
-// VK-GL-CTS bug
-519062401 : dEQP-GLES3.functional.negative_api.shader.shader_source = FAIL
 
 // Translator IR failures
 /// IR's use of `while` and `if (!condition) break` instead of `for(..)` makes the HLSL generator think the loops are discontinous, and as a result it drops the derivative built-ins!

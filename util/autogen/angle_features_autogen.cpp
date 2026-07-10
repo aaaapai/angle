@@ -64,7 +64,6 @@ constexpr PackedEnumMap<Feature, const char *> kFeatureNames = {{
     {Feature::BgraTexImageFormatsBroken, "bgraTexImageFormatsBroken"},
     {Feature::BindCompleteFramebufferForTimerQueries, "bindCompleteFramebufferForTimerQueries"},
     {Feature::BindTransformFeedbackBufferBeforeBindBufferRange, "bindTransformFeedbackBufferBeforeBindBufferRange"},
-    {Feature::BorderColorSrgb, "borderColorSrgb"},
     {Feature::BottomLeftOriginPresentRegionRectangles, "bottomLeftOriginPresentRegionRectangles"},
     {Feature::BresenhamLineRasterization, "bresenhamLineRasterization"},
     {Feature::CacheCompiledShader, "cacheCompiledShader"},
@@ -233,6 +232,7 @@ constexpr PackedEnumMap<Feature, const char *> kFeatureNames = {{
     {Feature::HasStencilAutoResolve, "hasStencilAutoResolve"},
     {Feature::HasTextureSwizzle, "hasTextureSwizzle"},
     {Feature::InitFragmentOutputVariables, "initFragmentOutputVariables"},
+    {Feature::InitializeColorAttachmentWithWhite, "initializeColorAttachmentWithWhite"},
     {Feature::InitializeCurrentVertexAttributes, "initializeCurrentVertexAttributes"},
     {Feature::InjectAsmStatementIntoLoopBodies, "injectAsmStatementIntoLoopBodies"},
     {Feature::IsVertexSyncDeferred, "isVertexSyncDeferred"},
@@ -293,7 +293,6 @@ constexpr PackedEnumMap<Feature, const char *> kFeatureNames = {{
     {Feature::ReadPixelsUsingImplementationColorReadFormatForNorm16, "readPixelsUsingImplementationColorReadFormatForNorm16"},
     {Feature::ReapplyUBOBindingsAfterUsingBinaryProgram, "reapplyUBOBindingsAfterUsingBinaryProgram"},
     {Feature::ReattachFboDepthStencilOnReallocation, "reattachFboDepthStencilOnReallocation"},
-    {Feature::RecreateFboUponFlush, "recreateFboUponFlush"},
     {Feature::RecreateMipmapLevelsBeforeGenerate, "recreateMipmapLevelsBeforeGenerate"},
     {Feature::RecycleVkEvent, "recycleVkEvent"},
     {Feature::RegenerateStructNames, "regenerateStructNames"},
@@ -333,6 +332,7 @@ constexpr PackedEnumMap<Feature, const char *> kFeatureNames = {{
     {Feature::Supports8BitPushConstant, "supports8BitPushConstant"},
     {Feature::Supports8BitStorageBuffer, "supports8BitStorageBuffer"},
     {Feature::Supports8BitUniformAndStorageBuffer, "supports8BitUniformAndStorageBuffer"},
+    {Feature::SupportsAmdShaderCoreProperties, "supportsAmdShaderCoreProperties"},
     {Feature::SupportsAndroidHardwareBuffer, "supportsAndroidHardwareBuffer"},
     {Feature::SupportsAndroidNativeFenceSync, "supportsAndroidNativeFenceSync"},
     {Feature::SupportsAngleRgbxInternalFormat, "supportsAngleRgbxInternalFormat"},
@@ -412,7 +412,6 @@ constexpr PackedEnumMap<Feature, const char *> kFeatureNames = {{
     {Feature::SupportsMultisampledRenderToSingleSampled, "supportsMultisampledRenderToSingleSampled"},
     {Feature::SupportsMultiview, "supportsMultiview"},
     {Feature::SupportsMultiviewMultisampleRenderToTexture, "supportsMultiviewMultisampleRenderToTexture"},
-    {Feature::SupportsNonConstantLoopIndexing, "supportsNonConstantLoopIndexing"},
     {Feature::SupportsPipelineCreationFeedback, "supportsPipelineCreationFeedback"},
     {Feature::SupportsPipelineProtectedAccess, "supportsPipelineProtectedAccess"},
     {Feature::SupportsPipelineRobustness, "supportsPipelineRobustness"},
@@ -520,7 +519,6 @@ constexpr PackedEnumMap<Feature, const char *> kFeatureNames = {{
     {Feature::WarmUpPipelineCacheAtLink, "warmUpPipelineCacheAtLink"},
     {Feature::WrapSwitchInIfTrue, "wrapSwitchInIfTrue"},
     {Feature::WriteHelperSampleMask, "writeHelperSampleMask"},
-    {Feature::ZeroMaxLodWorkaround, "zeroMaxLodWorkaround"},
 }};
 }  // anonymous namespace
 

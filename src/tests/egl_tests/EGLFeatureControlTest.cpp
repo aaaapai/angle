@@ -6,12 +6,9 @@
 // Tests the eglQueryStringiANGLE and eglQueryDisplayAttribANGLE functions exposed by the
 // extension EGL_ANGLE_feature_control.
 
-#ifdef UNSAFE_BUFFERS_BUILD
-#    pragma allow_unsafe_buffers
-#endif
-
 #include <gtest/gtest.h>
 #include <optional>
+#include "common/unsafe_buffers.h"
 
 #include "common/string_utils.h"
 #include "libANGLE/Display.h"
@@ -143,7 +140,6 @@ void EGLFeatureControlTest::testOverrideFeatures(FeatureNameModifier modifyName)
         // Safe to toggle on GL and Vulkan
         angle::GetFeatureName(angle::Feature::ClampPointSize),
         // Safe to toggle on D3D
-        angle::GetFeatureName(angle::Feature::ZeroMaxLodWorkaround),
         angle::GetFeatureName(angle::Feature::ExpandIntegerPowExpressions),
         angle::GetFeatureName(angle::Feature::RewriteUnaryMinusOperator),
     };
@@ -240,7 +236,8 @@ TEST_P(EGLFeatureControlTest, OverrideFeaturesWildcard)
             std::transform(featureName.begin(), featureName.end(), featureName.begin(),
                            [](unsigned char c) { return std::tolower(c); });
 
-            const bool featureMatch = strncmp(featureName.c_str(), "allowhostimage", 14) == 0;
+            const bool featureMatch =
+                ANGLE_UNSAFE_TODO(strncmp(featureName.c_str(), "allowhostimage", 14)) == 0;
 
             std::optional<bool> overrideState;
             if (featureMatch)
@@ -343,7 +340,7 @@ TEST_P(EGLFeatureControlTest, OverrideFeaturesDependent)
         bool featureMatch = false;
         for (auto *ptr : featuresExpectDisabled)
         {
-            if (strcmp(ptr, features[i]->name) == 0)
+            if (ANGLE_UNSAFE_TODO(strcmp(ptr, features[i]->name)) == 0)
             {
                 featureMatch = true;
                 break;
@@ -390,7 +387,6 @@ TEST_P(EGLFeatureControlTest, OverrideFeaturesDependent)
 }
 
 ANGLE_INSTANTIATE_TEST(EGLFeatureControlTest,
-                       WithNoFixture(ES2_D3D9()),
                        WithNoFixture(ES2_D3D11()),
                        WithNoFixture(ES2_METAL()),
                        WithNoFixture(ES2_OPENGL()),

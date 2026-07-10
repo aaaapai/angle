@@ -6,11 +6,8 @@
 // EGLProgramCacheControlTest:
 //   Unit tests for the EGL_ANGLE_program_cache_control extension.
 
-#ifdef UNSAFE_BUFFERS_BUILD
-#    pragma allow_unsafe_buffers
-#endif
-
 #include "common/angleutils.h"
+#include "common/unsafe_buffers.h"
 #include "test_utils/ANGLETest.h"
 #include "test_utils/gl_raii.h"
 #include "util/EGLWindow.h"
@@ -31,7 +28,7 @@ class EGLProgramCacheControlTest : public ANGLETest<>
     void onCache(const ProgramKeyType &key, size_t programSize, const uint8_t *programBytes)
     {
         mCachedKey = key;
-        mCachedBinary.assign(&programBytes[0], &programBytes[programSize]);
+        mCachedBinary.assign(&programBytes[0], &ANGLE_UNSAFE_TODO(programBytes[programSize]));
     }
 
   protected:
@@ -299,7 +296,6 @@ TEST_P(EGLProgramCacheControlTest, DisableProgramCache)
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(EGLProgramCacheControlTest);
 ANGLE_INSTANTIATE_TEST(EGLProgramCacheControlTest,
-                       ES2_D3D9(),
                        ES2_D3D11(),
                        ES2_OPENGL(),
                        ES2_VULKAN());

@@ -11,11 +11,8 @@
 #ifndef LIBANGLE_RENDERER_VULKAN_VK_CACHE_UTILS_H_
 #define LIBANGLE_RENDERER_VULKAN_VK_CACHE_UTILS_H_
 
-#ifdef UNSAFE_BUFFERS_BUILD
-#    pragma allow_unsafe_buffers
-#endif
-
 #include <deque>
+#include "common/unsafe_buffers.h"
 
 #include "common/Color.h"
 #include "common/FixedVector.h"
@@ -1491,8 +1488,10 @@ ANGLE_INLINE bool GraphicsPipelineTransitionMatch(GraphicsPipelineTransitionBits
 
     for (size_t dirtyBit : bitsA)
     {
-        if (rawPtrA[dirtyBit] != rawPtrB[dirtyBit])
+        if (ANGLE_UNSAFE_TODO(rawPtrA[dirtyBit] != rawPtrB[dirtyBit]))
+        {
             return false;
+        }
     }
 
     return true;
@@ -1923,8 +1922,8 @@ class DescriptorSetDesc
     bool operator==(const DescriptorSetDesc &other) const
     {
         return mDescriptorInfos.size() == other.mDescriptorInfos.size() &&
-               memcmp(mDescriptorInfos.data(), other.mDescriptorInfos.data(),
-                      mDescriptorInfos.size() * sizeof(DescriptorInfoDesc)) == 0;
+               ANGLE_UNSAFE_TODO(memcmp(mDescriptorInfos.data(), other.mDescriptorInfos.data(),
+                                        mDescriptorInfos.size() * sizeof(DescriptorInfoDesc))) == 0;
     }
 
     DescriptorInfoDesc &getInfoDesc(uint32_t infoDescIndex)
@@ -2775,6 +2774,8 @@ class GraphicsPipelineCache final : public HasCacheStats<VulkanCacheType::Graphi
     void populate(const vk::GraphicsPipelineDesc &desc,
                   vk::Pipeline &&pipeline,
                   vk::PipelineHelper **pipelineHelperOut);
+
+    void remove(const vk::GraphicsPipelineDesc &desc) { mPayload.erase(desc); }
 
     // Get a pipeline from the cache, if it exists
     ANGLE_INLINE bool getPipeline(const vk::GraphicsPipelineDesc &desc,

@@ -7,11 +7,8 @@
 //   Tests pertaining to egl::Surface.
 //
 
-#ifdef UNSAFE_BUFFERS_BUILD
-#    pragma allow_unsafe_buffers
-#endif
-
 #include <gtest/gtest.h>
+#include "common/unsafe_buffers.h"
 
 #include <thread>
 #include <vector>
@@ -3794,7 +3791,7 @@ int EGLSurfaceTest::drawSizeCheckRect(EGLSurface surface,
     int result = 0;
     for (size_t i = 0; i < std::size(referenceColors); ++i)
     {
-        result += (surfaceColors[i] != referenceColors[i]) ? 1 : 0;
+        result += ANGLE_UNSAFE_TODO(surfaceColors[i] != referenceColors[i] ? 1 : 0);
     }
 
     // Surface size must not change after the draw.
@@ -4723,7 +4720,6 @@ GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(EGLAndroidAutoRefreshTest);
 ANGLE_INSTANTIATE_TEST(EGLAndroidAutoRefreshTest, WithNoFixture(ES3_VULKAN()));
 
 ANGLE_INSTANTIATE_TEST(EGLSurfaceTest,
-                       WithNoFixture(ES2_D3D9()),
                        WithNoFixture(ES2_D3D11()),
                        WithNoFixture(ES3_D3D11()),
                        WithNoFixture(ES2_METAL()),

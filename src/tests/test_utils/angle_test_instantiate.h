@@ -10,11 +10,8 @@
 #ifndef ANGLE_TEST_INSTANTIATE_H_
 #define ANGLE_TEST_INSTANTIATE_H_
 
-#ifdef UNSAFE_BUFFERS_BUILD
-#    pragma allow_unsafe_buffers
-#endif
-
 #include <gtest/gtest.h>
+#include "common/unsafe_buffers.h"
 
 #include "common/platform_helpers.h"
 
@@ -70,9 +67,9 @@ std::vector<T> FilterTestParams(const T *params, size_t numParams)
 
     for (size_t i = 0; i < numParams; i++)
     {
-        if (IsPlatformAvailable(params[i]))
+        if (IsPlatformAvailable(ANGLE_UNSAFE_TODO(params[i])))
         {
-            filtered.push_back(params[i]);
+            filtered.push_back(ANGLE_UNSAFE_TODO(params[i]));
         }
     }
 
@@ -128,14 +125,14 @@ struct CombinedPrintToStringParamName
     ES1_D3D11(), ES1_METAL(), ES1_OPENGL(), ES1_OPENGLES(), ES1_VULKAN(), \
         ES1_VULKAN_SWIFTSHADER(), ES1_VULKAN().enable(Feature::EnableParallelCompileAndLink)
 
-#define ANGLE_ALL_TEST_PLATFORMS_ES2                                                               \
-    ES2_D3D9(), ES2_D3D11(), ES2_OPENGL(), ES2_OPENGLES(), ES2_VULKAN(), ES2_VULKAN_SWIFTSHADER(), \
-        ES2_METAL(), ES2_WEBGPU(),                                                                 \
-        ES2_VULKAN()                                                                               \
-            .enable(Feature::EnableParallelCompileAndLink)                                         \
-            .enable(Feature::VaryingsRequireMatchingPrecisionInSpirv),                             \
-        ES2_VULKAN_SWIFTSHADER()                                                                   \
-            .enable(Feature::EnableParallelCompileAndLink)                                         \
+#define ANGLE_ALL_TEST_PLATFORMS_ES2                                                   \
+    ES2_D3D11(), ES2_OPENGL(), ES2_OPENGLES(), ES2_VULKAN(), ES2_VULKAN_SWIFTSHADER(), \
+        ES2_METAL(), ES2_WEBGPU(),                                                     \
+        ES2_VULKAN()                                                                   \
+            .enable(Feature::EnableParallelCompileAndLink)                             \
+            .enable(Feature::VaryingsRequireMatchingPrecisionInSpirv),                 \
+        ES2_VULKAN_SWIFTSHADER()                                                       \
+            .enable(Feature::EnableParallelCompileAndLink)                             \
             .disable(Feature::SupportsGraphicsPipelineLibrary)
 
 #define ANGLE_ALL_TEST_PLATFORMS_ES3                                                   \
@@ -284,6 +281,13 @@ struct CombinedPrintToStringParamName
     INSTANTIATE_TEST_SUITE_P(, testName, ANGLE_INSTANTIATE_TEST_PLATFORMS(testName),            \
                              testing::PrintToStringParamName())
 
+#define ANGLE_INSTANTIATE_TEST_ES3_AND_ES31_AND_ES32_AND(testName, ...)                         \
+    const PlatformParameters testName##params[] = {ANGLE_ALL_TEST_PLATFORMS_ES3,                \
+                                                   ANGLE_ALL_TEST_PLATFORMS_ES31,               \
+                                                   ANGLE_ALL_TEST_PLATFORMS_ES32, __VA_ARGS__}; \
+    INSTANTIATE_TEST_SUITE_P(, testName, ANGLE_INSTANTIATE_TEST_PLATFORMS(testName),            \
+                             testing::PrintToStringParamName())
+
 // Instantiate the test for a combination of N parameters and the
 // enumeration of platforms in the extra args, similar to
 // ANGLE_INSTANTIATE_TEST.  The macros are defined only for the Ns
@@ -331,6 +335,31 @@ struct CombinedPrintToStringParamName
         , testName,                                                                                \
         testing::Combine(ANGLE_INSTANTIATE_TEST_PLATFORMS(testName), combine1, combine2, combine3, \
                          combine4, combine5, combine6),                                            \
+        print)
+
+// Variants of ANGLE_INSTANTIATE_TEST_COMBINE_N that take a variantName used as
+// the INSTANTIATE_TEST_SUITE_P prefix.  This allows the same test class to be
+// instantiated multiple times with different parameter combinations.
+#define ANGLE_INSTANTIATE_TEST_VARIANTS_COMBINE_7(variantName, testName, print, combine1,   \
+                                                  combine2, combine3, combine4, combine5,   \
+                                                  combine6, combine7, first, ...)           \
+    const std::remove_reference<decltype(first)>::type testName##variantName##params[] = {  \
+        first, ##__VA_ARGS__};                                                              \
+    INSTANTIATE_TEST_SUITE_P(                                                               \
+        variantName, testName,                                                              \
+        testing::Combine(ANGLE_INSTANTIATE_TEST_PLATFORMS(testName, variantName), combine1, \
+                         combine2, combine3, combine4, combine5, combine6, combine7),       \
+        print)
+#define ANGLE_INSTANTIATE_TEST_VARIANTS_COMBINE_9(                                             \
+    variantName, testName, print, combine1, combine2, combine3, combine4, combine5, combine6,  \
+    combine7, combine8, combine9, first, ...)                                                  \
+    const std::remove_reference<decltype(first)>::type testName##variantName##params[] = {     \
+        first, ##__VA_ARGS__};                                                                 \
+    INSTANTIATE_TEST_SUITE_P(                                                                  \
+        variantName, testName,                                                                 \
+        testing::Combine(ANGLE_INSTANTIATE_TEST_PLATFORMS(testName, variantName), combine1,    \
+                         combine2, combine3, combine4, combine5, combine6, combine7, combine8, \
+                         combine9),                                                            \
         print)
 
 // Checks if a config is expected to be supported by checking a system-based allow list.
@@ -387,7 +416,7 @@ std::vector<ParamT> CombineWithValues(const std::vector<ParamT> &in,
     std::vector<ParamT> out;
     for (const ParamT &paramsIn : in)
     {
-        for (auto iter = begin; iter != end; ++iter)
+        for (auto iter = begin; iter != end; ANGLE_UNSAFE_TODO(++iter))
         {
             out.push_back(combine(paramsIn, *iter));
         }

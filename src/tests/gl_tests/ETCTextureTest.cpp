@@ -7,10 +7,7 @@
 //   Tests for ETC lossy decode formats.
 //
 
-#ifdef UNSAFE_BUFFERS_BUILD
-#    pragma allow_unsafe_buffers
-#endif
-
+#include "common/unsafe_buffers.h"
 #include "test_utils/ANGLETest.h"
 #include "test_utils/gl_raii.h"
 
@@ -48,7 +45,7 @@ class ETCTextureTest : public ANGLETest<>
 // Tests a cube map array texture with compressed ETC2 RGB8 format
 TEST_P(ETCTextureTest, ETC2RGB8_CubeMapValidation)
 {
-    ANGLE_SKIP_TEST_IF(!(IsGLExtensionEnabled("GL_EXT_texture_cube_map_array") &&
+    ANGLE_SKIP_TEST_IF(!(IsGLExtensionEnabled("GL_EXT_texture_cube_map_array") ||
                          (getClientMajorVersion() >= 3 && getClientMinorVersion() > 1)));
 
     constexpr GLsizei kInvalidTextureWidth  = 8;
@@ -67,8 +64,6 @@ TEST_P(ETCTextureTest, ETC2RGB8_CubeMapValidation)
 
     constexpr GLenum kFormat = GL_COMPRESSED_RGB8_ETC2;
 
-    std::vector<GLubyte> arrayData;
-
     constexpr GLuint kWidth       = 4u;
     constexpr GLuint kHeight      = 4u;
     constexpr GLuint kDepth       = 6u;
@@ -80,19 +75,26 @@ TEST_P(ETCTextureTest, ETC2RGB8_CubeMapValidation)
     constexpr GLuint kNumBlocksHigh = (kHeight + kBlockHeight - 1u) / kBlockHeight;
     constexpr GLuint kBytes         = kNumBlocksWide * kNumBlocksHigh * kPixelBytes * kDepth;
 
-    arrayData.reserve(kBytes);
+    std::vector<GLubyte> arrayData(kBytes, 0);
 
     glCompressedTexImage3D(GL_TEXTURE_CUBE_MAP_ARRAY, 0, kFormat, kWidth, kHeight, kDepth, 0,
                            kBytes, arrayData.data());
     EXPECT_GL_NO_ERROR();
 
+    // Invalid Dimensions
     glCompressedTexSubImage3D(GL_TEXTURE_CUBE_MAP_ARRAY, 0, 0, 0, 0, kInvalidTextureWidth,
-                              kInvalidTextureHeight, kDepth, GL_RGB, kInvalidTextureData.size(),
-                              kInvalidTextureData.data());
-    glCompressedTexSubImage3D(GL_TEXTURE_CUBE_MAP_ARRAY, 0, 0, 0, 0, kInvalidTextureWidth,
-                              kInvalidTextureHeight, kDepth, GL_RGB, kInvalidTextureData.size(),
-                              kInvalidTextureData.data());
+                              kInvalidTextureHeight, kDepth, kFormat, kBytes, arrayData.data());
+    EXPECT_GL_ERROR(GL_INVALID_VALUE);
+
+    // Invalid Format
+    glCompressedTexSubImage3D(GL_TEXTURE_CUBE_MAP_ARRAY, 0, 0, 0, 0, kWidth, kHeight, kDepth,
+                              GL_RGB, kBytes, arrayData.data());
     EXPECT_GL_ERROR(GL_INVALID_OPERATION);
+
+    // Invalid Data Size
+    glCompressedTexSubImage3D(GL_TEXTURE_CUBE_MAP_ARRAY, 0, 0, 0, 0, kWidth, kHeight, kDepth,
+                              kFormat, kInvalidTextureData.size(), kInvalidTextureData.data());
+    EXPECT_GL_ERROR(GL_INVALID_VALUE);
 }
 
 // Tests that uploading compressed texture from a PBO with a misaligned offset doesn't crash.
@@ -382,7 +384,8 @@ TEST_P(ETCToBCTextureTest, ETC2Rgba8UnormToBC3)
     {
         for (int j = 0; j < 4; ++j)
         {
-            EXPECT_PIXEL_COLOR_NEAR(j, i, GLColor(kExpectedRGBAColor[i * 4 + j]), kAbsError);
+            ANGLE_UNSAFE_TODO(
+                EXPECT_PIXEL_COLOR_NEAR(j, i, GLColor(kExpectedRGBAColor[i * 4 + j]), kAbsError));
         }
     }
 }
@@ -498,7 +501,8 @@ TEST_P(ETCToBCTextureTest, ETC2R11SignedToBC4)
     {
         for (int j = 0; j < 4; ++j)
         {
-            EXPECT_PIXEL_COLOR_NEAR(j, i, GLColor(kExpectedR11SignedColor[i * 4 + j]), kAbsError);
+            ANGLE_UNSAFE_TODO(EXPECT_PIXEL_COLOR_NEAR(
+                j, i, GLColor(kExpectedR11SignedColor[i * 4 + j]), kAbsError));
         }
     }
 }
@@ -529,7 +533,7 @@ TEST_P(ETCToBCTextureTest, ETC2RG11ToBC5)
     {
         for (int j = 0; j < 4; ++j)
         {
-            uint32_t color = (kExpectedRGBAColor[i * 4 + j] & 0xff000000) >> 24;
+            uint32_t color = (ANGLE_UNSAFE_TODO(kExpectedRGBAColor[i * 4 + j]) & 0xff000000) >> 24;
             color |= color << 8;
             color |= 0xff000000;
             EXPECT_PIXEL_COLOR_NEAR(j, i, GLColor(color), kAbsError);
@@ -558,12 +562,13 @@ TEST_P(ETCToBCTextureTest, ETC2Rgb8a1UnormToBC1)
     {
         for (int j = 0; j < 4; ++j)
         {
-            EXPECT_PIXEL_COLOR_NEAR(j, i, GLColor(kExpectedRgb8a1[i * 4 + j]), kAbsError);
+            ANGLE_UNSAFE_TODO(
+                EXPECT_PIXEL_COLOR_NEAR(j, i, GLColor(kExpectedRgb8a1[i * 4 + j]), kAbsError));
         }
     }
 }
 
-ANGLE_INSTANTIATE_TEST_ES2_AND_ES3(ETCTextureTest);
+ANGLE_INSTANTIATE_TEST_ES2_AND_ES3_AND_ES31_AND_ES32(ETCTextureTest);
 ANGLE_INSTANTIATE_TEST_ES3_AND(ETCToBCTextureTest,
                                ES3_VULKAN().enable(Feature::SupportsComputeTranscodeEtcToBc));
 }  // anonymous namespace

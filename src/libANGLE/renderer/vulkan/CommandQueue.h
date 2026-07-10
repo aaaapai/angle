@@ -131,13 +131,20 @@ class QueueFamily final : angle::NonCopyable
   public:
     static const uint32_t kInvalidIndex = std::numeric_limits<uint32_t>::max();
 
-    static uint32_t FindIndex(const std::vector<VkQueueFamilyProperties> &queueFamilyProperties,
+    static uint32_t FindIndex(const std::vector<VkQueueFamilyProperties2> &queueFamilyProperties2,
                               VkQueueFlags includeFlags,
                               VkQueueFlags optionalFlags,
                               VkQueueFlags excludeFlags,
                               uint32_t *matchCount);
-    static const uint32_t kQueueCount = static_cast<uint32_t>(egl::ContextPriority::EnumCount);
-    static const float kQueuePriorities[static_cast<uint32_t>(egl::ContextPriority::EnumCount)];
+
+    static constexpr float kQueuePriorityLow      = 0.0f;
+    static constexpr float kQueuePriorityMedium   = 0.4f;
+    static constexpr float kQueuePriorityHigh     = 0.8f;
+    static constexpr float kQueuePriorityRealtime = 1.0f;
+
+    static constexpr std::array<float, static_cast<uint32_t>(egl::ContextPriority::EnumCount)>
+        kQueuePriorities = {kQueuePriorityMedium, kQueuePriorityHigh, kQueuePriorityRealtime,
+                            kQueuePriorityLow};
 
     QueueFamily() : mProperties{}, mQueueFamilyIndex(kInvalidIndex) {}
     ~QueueFamily() {}

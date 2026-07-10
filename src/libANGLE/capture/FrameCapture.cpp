@@ -2962,7 +2962,8 @@ void CaptureVertexArrayState(std::vector<CallCapture> *setupCalls,
             }
             else if (attrib.bindingIndex == attribIndex &&
                      VertexBindingMatchesAttribStride(attrib, binding) &&
-                     (!buffer || binding.getOffset() == reinterpret_cast<GLintptr>(attrib.pointer)))
+                     (!buffer ||
+                      binding.getOffset() == reinterpret_cast<uintptr_t>(attrib.pointer)))
             {
                 // Check if we can use strictly ES2 semantics, and track indexes that do.
                 vertexPointerBindings.set(attribIndex);
@@ -3058,9 +3059,10 @@ void CaptureVertexArrayState(std::vector<CallCapture> *setupCalls,
 
         if (buffer)
         {
-            Capture(setupCalls, CaptureBindVertexBuffer(
-                                    *replayState, true, static_cast<GLuint>(bindingIndex),
-                                    buffer->id(), binding.getOffset(), binding.getStride()));
+            Capture(setupCalls,
+                    CaptureBindVertexBuffer(
+                        *replayState, true, static_cast<GLuint>(bindingIndex), buffer->id(),
+                        static_cast<GLintptr>(binding.getOffset()), binding.getStride()));
         }
 
         if (binding.getDivisor() != 0)
@@ -4746,6 +4748,7 @@ void CaptureShareGroupMidExecutionSetup(
         CaptureCustomFenceSync(fenceSync, *setupCalls);
         CaptureFenceSyncResetCalls(context, replayState, resourceTracker, syncID, syncObject, sync);
         resourceTracker->getStartingFenceSyncs().insert(syncID);
+        frameCaptureShared->markGLSyncEmitted(syncID);
     }
 
     // Capture EGL Sync Objects
@@ -4769,6 +4772,7 @@ void CaptureShareGroupMidExecutionSetup(
         resourceTracker->getTrackedResource(context->id(), ResourceIDType::egl_Sync)
             .getStartingResources()
             .insert(eglSyncID.value);
+        frameCaptureShared->markEGLSyncEmitted(eglSyncID);
     }
 
     GLint contextUnpackAlignment = context->getState().getUnpackState().alignment;
@@ -4804,6 +4808,26 @@ bool IsZombieTextureBinding(const gl::State &state,
         return (boundSerial != currentSerial);
     }
     return false;
+}
+
+// GLES1 Modelview and Projection matrix stacks are initialized with an identity entry, so skip
+// the push before the first load to keep from adding a glPushMatrix call in each trace upgrade
+void CaptureGLES1Matrices(std::vector<CallCapture> *setupCalls,
+                          const gl::State &replayState,
+                          const gl::State &apiState,
+                          gl::MatrixType mode)
+{
+    Capture(setupCalls, CaptureMatrixMode(replayState, true, mode));
+    bool firstPush = true;
+    for (angle::Mat4 matrix : apiState.gles1().getMatrixStack(mode))
+    {
+        if (!firstPush)
+        {
+            Capture(setupCalls, CapturePushMatrix(replayState, true));
+        }
+        Capture(setupCalls, CaptureLoadMatrixf(replayState, true, matrix.elements().data()));
+        firstPush = false;
+    }
 }
 
 void CaptureMidExecutionSetup(const gl::Context *context,
@@ -5427,21 +5451,8 @@ void CaptureMidExecutionSetup(const gl::Context *context,
             capCap(GL_TEXTURE_2D, currentTextureState);
         }
 
-        cap(CaptureMatrixMode(replayState, true, gl::MatrixType::Projection));
-        for (angle::Mat4 projectionMatrix :
-             apiState.gles1().getMatrixStack(gl::MatrixType::Projection))
-        {
-            cap(CapturePushMatrix(replayState, true));
-            cap(CaptureLoadMatrixf(replayState, true, projectionMatrix.elements().data()));
-        }
-
-        cap(CaptureMatrixMode(replayState, true, gl::MatrixType::Modelview));
-        for (angle::Mat4 modelViewMatrix :
-             apiState.gles1().getMatrixStack(gl::MatrixType::Modelview))
-        {
-            cap(CapturePushMatrix(replayState, true));
-            cap(CaptureLoadMatrixf(replayState, true, modelViewMatrix.elements().data()));
-        }
+        CaptureGLES1Matrices(setupCalls, replayState, apiState, gl::MatrixType::Projection);
+        CaptureGLES1Matrices(setupCalls, replayState, apiState, gl::MatrixType::Modelview);
 
         gl::MatrixType currentMatrixMode = apiState.gles1().getMatrixMode();
         if (currentMatrixMode != gl::MatrixType::Modelview)
@@ -7196,6 +7207,28 @@ void FrameCaptureShared::captureCustomMapBufferFromContext(const gl::Context *co
     CaptureCustomMapBuffer(entryPointName, call, callsOut, buffer->id());
 }
 
+// Drop wait/destroy calls on sync IDs for which the creation was never seen by capture, as when
+// AR apps import sync objects from the camera process. If the sync object is not recognized,
+// skip the Sync call and add a trace comment instead
+bool FilterImportedSyncs(bool captureActive,
+                         GLuint syncID,
+                         bool emitted,
+                         const char *api,
+                         const CallCapture &inCall,
+                         std::vector<CallCapture> &outCalls)
+{
+    if (!captureActive || syncID == 0 || emitted)
+    {
+        return false;
+    }
+    std::stringstream msg;
+    msg << "Dropping " << GetEntryPointName(inCall.entryPoint) << " on possibly external " << api
+        << " sync ID " << syncID;
+    AddComment(&outCalls, msg.str());
+    WARN() << msg.str();
+    return true;
+}
+
 void FrameCaptureShared::maybeOverrideEntryPoint(const gl::Context *context,
                                                  CallCapture &inCall,
                                                  std::vector<CallCapture> &outCalls)
@@ -7301,6 +7334,35 @@ void FrameCaptureShared::maybeOverrideEntryPoint(const gl::Context *context,
         case EntryPoint::EGLCreateNativeClientBufferANDROID:
         {
             CaptureCustomCreateNativeClientbuffer(inCall, outCalls);
+            break;
+        }
+        case EntryPoint::GLWaitSync:
+        case EntryPoint::GLClientWaitSync:
+        case EntryPoint::GLDeleteSync:
+        {
+            gl::SyncID syncID =
+                inCall.params.getParam("syncPacked", ParamType::TSyncID, 0).value.SyncIDVal;
+            if (!FilterImportedSyncs(isCaptureActive(), syncID.value, isGLSyncEmitted(syncID), "GL",
+                                     inCall, outCalls))
+            {
+                outCalls.emplace_back(std::move(inCall));
+            }
+            break;
+        }
+        case EntryPoint::EGLWaitSync:
+        case EntryPoint::EGLWaitSyncKHR:
+        case EntryPoint::EGLClientWaitSync:
+        case EntryPoint::EGLClientWaitSyncKHR:
+        case EntryPoint::EGLDestroySync:
+        case EntryPoint::EGLDestroySyncKHR:
+        {
+            egl::SyncID syncID =
+                inCall.params.getParam("syncPacked", ParamType::Tegl_SyncID, 1).value.egl_SyncIDVal;
+            if (!FilterImportedSyncs(isCaptureActive(), syncID.value, isEGLSyncEmitted(syncID),
+                                     "EGL", inCall, outCalls))
+            {
+                outCalls.emplace_back(std::move(inCall));
+            }
             break;
         }
         default:
@@ -8142,6 +8204,18 @@ void FrameCaptureShared::maybeCapturePreCallUpdates(
             if (frameCaptureShared->isCaptureActive())
             {
                 handleGennedResource(context, eglSyncID);
+                markEGLSyncEmitted(eglSyncID);
+            }
+            break;
+        }
+        case EntryPoint::GLFenceSync:
+        {
+            gl::SyncID syncID = call.params.getReturnValue().value.SyncIDVal;
+            FrameCaptureShared *frameCaptureShared =
+                context->getShareGroup()->getFrameCaptureShared();
+            if (frameCaptureShared->isCaptureActive())
+            {
+                markGLSyncEmitted(syncID);
             }
             break;
         }
@@ -9440,6 +9514,7 @@ void FrameCaptureShared::writeJSON(const gl::Context *context)
         json.addScalar("ConfigDepthBits", EGL_DONT_CARE);
         json.addScalar("ConfigStencilBits", EGL_DONT_CARE);
     }
+    json.addBool("IsRobustAccessEnabled", context->isRobustnessEnabled());
     json.addBool("IsBinaryDataCompressed", mCompression);
     json.addBool("AreClientArraysEnabled", glState.areClientArraysEnabled());
     json.addBool("IsBindGeneratesResourcesEnabled", glState.isBindGeneratesResourceEnabled());

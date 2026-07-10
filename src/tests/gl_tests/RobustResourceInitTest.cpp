@@ -5,10 +5,7 @@
 //
 // RobustResourceInitTest: Tests for GL_ANGLE_robust_resource_initialization.
 
-#ifdef UNSAFE_BUFFERS_BUILD
-#    pragma allow_unsafe_buffers
-#endif
-
+#include "common/unsafe_buffers.h"
 #include "test_utils/ANGLETest.h"
 
 #include "test_utils/gl_raii.h"
@@ -319,8 +316,7 @@ class RobustResourceInitWithPaddingTest : public RobustResourceInitTest
 // it only works on the implemented renderers
 TEST_P(RobustResourceInitTest, ExpectedRendererSupport)
 {
-    bool shouldHaveSupport =
-        IsD3D11() || IsD3D9() || IsOpenGL() || IsOpenGLES() || IsVulkan() || IsMetal();
+    bool shouldHaveSupport = IsD3D11() || IsOpenGL() || IsOpenGLES() || IsVulkan() || IsMetal();
     EXPECT_EQ(shouldHaveSupport, hasGLExtension());
     EXPECT_EQ(shouldHaveSupport, hasEGLExtension());
     EXPECT_EQ(shouldHaveSupport, hasRobustSurfaceInit());
@@ -382,19 +378,19 @@ TEST_P(RobustResourceInitTest, BufferData)
     glBufferData(GL_ARRAY_BUFFER, getWindowWidth() * getWindowHeight() * sizeof(GLfloat), nullptr,
                  GL_STATIC_DRAW);
 
-    constexpr char kVS[] =
-        "attribute vec2 position;\n"
-        "attribute float testValue;\n"
-        "varying vec4 colorOut;\n"
-        "void main() {\n"
-        "    gl_Position = vec4(position, 0, 1);\n"
-        "    colorOut = testValue == 0.0 ? vec4(0, 1, 0, 1) : vec4(1, 0, 0, 1);\n"
-        "}";
-    constexpr char kFS[] =
-        "varying mediump vec4 colorOut;\n"
-        "void main() {\n"
-        "    gl_FragColor = colorOut;\n"
-        "}";
+    constexpr char kVS[] = R"(
+        attribute vec2 position;
+        attribute float testValue;
+        varying vec4 colorOut;
+        void main() {
+            gl_Position = vec4(position, 0, 1);
+            colorOut = testValue == 0.0 ? vec4(0, 1, 0, 1) : vec4(1, 0, 0, 1);
+        })";
+    constexpr char kFS[] = R"(
+        varying mediump vec4 colorOut;
+        void main() {
+            gl_FragColor = colorOut;
+        })";
 
     ANGLE_GL_PROGRAM(program, kVS, kFS);
 
@@ -410,11 +406,127 @@ TEST_P(RobustResourceInitTest, BufferData)
 
     ASSERT_GL_NO_ERROR();
 
-    std::vector<GLColor> expected(getWindowWidth() * getWindowHeight(), GLColor::green);
-    std::vector<GLColor> actual(getWindowWidth() * getWindowHeight());
-    glReadPixels(0, 0, getWindowWidth(), getWindowHeight(), GL_RGBA, GL_UNSIGNED_BYTE,
-                 actual.data());
-    EXPECT_EQ(expected, actual);
+    EXPECT_PIXEL_RECT_EQ(0, 0, getWindowWidth(), getWindowHeight(), GLColor::green);
+
+    GLint initState = 0;
+    glBindBuffer(GL_ARRAY_BUFFER, buffer);
+    glGetBufferParameteriv(GL_ARRAY_BUFFER, GL_RESOURCE_INITIALIZED_ANGLE, &initState);
+    EXPECT_GL_TRUE(initState);
+}
+
+// Tests that an existing buffer updated to be a smaller size after use is cleared in the new range.
+TEST_P(RobustResourceInitTest, BufferDataRedefinedAfterFinish)
+{
+    ANGLE_SKIP_TEST_IF(!hasGLExtension());
+
+    // The buffer is initially defined with twice the output size, and it is filled with non-zero
+    // data and used for draw.
+    const size_t outputSize = getWindowWidth() * getWindowHeight();
+    GLBuffer buffer;
+    std::vector<GLfloat> bufferInitData(2 * outputSize, 1.0);
+    glBindBuffer(GL_ARRAY_BUFFER, buffer);
+    glBufferData(GL_ARRAY_BUFFER, bufferInitData.size() * sizeof(GLfloat), bufferInitData.data(),
+                 GL_STATIC_DRAW);
+
+    constexpr char kVS[] = R"(
+        attribute vec2 position;
+        attribute float testValue;
+        varying vec4 colorOut;
+        void main() {
+            gl_Position = vec4(position, 0, 1);
+            colorOut = testValue == 0.0 ? vec4(0, 1, 0, 1) : vec4(1, 0, 0, 1);
+        })";
+    constexpr char kFS[] = R"(
+        varying mediump vec4 colorOut;
+        void main() {
+            gl_FragColor = colorOut;
+        })";
+
+    ANGLE_GL_PROGRAM(program, kVS, kFS);
+
+    GLint testValueLoc = glGetAttribLocation(program, "testValue");
+    ASSERT_NE(-1, testValueLoc);
+
+    glBindBuffer(GL_ARRAY_BUFFER, buffer);
+    glVertexAttribPointer(testValueLoc, 1, GL_FLOAT, GL_FALSE, 4, nullptr);
+    glEnableVertexAttribArray(testValueLoc);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    drawQuad(program, "position", 0.5f);
+    ASSERT_GL_NO_ERROR();
+    EXPECT_PIXEL_RECT_EQ(0, 0, getWindowWidth(), getWindowHeight(), GLColor::red);
+
+    // At this point, the original buffer should no longer be in use due to the ops being finished.
+    // Now if the buffer size is redefined to a smaller size (same as output size) without any data
+    // specified, the new range should be cleared to zero and no longer hold the initial data.
+    glBindBuffer(GL_ARRAY_BUFFER, buffer);
+    glBufferData(GL_ARRAY_BUFFER, outputSize * sizeof(GLfloat), nullptr, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    drawQuad(program, "position", 0.5f);
+    ASSERT_GL_NO_ERROR();
+    EXPECT_PIXEL_RECT_EQ(0, 0, getWindowWidth(), getWindowHeight(), GLColor::green);
+
+    GLint initState = 0;
+    glBindBuffer(GL_ARRAY_BUFFER, buffer);
+    glGetBufferParameteriv(GL_ARRAY_BUFFER, GL_RESOURCE_INITIALIZED_ANGLE, &initState);
+    EXPECT_GL_TRUE(initState);
+}
+
+// Tests that an existing buffer updated to be a smaller size while it is in use is staged for clear
+// in the new range.
+TEST_P(RobustResourceInitTest, BufferDataRedefinedBeforeFinish)
+{
+    ANGLE_SKIP_TEST_IF(!hasGLExtension());
+
+    // The buffer is initially defined with twice the output size, and it is filled with non-zero
+    // data and used for draw.
+    const size_t outputSize = getWindowWidth() * getWindowHeight();
+    GLBuffer buffer;
+    std::vector<GLfloat> bufferInitData(2 * outputSize, 1.0);
+    glBindBuffer(GL_ARRAY_BUFFER, buffer);
+    glBufferData(GL_ARRAY_BUFFER, bufferInitData.size() * sizeof(GLfloat), bufferInitData.data(),
+                 GL_STATIC_DRAW);
+
+    constexpr char kVS[] = R"(
+        attribute vec2 position;
+        attribute float testValue;
+        varying vec4 colorOut;
+        void main() {
+            gl_Position = vec4(position, 0, 1);
+            colorOut = testValue == 0.0 ? vec4(0, 1, 0, 1) : vec4(1, 0, 0, 1);
+        })";
+    constexpr char kFS[] = R"(
+        varying mediump vec4 colorOut;
+        void main() {
+            gl_FragColor = colorOut;
+        })";
+
+    ANGLE_GL_PROGRAM(program, kVS, kFS);
+
+    GLint testValueLoc = glGetAttribLocation(program, "testValue");
+    ASSERT_NE(-1, testValueLoc);
+
+    glBindBuffer(GL_ARRAY_BUFFER, buffer);
+    glVertexAttribPointer(testValueLoc, 1, GL_FLOAT, GL_FALSE, 4, nullptr);
+    glEnableVertexAttribArray(testValueLoc);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    drawQuad(program, "position", 0.5f);
+    ASSERT_GL_NO_ERROR();
+
+    // At this point, the original buffer has been used for draw, but the pixels have not been read
+    // back yet. Now if the buffer size is redefined to a smaller size (same as output size) without
+    // any data specified, the new range should be staged for clear to zero. However, if the pixels
+    // are read back before a draw with the cleared buffer data, they should still reflect the old
+    // data used for the last draw.
+    glBindBuffer(GL_ARRAY_BUFFER, buffer);
+    glBufferData(GL_ARRAY_BUFFER, outputSize * sizeof(GLfloat), nullptr, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    EXPECT_PIXEL_RECT_EQ(0, 0, getWindowWidth(), getWindowHeight(), GLColor::red);
+
+    drawQuad(program, "position", 0.5f);
+    ASSERT_GL_NO_ERROR();
+    EXPECT_PIXEL_RECT_EQ(0, 0, getWindowWidth(), getWindowHeight(), GLColor::green);
 
     GLint initState = 0;
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
@@ -1814,6 +1926,112 @@ TEST_P(RobustResourceInitTestES3, MultisampledDepthInitializedCorrectly)
     EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::red);
 }
 
+// Tests that uninitialized depth and depth-stencil textures created across all supported
+// formats are robustly initialized to 1.0 depth (and 0 stencil), verified by sampling depth
+// directly in a shader and testing stencil via FBO attachment.
+// We test with decreasing sizes to verify PBO reuses work correctly in the GL backend.
+TEST_P(RobustResourceInitTestES3, DepthStencilTextureInitCombinations)
+{
+    ANGLE_SKIP_TEST_IF(!hasGLExtension());
+
+    struct TestFormat
+    {
+        GLenum internalFormat;
+        GLenum format;
+        GLenum type;
+    };
+    constexpr TestFormat kFormats[] = {
+        {GL_DEPTH_COMPONENT16, GL_DEPTH_COMPONENT, GL_UNSIGNED_SHORT},
+        {GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT},
+        {GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT},
+        {GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8},
+        {GL_DEPTH32F_STENCIL8, GL_DEPTH_STENCIL, GL_FLOAT_32_UNSIGNED_INT_24_8_REV},
+    };
+
+    constexpr char kVS[] = R"(#version 300 es
+in vec4 aPosition;
+void main()
+{
+    gl_Position = aPosition;
+})";
+
+    constexpr char kFS[] = R"(#version 300 es
+precision highp float;
+uniform highp sampler2D uDepthTex;
+out vec4 outColor;
+void main()
+{
+    float depth = texture(uDepthTex, vec2(0.5, 0.5)).r;
+    if (abs(depth - 1.0) < 0.001)
+    {
+        outColor = vec4(0.0, 1.0, 0.0, 1.0); // green
+    }
+    else
+    {
+        outColor = vec4(1.0, 0.0, 0.0, 1.0); // red
+    }
+})";
+
+    ANGLE_GL_PROGRAM(depthSampleProg, kVS, kFS);
+    glUseProgram(depthSampleProg);
+    GLint texLoc = glGetUniformLocation(depthSampleProg, "uDepthTex");
+    ASSERT_NE(texLoc, -1);
+    glUniform1i(texLoc, 0);
+
+    ANGLE_GL_PROGRAM(blueProg, essl1_shaders::vs::Simple(), essl1_shaders::fs::Blue());
+
+    constexpr int kSizes[] = {256, 128};
+
+    for (const TestFormat &fmt : kFormats)
+    {
+        for (int size : kSizes)
+        {
+            GLTexture color;
+            glBindTexture(GL_TEXTURE_2D, color);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, size, size, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+                         nullptr);
+
+            GLFramebuffer fbo;
+            glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, color, 0);
+            ASSERT_GL_FRAMEBUFFER_COMPLETE(GL_FRAMEBUFFER);
+
+            GLTexture ds;
+            glBindTexture(GL_TEXTURE_2D, ds);
+            glTexImage2D(GL_TEXTURE_2D, 0, fmt.internalFormat, size, size, 0, fmt.format, fmt.type,
+                         nullptr);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+            // 1. Verify depth == 1.0 via shader sampling
+            glDisable(GL_DEPTH_TEST);
+            glViewport(0, 0, size, size);
+            drawQuad(depthSampleProg, "aPosition", 0.0f);
+            EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
+
+            // 2. If depth-stencil, verify stencil == 0 via FBO stencil attachment test
+            if (fmt.format == GL_DEPTH_STENCIL)
+            {
+                glBindTexture(GL_TEXTURE_2D, 0);
+                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D,
+                                       ds, 0);
+                ASSERT_GL_FRAMEBUFFER_COMPLETE(GL_FRAMEBUFFER);
+
+                glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
+                glClear(GL_COLOR_BUFFER_BIT);
+
+                glEnable(GL_STENCIL_TEST);
+                glStencilFunc(GL_EQUAL, 0, 0xFF);
+                glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+
+                drawQuad(blueProg, essl1_shaders::PositionAttrib(), 0.0f);
+                EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::blue);
+                glDisable(GL_STENCIL_TEST);
+            }
+        }
+    }
+}
+
 // Basic test that textures are initialized correctly.  Verification is done via glReadPixels.
 TEST_P(RobustResourceInitTest, TextureViaReadBack)
 {
@@ -1855,6 +2073,32 @@ TEST_P(RobustResourceInitTest, TextureAfterCheckStatus)
     // Unbind the framebuffer and sample from the texture.
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     ANGLE_GL_PROGRAM(testProgram, essl1_shaders::vs::Texture2D(), essl1_shaders::fs::Texture2D());
+    drawQuad(testProgram, essl1_shaders::PositionAttrib(), 0.0f);
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::transparentBlack);
+}
+
+// Test that after a texture with data is sampled, recreating it with no data makes it cleared.
+TEST_P(RobustResourceInitTest, SampleReinitSample)
+{
+    ANGLE_SKIP_TEST_IF(!hasGLExtension());
+
+    const std::vector<GLColor> kInitData(kWidth * kHeight, GLColor::red);
+
+    GLTexture texture;
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, kWidth, kHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+                 kInitData.data());
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+    // Draw once, the texture has data and should sample with data.  The texture is also sync'ed at
+    // this step.
+    ANGLE_GL_PROGRAM(testProgram, essl1_shaders::vs::Texture2D(), essl1_shaders::fs::Texture2D());
+    drawQuad(testProgram, essl1_shaders::PositionAttrib(), 0.0f);
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::red);
+
+    // Recreate the texture with no data.  It should be cleared to black.
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, kWidth, kHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
     drawQuad(testProgram, essl1_shaders::PositionAttrib(), 0.0f);
     EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::transparentBlack);
 }
@@ -2475,6 +2719,58 @@ TEST_P(RobustResourceInitTestES3, MaskedStencilClearBuffer)
     maskedStencilClear(clearFunc);
 }
 
+// Test that clearing a depth-stencil buffer with clearBufferfi when depthMask is disabled
+TEST_P(RobustResourceInitTestES3, MaskedDepthClearBufferfi)
+{
+    ANGLE_SKIP_TEST_IF(!hasGLExtension());
+
+    constexpr int kSize = 16;
+
+    GLRenderbuffer depthStencilBuffer;
+    glBindRenderbuffer(GL_RENDERBUFFER, depthStencilBuffer);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, kSize, kSize);
+
+    GLTexture colorbuffer;
+    glBindTexture(GL_TEXTURE_2D, colorbuffer);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, kSize, kSize, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+
+    GLFramebuffer framebuffer;
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorbuffer, 0);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER,
+                              depthStencilBuffer);
+
+    ASSERT_GL_NO_ERROR();
+    ASSERT_GL_FRAMEBUFFER_COMPLETE(GL_FRAMEBUFFER);
+
+    glDepthMask(GL_FALSE);
+    glStencilMask(0xFF);
+
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glClearBufferfi(GL_DEPTH_STENCIL, 0, 0.5f, 0);
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::black);
+
+    glEnable(GL_DEPTH_TEST);
+    glViewport(0, 0, kSize, kSize);
+
+    ANGLE_GL_PROGRAM(drawGreen, essl1_shaders::vs::Simple(), essl1_shaders::fs::Green());
+    ANGLE_GL_PROGRAM(drawRed, essl1_shaders::vs::Simple(), essl1_shaders::fs::Red());
+
+    glDepthFunc(GL_GREATER);
+
+    // Depth buffer should be robust-init to 1.0f
+    // 0.99f NDC maps to 0.995f depth should fail the depth test
+    drawQuad(drawGreen, essl1_shaders::PositionAttrib(), 0.99f);
+    ASSERT_GL_NO_ERROR();
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::black) << "depth test GL_GREATER at 0.99f should fail";
+
+    glDepthFunc(GL_EQUAL);
+    drawQuad(drawRed, essl1_shaders::PositionAttrib(), 1.0f);  // 1.0f NDC maps to 1.0f depth
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::red) << "depth should be initialized to 1.0f";
+}
+
 template <int Size, typename InitializedTest>
 void VerifyRGBA8PixelRect(InitializedTest inInitialized)
 {
@@ -2744,6 +3040,202 @@ TEST_P(RobustResourceInitTestES3, Texture2DArrayPartiallyCleared)
     ASSERT_GL_NO_ERROR();
 }
 
+// Test that redefining a 2D array texture doesn't bypass robust resource initialization.
+TEST_P(RobustResourceInitTestES3, Texture2DArrayRedefine)
+{
+    ANGLE_SKIP_TEST_IF(!hasGLExtension());
+
+    constexpr int kLargeWidth  = 256;
+    constexpr int kLargeHeight = 256;
+    constexpr int kLayers      = 4;
+
+    GLTexture seedTexture;
+    glBindTexture(GL_TEXTURE_2D_ARRAY, seedTexture);
+    glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8, kLargeWidth, kLargeHeight, kLayers, 0, GL_RGBA,
+                 GL_UNSIGNED_BYTE, nullptr);
+
+    std::vector<GLColor> sentinelData(kLargeWidth * kLargeHeight * kLayers, GLColor::red);
+    glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, 0, kLargeWidth, kLargeHeight, kLayers, GL_RGBA,
+                    GL_UNSIGNED_BYTE, sentinelData.data());
+
+    GLFramebuffer fb;
+    glBindFramebuffer(GL_FRAMEBUFFER, fb);
+    glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, seedTexture, 0, 0);
+    EXPECT_GL_FRAMEBUFFER_COMPLETE(GL_FRAMEBUFFER);
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::red);
+
+    constexpr int kSmallSize = 1;
+
+    GLTexture texture;
+    glBindTexture(GL_TEXTURE_2D_ARRAY, texture);
+    glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8, kSmallSize, kSmallSize, kLayers, 0, GL_RGBA,
+                 GL_UNSIGNED_BYTE, nullptr);
+
+    // Bind to framebuffer and read to force clear and populate cache.
+    glBindFramebuffer(GL_FRAMEBUFFER, fb);
+    glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texture, 0, 0);
+    EXPECT_GL_FRAMEBUFFER_COMPLETE(GL_FRAMEBUFFER);
+
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::transparentBlack);
+
+    // Redefine level 0 to the larger dimension.
+    // This should trigger release and reallocation of the underlying VkImage.
+    glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8, kLargeWidth, kLargeHeight, kLayers, 0, GL_RGBA,
+                 GL_UNSIGNED_BYTE, nullptr);
+
+    glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texture, 0, 0);
+    EXPECT_GL_FRAMEBUFFER_COMPLETE(GL_FRAMEBUFFER);
+
+    static_assert(kWidth <= kLargeWidth && kHeight <= kLargeHeight);
+    for (int layer = 0; layer < kLayers; ++layer)
+    {
+        checkNonZeroPixels3D(&texture, 0, 0, 0, 0, layer, GLColor::transparentBlack);
+    }
+    ASSERT_GL_NO_ERROR();
+}
+
+// Test that robust init is done correctly for array textures when updates pruning threshold is met.
+TEST_P(RobustResourceInitTestES3, Texture2DArrayPrunedSupersededUpdatesLeak)
+{
+    ANGLE_SKIP_TEST_IF(!hasGLExtension());
+
+    // We rely on AllocateNonZeroMemory configuration to verify this bug. This configuration
+    // overrides all new allocations with non-zero values, which allows us to catch if
+    // robust resource initialization Clear is bypassed.
+    constexpr int kLocalWidth  = 512;
+    constexpr int kLocalHeight = 512;
+    constexpr int kLayers      = 4;
+
+    GLFramebuffer fb;
+    glBindFramebuffer(GL_FRAMEBUFFER, fb);
+
+    GLTexture texture;
+    glBindTexture(GL_TEXTURE_2D_ARRAY, texture);
+    glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8, kLocalWidth, kLocalHeight, kLayers, 0, GL_RGBA,
+                 GL_UNSIGNED_BYTE, nullptr);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+    // Perform multiple sub-image updates to layer 0.
+    // Each update is 512 * 512 * 4 = 1 MiB.
+    // We do 17 updates (17 MiB staged), which exceeds the 16 MiB pruning threshold.
+    constexpr int kUpdateCount = 17;
+    std::vector<GLColor> zeroData(kLocalWidth * kLocalHeight, GLColor::transparentBlack);
+    for (int i = 0; i < kUpdateCount; ++i)
+    {
+        glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, 0, kLocalWidth, kLocalHeight, 1, GL_RGBA,
+                        GL_UNSIGNED_BYTE, zeroData.data());
+    }
+
+    for (int layer = 1; layer < kLayers; ++layer)
+    {
+        glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texture, 0, layer);
+        EXPECT_GL_FRAMEBUFFER_COMPLETE(GL_FRAMEBUFFER);
+        checkCustomFramebufferNonZeroPixels(kLocalWidth, kLocalHeight, 0, 0, 0, 0,
+                                            GLColor::transparentBlack);
+    }
+
+    ASSERT_GL_NO_ERROR();
+}
+
+// Test that robust init is done correctly when an array texture is redefined to a larger layer
+// count
+TEST_P(RobustResourceInitTestES3, Texture2DArrayRedefinePrunedSupersededUpdatesLeak)
+{
+    ANGLE_SKIP_TEST_IF(!hasGLExtension());
+
+    constexpr int kLocalWidth  = 512;
+    constexpr int kLocalHeight = 512;
+    constexpr int kLayers1     = 2;
+    constexpr int kLayers2     = 4;
+
+    GLFramebuffer fb;
+    glBindFramebuffer(GL_FRAMEBUFFER, fb);
+
+    GLTexture texture;
+    glBindTexture(GL_TEXTURE_2D_ARRAY, texture);
+
+    glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8, kLocalWidth, kLocalHeight, kLayers1, 0, GL_RGBA,
+                 GL_UNSIGNED_BYTE, nullptr);
+    glTexImage3D(GL_TEXTURE_2D_ARRAY, 1, GL_RGBA8, kLocalWidth / 2, kLocalHeight / 2, kLayers1, 0,
+                 GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+    glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texture, 0, 0);
+    ASSERT_GL_FRAMEBUFFER_COMPLETE(GL_FRAMEBUFFER);
+    glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::red);
+    ASSERT_GL_NO_ERROR();
+
+    glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8, kLocalWidth, kLocalHeight, kLayers2, 0, GL_RGBA,
+                 GL_UNSIGNED_BYTE, nullptr);
+
+    // Perform multiple sub-image updates to layers 0 and 1 to trigger pruning.
+    // Each update is 512 * 512 * 4 = 1 MB. Staging 17 updates (17 MB) exceeds the 16 MB
+    // pruning threshold and triggers staging-time updates pruning.
+    constexpr int kUpdateCount = 17;
+    std::vector<GLColor> zeroData(kLocalWidth * kLocalHeight, GLColor::transparentBlack);
+    for (int i = 0; i < kUpdateCount; ++i)
+    {
+        int layer = i % kLayers1;
+        glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, layer, kLocalWidth, kLocalHeight, 1, GL_RGBA,
+                        GL_UNSIGNED_BYTE, zeroData.data());
+    }
+
+    for (int layer = kLayers1; layer < kLayers2; ++layer)
+    {
+        glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texture, 0, layer);
+        EXPECT_GL_FRAMEBUFFER_COMPLETE(GL_FRAMEBUFFER);
+        checkCustomFramebufferNonZeroPixels(kLocalWidth, kLocalHeight, 0, 0, 0, 0,
+                                            GLColor::transparentBlack);
+    }
+
+    ASSERT_GL_NO_ERROR();
+}
+
+// Test that redefining a 2D array texture to a compatible size (same size)
+// doesn't bypass robust resource initialization.
+TEST_P(RobustResourceInitTestES3, Texture2DArrayRedefineCompatible)
+{
+    ANGLE_SKIP_TEST_IF(!hasGLExtension());
+
+    constexpr int kSize   = 256;
+    constexpr int kLayers = 4;
+
+    GLTexture texture;
+    glBindTexture(GL_TEXTURE_2D_ARRAY, texture);
+    glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8, kSize, kSize, kLayers, 0, GL_RGBA,
+                 GL_UNSIGNED_BYTE, nullptr);
+
+    std::vector<GLColor> sentinelData(kSize * kSize * kLayers, GLColor::red);
+    glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, 0, kSize, kSize, kLayers, GL_RGBA,
+                    GL_UNSIGNED_BYTE, sentinelData.data());
+
+    GLFramebuffer fb;
+    glBindFramebuffer(GL_FRAMEBUFFER, fb);
+    glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texture, 0, 0);
+    EXPECT_GL_FRAMEBUFFER_COMPLETE(GL_FRAMEBUFFER);
+
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::red);
+
+    // Redefine level 0 to the same dimension.
+    // This should not trigger releaseImage(), but it must invalidate the level.
+    glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8, kSize, kSize, kLayers, 0, GL_RGBA,
+                 GL_UNSIGNED_BYTE, nullptr);
+
+    glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texture, 0, 0);
+    EXPECT_GL_FRAMEBUFFER_COMPLETE(GL_FRAMEBUFFER);
+
+    static_assert(kWidth <= kSize && kHeight <= kSize);
+    for (int layer = 0; layer < kLayers; ++layer)
+    {
+        checkNonZeroPixels3D(&texture, 0, 0, 0, 0, layer, GLColor::transparentBlack);
+    }
+    ASSERT_GL_NO_ERROR();
+}
+
 // Test that using TexStorage2D followed by CompressedSubImage works with robust init.
 // Taken from WebGL test conformance/extensions/webgl-compressed-texture-s3tc.
 TEST_P(RobustResourceInitTestES3, CompressedSubImage)
@@ -2769,8 +3261,10 @@ TEST_P(RobustResourceInitTestES3, CompressedSubImage)
         0xe0, 0x07, 0x00, 0xf8, 0x11, 0x10, 0x15, 0x00,
     };
 
-    std::vector<uint8_t> data(img_8x8_rgb_dxt1, img_8x8_rgb_dxt1 + ArraySize(img_8x8_rgb_dxt1));
-    std::vector<uint8_t> subData(img_4x4_rgb_dxt1, img_4x4_rgb_dxt1 + ArraySize(img_4x4_rgb_dxt1));
+    std::vector<uint8_t> data(img_8x8_rgb_dxt1,
+                              ANGLE_UNSAFE_TODO(img_8x8_rgb_dxt1 + ArraySize(img_8x8_rgb_dxt1)));
+    std::vector<uint8_t> subData(img_4x4_rgb_dxt1,
+                                 ANGLE_UNSAFE_TODO(img_4x4_rgb_dxt1 + ArraySize(img_4x4_rgb_dxt1)));
 
     GLTexture colorbuffer;
     glBindTexture(GL_TEXTURE_2D, colorbuffer);
@@ -2906,7 +3400,7 @@ TEST_P(RobustResourceInitTestES3, LargeCompressedImage2DArray)
     static_assert(kSubImageByteSize % 8 == 0);
     for (size_t i = 0; i < kSubImageByteSize; i += 8)
     {
-        memcpy(&subData[i], kRed_4x4_rgb_dxt1, sizeof(kRed_4x4_rgb_dxt1));
+        ANGLE_UNSAFE_TODO(memcpy(&subData[i], kRed_4x4_rgb_dxt1, sizeof(kRed_4x4_rgb_dxt1)));
     }
     glCompressedTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, 0, kSubWidth, kSubHeight, kSubDepth,
                               GL_COMPRESSED_RGB_S3TC_DXT1_EXT, kSubImageByteSize, subData.data());
@@ -3025,7 +3519,7 @@ void main()
     for (size_t i = 0; i < textures.size(); i++)
     {
         glReadBuffer(GL_COLOR_ATTACHMENT0 + i);
-        EXPECT_PIXEL_COLOR_EQ(0, 0, expectedColors[i]) << " at attachment " << i;
+        ANGLE_UNSAFE_TODO(EXPECT_PIXEL_COLOR_EQ(0, 0, expectedColors[i])) << " at attachment " << i;
     }
 }
 
@@ -3601,6 +4095,70 @@ TEST_P(RobustResourceInitTest, AttachToBoundReadFramebufferBypass)
     // Read pixels. If robust resource init is bypassed, this will return the "bad data".
     // If robust resource init is working, it will return transparent black (0).
     checkFramebufferNonZeroPixels(0, 0, 0, 0, GLColor::transparentBlack);
+    EXPECT_GL_NO_ERROR();
+}
+
+// Tests that redefining a single face of a cube map does not discard the
+// data of other faces at the same level.
+TEST_P(RobustResourceInitTest, RedefineSiblingFace)
+{
+    ANGLE_SKIP_TEST_IF(!hasGLExtension());
+
+    const GLint N = 4;
+
+    GLTexture tex;
+    glBindTexture(GL_TEXTURE_CUBE_MAP, tex);
+
+    for (GLenum face = 0; face < 6; face++)
+    {
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, 0, GL_RGBA, N, N, 0, GL_RGBA,
+                     GL_UNSIGNED_BYTE, nullptr);
+    }
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    EXPECT_GL_NO_ERROR();
+
+    GLFramebuffer fbo;
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_NEGATIVE_X,
+                           tex, 0);
+    EXPECT_GL_FRAMEBUFFER_COMPLETE(GL_FRAMEBUFFER);
+
+    glViewport(0, 0, N, N);
+    glClearColor(0.0f, 1.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
+    EXPECT_GL_NO_ERROR();
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    // Redefine POSITIVE_X with a mismatched size
+    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0, GL_RGBA, 2 * N, 2 * N, 0, GL_RGBA,
+                 GL_UNSIGNED_BYTE, nullptr);
+    EXPECT_GL_NO_ERROR();
+
+    // Redefine POSITIVE_X back to normal size to make it cube complete again
+    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0, GL_RGBA, N, N, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+                 nullptr);
+    EXPECT_GL_NO_ERROR();
+
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    EXPECT_GL_FRAMEBUFFER_COMPLETE(GL_FRAMEBUFFER);
+
+    for (GLenum face = GL_TEXTURE_CUBE_MAP_POSITIVE_X; face <= GL_TEXTURE_CUBE_MAP_NEGATIVE_Z;
+         face++)
+    {
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, face, tex, 0);
+        if (face == GL_TEXTURE_CUBE_MAP_NEGATIVE_X)
+        {
+            // Previously set to green with glClear and not redefined.
+            EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
+        }
+        else
+        {
+            EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::transparentBlack);
+        }
+    }
     EXPECT_GL_NO_ERROR();
 }
 

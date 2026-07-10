@@ -6,11 +6,8 @@
 
 // formatutils.cpp: Queries for GL image formats.
 
-#ifdef UNSAFE_BUFFERS_BUILD
-#    pragma allow_unsafe_libc_calls
-#endif
-
 #include "libANGLE/formatutils.h"
+#include "common/unsafe_buffers.h"
 
 #include "anglebase/no_destructor.h"
 #include "common/mathutil.h"
@@ -41,7 +38,7 @@ constexpr uint32_t PackTypeInfo(GLuint bytes, bool specialized)
 {
     // static_assert within constexpr requires c++17
     // static_assert(isPow2(bytes));
-    return bytes | (rx::Log2(bytes) << 8) | (specialized << 16);
+    return bytes | (log2(bytes) << 8) | (specialized << 16);
 }
 
 }  // anonymous namespace
@@ -59,7 +56,7 @@ bool FormatType::operator<(const FormatType &other) const
 
 bool operator<(const Type &a, const Type &b)
 {
-    return memcmp(&a, &b, sizeof(Type)) < 0;
+    return ANGLE_UNSAFE_TODO(memcmp(&a, &b, sizeof(Type))) < 0;
 }
 
 // Information about internal formats
@@ -421,11 +418,6 @@ GLenum InternalFormat::getReadPixelsType(const Version &version) const
         default:
             return type;
     }
-}
-
-bool InternalFormat::supportSubImage() const
-{
-    return !CompressedFormatRequiresWholeImage(internalFormat);
 }
 
 bool InternalFormat::isRequiredRenderbufferFormat(const Version &version) const
@@ -1691,8 +1683,6 @@ bool IsAngleInternalFormat(GLenum internalFormat)
         case GL_BGR565_ANGLEX:
         case GL_BGRA4_ANGLEX:
         case GL_BGR5_A1_ANGLEX:
-        case GL_INT_64_ANGLEX:
-        case GL_UINT_64_ANGLEX:
         case GL_BGRA8_SRGB_ANGLEX:
         case GL_BGR10_A2_ANGLEX:
         case GL_BGRX8_SRGB_ANGLEX:
@@ -1951,12 +1941,12 @@ bool InternalFormat::computeCompressedImageRowPitch(GLsizei width, GLuint *resul
 
     CheckedNumeric<GLuint> checkedWidth(width);
     CheckedNumeric<GLuint> checkedBlockWidth(compressedBlockWidth);
-    const GLuint minBlockWidth = getCompressedImageMinBlocks().first;
+    const GLuint minBlocks = getCompressedImageMinBlocks();
 
     auto numBlocksWide = (checkedWidth + checkedBlockWidth - 1u) / checkedBlockWidth;
-    if (numBlocksWide.IsValid() && numBlocksWide.ValueOrDie() < minBlockWidth)
+    if (numBlocksWide.IsValid() && numBlocksWide.ValueOrDie() < minBlocks)
     {
-        numBlocksWide = minBlockWidth;
+        numBlocksWide = minBlocks;
     }
     return CheckedMathResult(numBlocksWide * pixelBytes, resultOut);
 }
@@ -1966,17 +1956,17 @@ bool InternalFormat::computeCompressedImageDepthPitch(GLsizei height,
                                                       GLuint *resultOut) const
 {
     ASSERT(compressed);
-    ASSERT(rowPitch > 0 && rowPitch % pixelBytes == 0);
+    ASSERT(rowPitch % pixelBytes == 0);
 
     CheckedNumeric<GLuint> checkedHeight(height);
     CheckedNumeric<GLuint> checkedRowPitch(rowPitch);
     CheckedNumeric<GLuint> checkedBlockHeight(compressedBlockHeight);
-    const GLuint minBlockHeight = getCompressedImageMinBlocks().second;
+    const GLuint minBlocks = getCompressedImageMinBlocks();
 
     auto numBlocksHigh = (checkedHeight + checkedBlockHeight - 1u) / checkedBlockHeight;
-    if (numBlocksHigh.IsValid() && numBlocksHigh.ValueOrDie() < minBlockHeight)
+    if (numBlocksHigh.IsValid() && numBlocksHigh.ValueOrDie() < minBlocks)
     {
-        numBlocksHigh = minBlockHeight;
+        numBlocksHigh = minBlocks;
     }
     return CheckedMathResult(numBlocksHigh * checkedRowPitch, resultOut);
 }
@@ -2014,20 +2004,19 @@ bool InternalFormat::computeCompressedImageSize(const Extents &size, GLuint *res
     CheckedNumeric<GLuint> checkedBlockWidth(compressedBlockWidth);
     CheckedNumeric<GLuint> checkedBlockHeight(compressedBlockHeight);
     CheckedNumeric<GLuint> checkedBlockDepth(compressedBlockDepth);
-    GLuint minBlockWidth, minBlockHeight;
-    std::tie(minBlockWidth, minBlockHeight) = getCompressedImageMinBlocks();
+    const GLuint minBlocks = getCompressedImageMinBlocks();
 
     ASSERT(compressed);
     auto numBlocksWide = (checkedWidth + checkedBlockWidth - 1u) / checkedBlockWidth;
     auto numBlocksHigh = (checkedHeight + checkedBlockHeight - 1u) / checkedBlockHeight;
     auto numBlocksDeep = (checkedDepth + checkedBlockDepth - 1u) / checkedBlockDepth;
-    if (numBlocksWide.IsValid() && numBlocksWide.ValueOrDie() < minBlockWidth)
+    if (numBlocksWide.IsValid() && numBlocksWide.ValueOrDie() < minBlocks)
     {
-        numBlocksWide = minBlockWidth;
+        numBlocksWide = minBlocks;
     }
-    if (numBlocksHigh.IsValid() && numBlocksHigh.ValueOrDie() < minBlockHeight)
+    if (numBlocksHigh.IsValid() && numBlocksHigh.ValueOrDie() < minBlocks)
     {
-        numBlocksHigh = minBlockHeight;
+        numBlocksHigh = minBlocks;
     }
     auto bytes = numBlocksWide * numBlocksHigh * numBlocksDeep * pixelBytes;
     return CheckedMathResult(bytes, resultOut);
@@ -2052,23 +2041,15 @@ bool InternalFormat::computeImageSize(const Extents &size, GLsizei samples, GLui
     }
 }
 
-std::pair<GLuint, GLuint> InternalFormat::getCompressedImageMinBlocks() const
+GLuint InternalFormat::getCompressedImageMinBlocks() const
 {
-    GLuint minBlockWidth  = 0;
-    GLuint minBlockHeight = 0;
-
     // Per the specification, a PVRTC block needs information from the 3 nearest blocks.
     // GL_IMG_texture_compression_pvrtc specifies the minimum size requirement in pixels, but
     // ANGLE's texture tables are written in terms of blocks. The 4BPP formats use 4x4 blocks, and
     // the 2BPP formats, 8x4 blocks. Therefore, both kinds of formats require a minimum of 2x2
     // blocks.
-    if (IsPVRTC1Format(internalFormat))
-    {
-        minBlockWidth  = 2;
-        minBlockHeight = 2;
-    }
 
-    return std::make_pair(minBlockWidth, minBlockHeight);
+    return IsPVRTC1Format(internalFormat) ? 2 : 0;
 }
 
 bool InternalFormat::computeSkipBytes(GLenum formatType,
@@ -2079,6 +2060,11 @@ bool InternalFormat::computeSkipBytes(GLenum formatType,
                                       GLuint skipImages,
                                       GLuint *resultOut) const
 {
+    if (compressed || paletted)
+    {
+        *resultOut = 0;
+        return true;
+    }
     auto skipBytes = CheckedNumeric<GLuint>{skipImages} * depthPitch +
                      CheckedNumeric<GLuint>{skipRows} * rowPitch +
                      CheckedNumeric<GLuint>{skipPixels} * computePixelBytes(formatType);
@@ -2139,13 +2125,6 @@ GLenum GetUnsizedFormat(GLenum internalFormat)
     }
 
     return internalFormat;
-}
-
-bool CompressedFormatRequiresWholeImage(GLenum internalFormat)
-{
-    // List of compressed texture format that require that the sub-image size is equal to texture's
-    // respective mip level's size
-    return IsPVRTC1Format(internalFormat);
 }
 
 void MaybeOverrideLuminance(GLenum &format, GLenum &type, GLenum actualFormat, GLenum actualType)

@@ -1281,6 +1281,50 @@ void main()
     ANGLE_GL_PROGRAM(program, essl1_shaders::vs::Simple(), kFS);
 }
 
+// Test that defining a global struct with an "id" suffix does not collide with a local one without
+// such a suffix.
+TEST_P(GLSLTest, ScopedStructsOrderBug3)
+{
+    // Try IDs between 25 to 35 for IR ids, and 3000 to 3020 for AST ids.
+    // For IR, the first 27 or so type ids are reserved, so user ids start at that value.
+    // For AST, user ids start at 3000.
+    for (uint32_t id = 25; id <= 3020; ++id)
+    {
+        std::ostringstream fs;
+        fs << R"(precision mediump float;
+
+struct T_)" << id
+           << R"(
+{
+    float f;
+};
+
+void main()
+{
+    T_)" << id
+           << R"( a;
+
+    struct T
+    {
+        float q;
+    };
+
+    T b;
+
+    gl_FragColor = vec4(1, 0, 0, 1);
+    gl_FragColor.a += a.f;
+    gl_FragColor.a += b.q;
+})";
+
+        ANGLE_GL_PROGRAM(program, essl1_shaders::vs::Simple(), fs.str().c_str());
+
+        if (id == 35)
+        {
+            id = 2999;
+        }
+    }
+}
+
 // Test that inactive uniforms of struct type don't cause any errors.
 TEST_P(GLSLTest, InactiveStructUniform)
 {
@@ -1952,8 +1996,6 @@ TEST_P(GLSLTest, TwoElseIfRewriting)
 
 TEST_P(GLSLTest, FrontFacingAndVarying)
 {
-    EGLPlatformParameters platform = GetParam().eglParameters;
-
     constexpr char kVS[] = R"(attribute vec4 a_position;
 varying float v_varying;
 void main()
@@ -1981,17 +2023,7 @@ void main()
 
     GLuint program = CompileProgram(kVS, kFS);
 
-    // Compilation should fail on D3D11 feature level 9_3, since gl_FrontFacing isn't supported.
-    if (platform.renderer == EGL_PLATFORM_ANGLE_TYPE_D3D11_ANGLE)
-    {
-        if (platform.majorVersion == 9 && platform.minorVersion == 3)
-        {
-            EXPECT_EQ(0u, program);
-            return;
-        }
-    }
-
-    // Otherwise, compilation should succeed
+    // Compilation should succeed
     EXPECT_NE(0u, program);
 }
 
@@ -2348,34 +2380,17 @@ TEST_P(GLSLTest, MaxVaryingVec4_ThreeBuiltins)
     VaryingTestBase(0, 0, 0, 0, 0, 0, maxVaryings - 3, 0, true, true, true, true);
 }
 
-// This covers a problematic case in D3D9 - we are limited by the number of available semantics,
-// rather than total register use.
-TEST_P(GLSLTest, MaxVaryingsSpecialCases)
-{
-    ANGLE_SKIP_TEST_IF(!IsD3D9());
-
-    GLint maxVaryings = 0;
-    glGetIntegerv(GL_MAX_VARYING_VECTORS, &maxVaryings);
-
-    VaryingTestBase(maxVaryings, 0, 0, 0, 0, 0, 0, 0, true, false, false, false);
-    VaryingTestBase(maxVaryings - 1, 0, 0, 0, 0, 0, 0, 0, true, true, false, false);
-    VaryingTestBase(maxVaryings - 2, 0, 0, 0, 0, 0, 0, 0, true, true, false, true);
-
-    // Special case for gl_PointSize: we get it for free on D3D9.
-    VaryingTestBase(maxVaryings - 2, 0, 0, 0, 0, 0, 0, 0, true, true, true, true);
-}
-
-// This covers a problematic case in D3D9 - we are limited by the number of available semantics,
-// rather than total register use.
+// Test that max vec2 varyings + gl_FragCoord works
 TEST_P(GLSLTest, MaxMinusTwoVaryingVec2PlusOneSpecialVariable)
 {
     GLint maxVaryings = 0;
     glGetIntegerv(GL_MAX_VARYING_VECTORS, &maxVaryings);
 
     // Generate shader code that uses gl_FragCoord.
-    VaryingTestBase(0, 0, maxVaryings, 0, 0, 0, 0, 0, true, false, false, !IsD3D9());
+    VaryingTestBase(0, 0, maxVaryings, 0, 0, 0, 0, 0, true, false, false, true);
 }
 
+// Test that max vec3 varyings works
 TEST_P(GLSLTest, MaxVaryingVec3)
 {
     GLint maxVaryings = 0;
@@ -2384,6 +2399,7 @@ TEST_P(GLSLTest, MaxVaryingVec3)
     VaryingTestBase(0, 0, 0, 0, maxVaryings, 0, 0, 0, false, false, false, true);
 }
 
+// Test that max vec3 array varyings works
 TEST_P(GLSLTest, MaxVaryingVec3Array)
 {
     GLint maxVaryings = 0;
@@ -2392,25 +2408,25 @@ TEST_P(GLSLTest, MaxVaryingVec3Array)
     VaryingTestBase(0, 0, 0, 0, 0, maxVaryings / 2, 0, 0, false, false, false, true);
 }
 
-// Only fails on D3D9 because of packing limitations.
+// Test that max vec3 varyings + a single float works
 TEST_P(GLSLTest, MaxVaryingVec3AndOneFloat)
 {
     GLint maxVaryings = 0;
     glGetIntegerv(GL_MAX_VARYING_VECTORS, &maxVaryings);
 
-    VaryingTestBase(1, 0, 0, 0, maxVaryings, 0, 0, 0, false, false, false, !IsD3D9());
+    VaryingTestBase(1, 0, 0, 0, maxVaryings, 0, 0, 0, false, false, false, true);
 }
 
-// Only fails on D3D9 because of packing limitations.
+// Test that max vec3 varyings + a single float array works
 TEST_P(GLSLTest, MaxVaryingVec3ArrayAndOneFloatArray)
 {
     GLint maxVaryings = 0;
     glGetIntegerv(GL_MAX_VARYING_VECTORS, &maxVaryings);
 
-    VaryingTestBase(0, 1, 0, 0, 0, maxVaryings / 2, 0, 0, false, false, false, !IsD3D9());
+    VaryingTestBase(0, 1, 0, 0, 0, maxVaryings / 2, 0, 0, false, false, false, true);
 }
 
-// Only fails on D3D9 because of packing limitations.
+// Test that 2x max vec2 varyings works, as they can get packed into max vec4 varyings
 TEST_P(GLSLTest, TwiceMaxVaryingVec2)
 {
     // TODO(geofflang): Figure out why this fails on NVIDIA's GLES driver
@@ -2424,14 +2440,12 @@ TEST_P(GLSLTest, TwiceMaxVaryingVec2)
     GLint maxVaryings = 0;
     glGetIntegerv(GL_MAX_VARYING_VECTORS, &maxVaryings);
 
-    VaryingTestBase(0, 0, 2 * maxVaryings, 0, 0, 0, 0, 0, false, false, false, !IsD3D9());
+    VaryingTestBase(0, 0, 2 * maxVaryings, 0, 0, 0, 0, 0, false, false, false, true);
 }
 
-// Disabled because of a failure in D3D9
+// Test that max vec2 array varyings works
 TEST_P(GLSLTest, MaxVaryingVec2Arrays)
 {
-    ANGLE_SKIP_TEST_IF(IsD3D9());
-
     // TODO(geofflang): Figure out why this fails on NVIDIA's GLES driver
     ANGLE_SKIP_TEST_IF(IsOpenGLES());
 
@@ -2738,35 +2752,7 @@ void main()
     GLint compileResult;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &compileResult);
 
-    // If the test is configured to run limited to Feature Level 9_3, then it is
-    // assumed that shader compilation will fail with an expected error message containing
-    // "Loop index cannot be compared with non-constant expression"
-    if (GetParam() == ES2_D3D9())
-    {
-        if (compileResult != 0)
-        {
-            FAIL() << "Shader compilation succeeded, expected failure";
-        }
-        else
-        {
-            GLint infoLogLength;
-            glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLogLength);
-
-            std::string infoLog;
-            infoLog.resize(infoLogLength);
-            glGetShaderInfoLog(shader, static_cast<GLsizei>(infoLog.size()), nullptr, &infoLog[0]);
-
-            if (infoLog.find("Loop index cannot be compared with non-constant expression") ==
-                std::string::npos)
-            {
-                FAIL() << "Shader compilation failed with unexpected error message";
-            }
-        }
-    }
-    else
-    {
-        EXPECT_NE(0, compileResult);
-    }
+    EXPECT_NE(0, compileResult);
 
     if (shader != 0)
     {
@@ -3228,6 +3214,28 @@ void main() {
 
     ANGLE_GL_PROGRAM(program1, kVS, kFS1);
     ASSERT_TRUE(program1.valid());
+}
+
+// Test linking and using a program where a uniform is referenced only as a side-effect-free
+// argument of an array constructor that is used as a statement.  The other constructor argument
+// has a side effect that the program output depends on.
+TEST_P(GLSLTest_ES3, UniformReferencedOnlyInArrayConstructorStatement)
+{
+    constexpr char kFS[] = R"(#version 300 es
+precision highp float;
+uniform int u_zero;
+out vec4 my_FragColor;
+void main()
+{
+    int i = 0;
+    int[2](u_zero, i++);
+    my_FragColor = (i == 1) ? vec4(0, 1, 0, 1) : vec4(1, 0, 0, 1);
+})";
+
+    ANGLE_GL_PROGRAM(program, essl3_shaders::vs::Simple(), kFS);
+    glUseProgram(program);
+    drawQuad(program, essl3_shaders::PositionAttrib(), 0.5f);
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
 }
 
 // Test that == and != for structs and array types work.
@@ -4194,6 +4202,40 @@ void main(){
 }
 )";
     CompileShader(GL_VERTEX_SHADER, kVS);
+    ASSERT_GL_NO_ERROR();
+}
+
+// Tests that monomorphizing a function with switch with value-case and
+// default-case does not crash.
+TEST_P(GLSLTest, MonomorphizeSwitchCaseAndDefaultNoCrash)
+{
+    // Switch requires ES3.
+    ANGLE_SKIP_TEST_IF(getClientMajorVersion() < 3);
+
+    constexpr char kFS[] = R"(#version 300 es
+precision mediump float;
+out vec4 o;
+struct S { sampler2D source; };
+vec4 f(S s)
+{
+    switch(0) {
+      case 0: return texture(s.source, vec2(0,0));
+      default: break;
+    }
+    return vec4(1,0,0,1);
+}
+uniform S green;
+void main() {
+    o = f(green);
+})";
+    ANGLE_GL_PROGRAM(program, essl3_shaders::vs::Simple(), kFS);
+    // Create a green texture to sample from.
+    glActiveTexture(GL_TEXTURE0);
+    GLTexture tex;
+    glBindTexture(GL_TEXTURE_2D, tex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, &GLColor::green);
+    drawQuad(program, essl3_shaders::PositionAttrib(), 0.5f);
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
     ASSERT_GL_NO_ERROR();
 }
 
@@ -11610,9 +11652,6 @@ foo
 // Test that clamp applied on non-literal indices is correct on es 100 shaders.
 TEST_P(GLSLTest, ValidIndexClampES100)
 {
-    // http://anglebug.com/42264558
-    ANGLE_SKIP_TEST_IF(IsD3D9());
-
     constexpr char kFS[] = R"(
 precision mediump float;
 uniform int u;
@@ -11727,6 +11766,120 @@ TEST_P(GLSLTest_ES3, InitSameNameArray)
 TEST_P(GLSLTest, FragData)
 {
     constexpr char kFS[] = R"(void main() { gl_FragData[0] = vec4(1, 0, 0, 1); })";
+    ANGLE_GL_PROGRAM(program, essl1_shaders::vs::Simple(), kFS);
+    drawQuad(program, essl1_shaders::PositionAttrib(), 0.5f);
+    EXPECT_GL_NO_ERROR();
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::red);
+}
+
+// Tests passing gl_FragData to function.
+TEST_P(GLSLTest, FragDataPassedToFunction)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_draw_buffers"));
+
+    constexpr char kFS[] = R"(#extension GL_EXT_draw_buffers : require
+precision mediump float;
+vec4 f(vec4 fragData[gl_MaxDrawBuffers])
+{
+    vec4 original = fragData[1];
+    fragData[1] = vec4(0, 1, 0, 0);
+    return original + fragData[1];
+}
+void main()
+{
+    gl_FragData[1] = vec4(1, 0, 0, 1);
+    gl_FragData[0] = f(gl_FragData);
+})";
+    ANGLE_GL_PROGRAM(program, essl1_shaders::vs::Simple(), kFS);
+    drawQuad(program, essl1_shaders::PositionAttrib(), 0.5f);
+    EXPECT_GL_NO_ERROR();
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::yellow);
+}
+
+// Tests passing gl_FragData to function without EXT_draw_buffers.
+TEST_P(GLSLTest, FragDataPassedToFunctionNoDrawBuffers)
+{
+    constexpr char kFS[] = R"(precision mediump float;
+vec4 f(vec4 fragData[gl_MaxDrawBuffers])
+{
+    return fragData[0] + vec4(0, 1, 0, 0);
+}
+void main()
+{
+    gl_FragData[0] = vec4(1, 0, 0, 1);
+    gl_FragData[0] = f(gl_FragData);
+})";
+    ANGLE_GL_PROGRAM(program, essl1_shaders::vs::Simple(), kFS);
+    drawQuad(program, essl1_shaders::PositionAttrib(), 0.5f);
+    EXPECT_GL_NO_ERROR();
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::yellow);
+}
+
+// Tests passing gl_FragData to function as out parameter.
+TEST_P(GLSLTest_ES3, FragDataPassedToFunctionOut)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_draw_buffers"));
+
+    constexpr char kFS[] = R"(#extension GL_EXT_draw_buffers : require
+precision mediump float;
+void f(out vec4 fragData[gl_MaxDrawBuffers])
+{
+    fragData[0] = vec4(1, 0, 0, 1);
+    fragData[1] = vec4(0, 1, 0, 1);
+    fragData[2] = vec4(0, 0, 1, 1);
+    fragData[3] = vec4(1, 1, 0, 1);
+}
+void main()
+{
+    f(gl_FragData);
+})";
+    ANGLE_GL_PROGRAM(program, essl1_shaders::vs::Simple(), kFS);
+
+    GLFramebuffer fbo;
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+
+    GLTexture textures[4];
+    for (size_t texIndex = 0; texIndex < ArraySize(textures); texIndex++)
+    {
+        glBindTexture(GL_TEXTURE_2D, textures[texIndex]);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + texIndex, GL_TEXTURE_2D,
+                               textures[texIndex], 0);
+    }
+
+    GLint maxDrawBuffers;
+    glGetIntegerv(GL_MAX_DRAW_BUFFERS, &maxDrawBuffers);
+    ASSERT_GE(maxDrawBuffers, 4);
+
+    constexpr GLenum kAllBufs[4] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1,
+                                    GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3};
+    glDrawBuffers(ArraySize(kAllBufs), kAllBufs);
+
+    drawQuad(program, essl1_shaders::PositionAttrib(), 0.5f);
+
+    glReadBuffer(GL_COLOR_ATTACHMENT0);
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::red);
+    glReadBuffer(GL_COLOR_ATTACHMENT1);
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
+    glReadBuffer(GL_COLOR_ATTACHMENT2);
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::blue);
+    glReadBuffer(GL_COLOR_ATTACHMENT3);
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::yellow);
+    EXPECT_GL_NO_ERROR();
+}
+
+// Tests passing gl_FragData to function as out parameter without EXT_draw_buffers.
+TEST_P(GLSLTest, FragDataPassedToFunctionOutNoDrawBuffers)
+{
+    constexpr char kFS[] = R"(precision mediump float;
+void f(out vec4 fragData[gl_MaxDrawBuffers])
+{
+    fragData[0] = vec4(1, 0, 0, 1);
+}
+void main()
+{
+    f(gl_FragData);
+})";
     ANGLE_GL_PROGRAM(program, essl1_shaders::vs::Simple(), kFS);
     drawQuad(program, essl1_shaders::PositionAttrib(), 0.5f);
     EXPECT_GL_NO_ERROR();
@@ -21845,13 +21998,10 @@ void main() {oColor=vec4(data.red,_data.green,1,1);})";
 // Test that underscores in array names work with out arrays.
 TEST_P(GLSLTest_ES3, UnderscoresWorkWithOutArrays)
 {
-    GLuint fbo;
-    glGenFramebuffers(1, &fbo);
+    GLFramebuffer fbo;
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo);
 
-    GLuint textures[4];
-    glGenTextures(4, textures);
-
+    GLTexture textures[4];
     for (size_t texIndex = 0; texIndex < ArraySize(textures); texIndex++)
     {
         glBindTexture(GL_TEXTURE_2D, textures[texIndex]);
@@ -21863,8 +22013,7 @@ TEST_P(GLSLTest_ES3, UnderscoresWorkWithOutArrays)
     glGetIntegerv(GL_MAX_DRAW_BUFFERS, &maxDrawBuffers);
     ASSERT_GE(maxDrawBuffers, 4);
 
-    GLuint readFramebuffer;
-    glGenFramebuffers(1, &readFramebuffer);
+    GLFramebuffer readFramebuffer;
     glBindFramebuffer(GL_READ_FRAMEBUFFER, readFramebuffer);
 
     constexpr char kFS[] = R"(#version 300 es
@@ -21879,8 +22028,8 @@ void main()
 }
 )";
     ANGLE_GL_PROGRAM(program, essl3_shaders::vs::Simple(), kFS);
-    GLenum allBufs[4] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2,
-                         GL_COLOR_ATTACHMENT3};
+    constexpr GLenum kAllBufs[4] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1,
+                                    GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3};
     constexpr GLuint kMaxBuffers = 4;
     // Enable all draw buffers.
     for (GLuint texIndex = 0; texIndex < kMaxBuffers; texIndex++)
@@ -21891,7 +22040,7 @@ void main()
         glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + texIndex, GL_TEXTURE_2D,
                                textures[texIndex], 0);
     }
-    glDrawBuffers(kMaxBuffers, allBufs);
+    glDrawBuffers(kMaxBuffers, kAllBufs);
 
     // Draw with simple program.
     drawQuad(program, essl3_shaders::PositionAttrib(), 0.5f, 1.0f, true);
@@ -24215,6 +24364,7 @@ TEST_P(GLSLTest, EmulateGLFragColorBroadcastInvariantFragColor)
     ANGLE_GL_PROGRAM(program, essl1_shaders::vs::Simple(), kFS);
     drawQuad(program, essl3_shaders::PositionAttrib(), 0.5f);
     EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::red);
+    ASSERT_GL_NO_ERROR();
 }
 
 // Make sure gl_FragColor can be marked invariant in presence of GL_EXT_draw_buffers, even if
@@ -24232,6 +24382,203 @@ TEST_P(GLSLTest, EmulateGLFragColorBroadcastInvariantFragColorUnused)
 
     // Verify compilation only, as output is not written to.
     ANGLE_GL_PROGRAM(program, essl1_shaders::vs::Simple(), kFS);
+}
+
+// Test that indirect indices to gl_FragData get clamped to the right bounds when
+// gl_SecondaryFragDataEXT is used.
+//
+// The same test for ES3 is not needed, because unlike gl_FragData in ESSL 100, it's not allowed to
+// index a fragment output variable with a non-constant index in ESSL 300+.
+TEST_P(WebGLGLSLTest, FragDataIndexClampWithSecondaryFragData)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_draw_buffers"));
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_blend_func_extended"));
+
+    constexpr char kFS[] = R"(#extension GL_EXT_draw_buffers : require
+#extension GL_EXT_blend_func_extended : require
+precision mediump float;
+void main() {
+    // gl_SecondaryFragDataEXT follows, which means only one output is valid.  Make sure all the
+    // following writes in the loop end up writing to gl_FragData[0].
+    gl_FragData[0] = vec4(1, 0, 0, 1);
+    for (int i = 0; i < 8; i++) {
+        gl_FragData[i] += vec4(-0.1, 0.05, 0.0, 0.0);
+    }
+
+    gl_SecondaryFragDataEXT[0] = vec4(1.0, 0.0, 0.0, 1.0);
+})";
+
+    ANGLE_GL_PROGRAM(program, essl1_shaders::vs::Simple(), kFS);
+    drawQuad(program, essl1_shaders::PositionAttrib(), 0.5f, 1.0f, true);
+    EXPECT_PIXEL_COLOR_NEAR(0, 0, GLColor(51, 102, 0, 255), 1);
+    ASSERT_GL_NO_ERROR();
+}
+
+// Same test as FragDataIndexClampWithSecondaryFragData, but gl_SecondaryFragDataEXT is not written
+// to.
+TEST_P(WebGLGLSLTest, FragDataIndexClampWithSecondaryFragDataRead)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_draw_buffers"));
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_blend_func_extended"));
+
+    constexpr char kFS[] = R"(#extension GL_EXT_draw_buffers : require
+#extension GL_EXT_blend_func_extended : require
+precision mediump float;
+void main() {
+    gl_FragData[0] = vec4(1, 0, 0, 1);
+    for (int i = 0; i < 8; i++) {
+        gl_FragData[i] += vec4(-0.1, 0.05, 0.0, 0.0);
+    }
+
+    gl_FragData[0] += gl_SecondaryFragDataEXT[0];
+})";
+
+    ANGLE_GL_PROGRAM(program, essl1_shaders::vs::Simple(), kFS);
+    drawQuad(program, essl1_shaders::PositionAttrib(), 0.5f, 1.0f, true);
+    EXPECT_PIXEL_COLOR_NEAR(0, 0, GLColor(51, 102, 0, 255), 1);
+    ASSERT_GL_NO_ERROR();
+}
+
+// Same test as FragDataIndexClampWithSecondaryFragData, but gl_SecondaryFragDataEXT is only used in
+// dead code.
+TEST_P(WebGLGLSLTest, FragDataIndexClampWithSecondaryFragDataDeadCode)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_draw_buffers"));
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_blend_func_extended"));
+
+    constexpr char kFS[] = R"(#extension GL_EXT_draw_buffers : require
+#extension GL_EXT_blend_func_extended : require
+precision mediump float;
+void main() {
+    gl_FragData[0] = vec4(1, 0, 0, 1);
+    for (int i = 0; i < 8; i++) {
+        gl_FragData[i] += vec4(-0.1, 0.05, 0.0, 0.0);
+    }
+
+    if (false)
+    {
+        gl_SecondaryFragDataEXT[0] = vec4(1.0, 0.0, 0.0, 1.0);
+    }
+})";
+
+    ANGLE_GL_PROGRAM(program, essl1_shaders::vs::Simple(), kFS);
+    drawQuad(program, essl1_shaders::PositionAttrib(), 0.5f, 1.0f, true);
+    EXPECT_PIXEL_COLOR_NEAR(0, 0, GLColor(51, 102, 0, 255), 1);
+    ASSERT_GL_NO_ERROR();
+}
+
+// Same test as FragDataIndexClampWithSecondaryFragData, but gl_SecondaryFragDataEXT is not actually
+// used (only the extension is enabled.
+TEST_P(WebGLGLSLTest, FragDataIndexClampWithSecondaryFragDataUnused)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_draw_buffers"));
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_blend_func_extended"));
+
+    constexpr char kFS[] = R"(#extension GL_EXT_draw_buffers : require
+#extension GL_EXT_blend_func_extended : require
+precision mediump float;
+void main() {
+    gl_FragData[0] = vec4(1, 0, 0, 1);
+    for (int i = 0; i < 8; i++) {
+        gl_FragData[i] += vec4(-0.1, 0.05, 0.0, 0.0);
+    }
+})";
+
+    ANGLE_GL_PROGRAM(program, essl1_shaders::vs::Simple(), kFS);
+    drawQuad(program, essl1_shaders::PositionAttrib(), 0.5f, 1.0f, true);
+    EXPECT_PIXEL_COLOR_NEAR(0, 0, GLColor(229, 13, 0, 255), 1);
+    ASSERT_GL_NO_ERROR();
+}
+
+// Test that indirect indices to gl_FragData get clamped to the right bounds when
+// gl_SecondaryFragDataEXT is used.
+TEST_P(WebGLGLSLTest, FragDataIndexClampWithSecondaryFragDataFunctionArg)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_draw_buffers"));
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_blend_func_extended"));
+
+    constexpr char kFS[] = R"(#extension GL_EXT_draw_buffers : require
+#extension GL_EXT_blend_func_extended : require
+precision mediump float;
+vec4 f(vec4 fragData[gl_MaxDrawBuffers])
+{
+    vec4 original = fragData[0];
+    fragData[0] = vec4(0, 1, 0, 0);
+    return original + fragData[0];
+}
+void main() {
+    gl_FragData[0] = vec4(1, 0, 0, 1);
+    gl_FragData[0] = f(gl_FragData);
+    for (int i = 0; i < 8; i++) {
+        gl_FragData[i] += vec4(-0.1, -0.05, 0.0, 0.0);
+    }
+
+    gl_SecondaryFragDataEXT[0] = vec4(1.0, 0.0, 0.0, 1.0);
+
+})";
+
+    ANGLE_GL_PROGRAM(program, essl1_shaders::vs::Simple(), kFS);
+    drawQuad(program, essl1_shaders::PositionAttrib(), 0.5f, 1.0f, true);
+    EXPECT_PIXEL_COLOR_NEAR(0, 0, GLColor(51, 153, 0, 255), 1);
+    ASSERT_GL_NO_ERROR();
+}
+
+// Test that indirect indices to gl_FragData get clamped to the right bounds when
+// gl_SecondaryFragDataEXT is used.
+TEST_P(WebGL2GLSLTest, FragDataIndexClampWithSecondaryFragDataFunctionArgOut)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_draw_buffers"));
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_blend_func_extended"));
+
+    constexpr char kFS[] = R"(#extension GL_EXT_draw_buffers : require
+#extension GL_EXT_blend_func_extended : require
+precision mediump float;
+void f(out vec4 fragData[gl_MaxDrawBuffers])
+{
+    fragData[0] = vec4(1, 1, 0, 1);
+    for (int i = 0; i < 8; i++) {
+        fragData[i] += vec4(-0.1, -0.05, 0.0, 0.0);
+    }
+}
+void main()
+{
+    f(gl_FragData);
+    gl_SecondaryFragDataEXT[0] = vec4(1.0, 0.0, 0.0, 1.0);
+})";
+    ANGLE_GL_PROGRAM(program, essl1_shaders::vs::Simple(), kFS);
+    drawQuad(program, essl1_shaders::PositionAttrib(), 0.5f, 1.0f, true);
+    EXPECT_PIXEL_COLOR_NEAR(0, 0, GLColor(51, 153, 0, 255), 1);
+    ASSERT_GL_NO_ERROR();
+}
+
+// Regression test for a bug in the HLSL generator where the global variable names could collide
+// with local variable names.  In particular, the local variables were suffixed with the symbol id,
+// starting from 3000 (kFirstUserDefinedSymbolId) but the global variables weren't.
+TEST_P(GLSLTest_ES3, HLSLGlobalNameCollisionWithLocalVar)
+{
+    // At the time this regression test was written, the ID of the local variable was 3003.  Try a
+    // few IDs starting at kFirstUserDefinedSymbolId so the test is not sensitive to small
+    // variations in the ID.
+    for (uint32_t id = 3000; id < 3010; ++id)
+    {
+        std::ostringstream fs;
+        fs << R"(precision highp float;
+float _a)" << id
+           << R"( = 0.5;
+void main()
+{
+  float a = 0.2;
+  a = _a)" << id
+           << R"(;
+  gl_FragColor = vec4(a);
+})";
+        std::cout << fs.str() << "\n";
+
+        ANGLE_GL_PROGRAM(program, essl1_shaders::vs::Simple(), fs.str().c_str());
+        drawQuad(program, essl1_shaders::PositionAttrib(), 0.5f);
+        EXPECT_PIXEL_COLOR_NEAR(0, 0, GLColor(127, 127, 127, 127), 1);
+        ASSERT_GL_NO_ERROR();
+    }
 }
 }  // anonymous namespace
 

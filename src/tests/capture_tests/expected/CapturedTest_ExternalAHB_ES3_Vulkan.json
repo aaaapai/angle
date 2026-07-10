@@ -21,6 +21,7 @@
         "IsBinaryDataCompressed": false,
         "IsBindGeneratesResourcesEnabled": true,
         "IsHardenedContextEnabled": false,
+        "IsRobustAccessEnabled": false,
         "IsRobustResourceInitEnabled": false,
         "IsWebGLCompatibilityEnabled": false
     },
@@ -37,5 +38,5 @@
         "CapturedTest_ExternalAHB_ES3_Vulkan_0001.cpp",
         "CapturedTest_ExternalAHB_ES3_Vulkan_shared.cpp"
     ],
-    "WindowSurfaceContextID": 5
+    "WindowSurfaceContextID": 8
 }

@@ -6,10 +6,7 @@
 
 // validationES31.cpp: Validation functions for OpenGL ES 3.1 entry point parameters
 
-#ifdef UNSAFE_BUFFERS_BUILD
-#    pragma allow_unsafe_buffers
-#endif
-
+#include "common/unsafe_buffers.h"
 #include "libANGLE/validationES31_autogen.h"
 
 #include "libANGLE/Context.h"
@@ -1083,19 +1080,19 @@ bool ValidateGetMultisamplefvRobustANGLE(const Context *context,
 bool ValidateFramebufferParameteri(const Context *context,
                                    angle::EntryPoint entryPoint,
                                    GLenum target,
-                                   GLenum pname,
+                                   FramebufferParameter pnamePacked,
                                    GLint param)
 {
-    return ValidateFramebufferParameteriBase(context, entryPoint, target, pname, param);
+    return ValidateFramebufferParameteriBase(context, entryPoint, target, pnamePacked, param);
 }
 
 bool ValidateGetFramebufferParameteriv(const Context *context,
                                        angle::EntryPoint entryPoint,
                                        GLenum target,
-                                       GLenum pname,
+                                       FramebufferParameter pnamePacked,
                                        const GLint *params)
 {
-    return ValidateGetFramebufferParameterivBase(context, entryPoint, target, pname, params);
+    return ValidateGetFramebufferParameterivBase(context, entryPoint, target, pnamePacked, params);
 }
 
 bool ValidateGetProgramResourceIndex(const Context *context,
@@ -1542,12 +1539,13 @@ bool ValidateGetProgramResourceiv(const Context *context,
     }
     for (GLsizei i = 0; i < propCount; i++)
     {
-        if (!ValidateProgramResourceProperty(context, entryPoint, props[i]))
+        if (!ValidateProgramResourceProperty(context, entryPoint, ANGLE_UNSAFE_TODO(props[i])))
         {
             ANGLE_VALIDATION_ERROR(GL_INVALID_ENUM, kInvalidProgramResourceProperty);
             return false;
         }
-        if (!ValidateProgramResourcePropertyByInterface(props[i], programInterface))
+        if (!ValidateProgramResourcePropertyByInterface(ANGLE_UNSAFE_TODO(props[i]),
+                                                        programInterface))
         {
             ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInvalidPropertyForProgramInterface);
             return false;
@@ -2681,27 +2679,15 @@ bool ValidatePatchParameteriBase(const PrivateState &state,
                                  GLenum pname,
                                  GLint value)
 {
-    if (state.getClientVersion() < ES_3_1)
-    {
-        errors->validationError(entryPoint, GL_INVALID_OPERATION, kES31Required);
-        return false;
-    }
-
-    if (pname != GL_PATCH_VERTICES)
+    if (ANGLE_UNLIKELY(pname != GL_PATCH_VERTICES))
     {
         errors->validationError(entryPoint, GL_INVALID_ENUM, kInvalidPname);
         return false;
     }
 
-    if (value <= 0)
+    if (ANGLE_UNLIKELY(value <= 0 || value > state.getCaps().maxPatchVertices))
     {
-        errors->validationError(entryPoint, GL_INVALID_VALUE, kInvalidValueNonPositive);
-        return false;
-    }
-
-    if (value > state.getCaps().maxPatchVertices)
-    {
-        errors->validationError(entryPoint, GL_INVALID_VALUE, kInvalidValueExceedsMaxPatchSize);
+        errors->validationError(entryPoint, GL_INVALID_VALUE, kInvalidPatchVerticesValue);
         return false;
     }
 

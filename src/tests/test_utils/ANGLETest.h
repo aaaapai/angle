@@ -10,13 +10,10 @@
 #ifndef ANGLE_TESTS_ANGLE_TEST_H_
 #define ANGLE_TESTS_ANGLE_TEST_H_
 
-#ifdef UNSAFE_BUFFERS_BUILD
-#    pragma allow_unsafe_buffers
-#endif
-
 #include <gtest/gtest.h>
 #include <algorithm>
 #include <array>
+#include "common/unsafe_buffers.h"
 
 #include "RenderDoc.h"
 #include "angle_test_configs.h"
@@ -106,6 +103,9 @@ struct GLColorRGB
     static const GLColorRGB green;
     static const GLColorRGB red;
     static const GLColorRGB yellow;
+    static const GLColorRGB magenta;
+    static const GLColorRGB cyan;
+    static const GLColorRGB white;
 };
 
 struct GLColorRG
@@ -142,9 +142,9 @@ struct GLColor
 
     angle::Vector4 toNormalizedVector() const;
 
-    GLubyte &operator[](size_t index) { return (&R)[index]; }
+    GLubyte &operator[](size_t index) { return ANGLE_UNSAFE_TODO((&R)[index]); }
 
-    const GLubyte &operator[](size_t index) const { return (&R)[index]; }
+    const GLubyte &operator[](size_t index) const { return ANGLE_UNSAFE_TODO((&R)[index]); }
 
     const GLubyte *data() const { return &R; }
     GLubyte *data() { return &R; }
@@ -592,6 +592,11 @@ class ANGLETestBase : public ::testing::Test
     {
         return mCurrentParams->getRenderer() == EGL_PLATFORM_ANGLE_TYPE_VULKAN_ANGLE &&
                mCurrentParams->isSwiftshader();
+    }
+
+    bool isMetalRenderer() const
+    {
+        return mCurrentParams->getRenderer() == EGL_PLATFORM_ANGLE_TYPE_METAL_ANGLE;
     }
 
     bool isDriverSystemEgl() const

@@ -7,11 +7,8 @@
 //   Implementation of common ANGLE testing fixture.
 //
 
-#ifdef UNSAFE_BUFFERS_BUILD
-#    pragma allow_unsafe_buffers
-#endif
-
 #include "ANGLETest.h"
+#include "common/unsafe_buffers.h"
 
 #include <algorithm>
 #include <cstdlib>
@@ -40,7 +37,10 @@ const GLColorRGB GLColorRGB::black(0u, 0u, 0u);
 const GLColorRGB GLColorRGB::blue(0u, 0u, 255u);
 const GLColorRGB GLColorRGB::green(0u, 255u, 0u);
 const GLColorRGB GLColorRGB::red(255u, 0u, 0u);
-const GLColorRGB GLColorRGB::yellow(255u, 255u, 0);
+const GLColorRGB GLColorRGB::yellow(255u, 255u, 0u);
+const GLColorRGB GLColorRGB::magenta(255u, 0u, 255u);
+const GLColorRGB GLColorRGB::cyan(0u, 255u, 255u);
+const GLColorRGB GLColorRGB::white(255u, 255u, 255u);
 
 const GLColor GLColor::black            = GLColor(0u, 0u, 0u, 255u);
 const GLColor GLColor::blue             = GLColor(0u, 0u, 255u, 255u);
@@ -221,8 +221,6 @@ GPUTestConfig::API GetTestConfigAPIFromRenderer(angle::GLESDriverType driverType
     {
         case EGL_PLATFORM_ANGLE_TYPE_D3D11_ANGLE:
             return GPUTestConfig::kAPID3D11;
-        case EGL_PLATFORM_ANGLE_TYPE_D3D9_ANGLE:
-            return GPUTestConfig::kAPID3D9;
         case EGL_PLATFORM_ANGLE_TYPE_OPENGL_ANGLE:
             return GPUTestConfig::kAPIGLDesktop;
         case EGL_PLATFORM_ANGLE_TYPE_OPENGLES_ANGLE:
@@ -266,13 +264,13 @@ GLColor::GLColor(const Vector4 &floatColor)
 
 GLColor::GLColor(GLuint colorValue) : R(0), G(0), B(0), A(0)
 {
-    memcpy(&R, &colorValue, sizeof(GLuint));
+    ANGLE_UNSAFE_TODO(memcpy(&R, &colorValue, sizeof(GLuint)));
 }
 
 GLuint GLColor::asUint() const
 {
     GLuint uint = 0;
-    memcpy(&uint, &R, sizeof(GLuint));
+    ANGLE_UNSAFE_TODO(memcpy(&uint, &R, sizeof(GLuint)));
     return uint;
 }
 
@@ -521,7 +519,7 @@ void *ANGLETestBase::operator new(size_t size)
     void *ptr = malloc(size ? size : size + 1);
     // Initialize integer primitives to large positive values to avoid tests relying
     // on the assumption that primitives (e.g. GLuint) would be zero-initialized.
-    memset(ptr, 0x7f, size);
+    ANGLE_UNSAFE_TODO(memset(ptr, 0x7f, size));
     return ptr;
 }
 
@@ -1529,7 +1527,7 @@ void ANGLETestBase::checkD3D11SDKLayersMessages()
         return;
     }
 
-    if (!strstr(extensionString, "EGL_EXT_device_query"))
+    if (!ANGLE_UNSAFE_TODO(strstr(extensionString, "EGL_EXT_device_query")))
     {
         return;
     }
@@ -1891,33 +1889,36 @@ void ANGLEProcessTestArgs(int *argc, char *argv[])
 
     for (int argIndex = 1; argIndex < *argc; argIndex++)
     {
-        if (strncmp(argv[argIndex], kUseConfig, strlen(kUseConfig)) == 0)
+        if (ANGLE_UNSAFE_TODO(strncmp(argv[argIndex], kUseConfig, strlen(kUseConfig))) == 0)
         {
-            SetSelectedConfig(argv[argIndex] + strlen(kUseConfig));
+            SetSelectedConfig(ANGLE_UNSAFE_TODO(argv[argIndex] + strlen(kUseConfig)));
         }
-        else if (strncmp(argv[argIndex], kReuseDisplays, strlen(kReuseDisplays)) == 0)
+        else if (ANGLE_UNSAFE_TODO(
+                     strncmp(argv[argIndex], kReuseDisplays, strlen(kReuseDisplays))) == 0)
         {
             gReuseDisplays = true;
         }
-        else if (strncmp(argv[argIndex], kBatchId, strlen(kBatchId)) == 0)
+        else if (ANGLE_UNSAFE_TODO(strncmp(argv[argIndex], kBatchId, strlen(kBatchId))) == 0)
         {
             // Enable display reuse when running under --bot-mode.
             gReuseDisplays = true;
         }
-        else if (strncmp(argv[argIndex], kEnableANGLEPerTestCaptureLabel,
-                         strlen(kEnableANGLEPerTestCaptureLabel)) == 0)
+        else if (ANGLE_UNSAFE_TODO(strncmp(argv[argIndex], kEnableANGLEPerTestCaptureLabel,
+                                           strlen(kEnableANGLEPerTestCaptureLabel))) == 0)
         {
             gEnableANGLEPerTestCaptureLabel = true;
         }
-        else if (strncmp(argv[argIndex], kDelayTestStart, strlen(kDelayTestStart)) == 0)
+        else if (ANGLE_UNSAFE_TODO(
+                     strncmp(argv[argIndex], kDelayTestStart, strlen(kDelayTestStart))) == 0)
         {
-            SetTestStartDelay(argv[argIndex] + strlen(kDelayTestStart));
+            SetTestStartDelay(ANGLE_UNSAFE_TODO(argv[argIndex] + strlen(kDelayTestStart)));
         }
-        else if (strncmp(argv[argIndex], kRenderDoc, strlen(kRenderDoc)) == 0)
+        else if (ANGLE_UNSAFE_TODO(strncmp(argv[argIndex], kRenderDoc, strlen(kRenderDoc))) == 0)
         {
             gEnableRenderDocCapture = true;
         }
-        else if (strncmp(argv[argIndex], kNoRenderDoc, strlen(kNoRenderDoc)) == 0)
+        else if (ANGLE_UNSAFE_TODO(strncmp(argv[argIndex], kNoRenderDoc, strlen(kNoRenderDoc))) ==
+                 0)
         {
             gEnableRenderDocCapture = false;
         }

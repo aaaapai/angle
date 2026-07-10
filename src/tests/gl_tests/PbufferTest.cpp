@@ -4,10 +4,7 @@
 // found in the LICENSE file.
 //
 
-#ifdef UNSAFE_BUFFERS_BUILD
-#    pragma allow_unsafe_buffers
-#endif
-
+#include "common/unsafe_buffers.h"
 #include "test_utils/ANGLETest.h"
 #include "test_utils/gl_raii.h"
 #include "util/EGLWindow.h"
@@ -166,6 +163,9 @@ class PbufferTest : public ANGLETest<>
     bool mSupportsPbuffers;
     bool mSupportsBindTexImage;
 };
+
+class PbufferTestES3 : public PbufferTest
+{};
 
 class PbufferColorspaceTest : public PbufferTest
 {};
@@ -349,6 +349,54 @@ TEST_P(PbufferTest, BindTexImageOverwrite)
 
     destroyTestPbufferSurface(otherPbuffer);
     destroyPbuffer();
+    ASSERT_EGL_SUCCESS();
+    ASSERT_GL_NO_ERROR();
+}
+
+// Test that eglBindTexImage redefines all mip levels to empty.
+TEST_P(PbufferTestES3, BindRedefinesAllMips)
+{
+    // Test skipped because Pbuffers are not supported or Pbuffer does not support binding to RGBA
+    // textures.
+    ANGLE_SKIP_TEST_IF(!mSupportsPbuffers || !mSupportsBindTexImage);
+
+    EGLWindow *window = getEGLWindow();
+    window->makeCurrent();
+
+    ANGLE_GL_PROGRAM(program, essl1_shaders::vs::Texture2D(), essl1_shaders::fs::Texture2D());
+
+    constexpr GLint kBaseLevel = 3;
+
+    // Define a texture with data in mip 3
+    GLTexture texture;
+    glBindTexture(GL_TEXTURE_2D, texture);
+    const GLColor kLevelData[4] = {GLColor::red, GLColor::red, GLColor::red, GLColor::red};
+    glTexImage2D(GL_TEXTURE_2D, kBaseLevel, GL_RGBA, 2, 2, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+                 kLevelData);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    // Set the base level 3 and verify the data is sampleable
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, kBaseLevel);
+    EXPECT_GL_NO_ERROR();
+
+    drawQuad(program, essl1_shaders::PositionAttrib(), 0.5f);
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::red);
+
+    // Bind the pbuffer to the texture. All mips of the texture should be redefined. The texture
+    // will now be incomplete because BASE_LEVEL has no data.
+    EGLSurface pbuffer = createTestPbufferSurface();
+    ASSERT_NE(pbuffer, EGL_NO_SURFACE);
+    EXPECT_TRUE(eglBindTexImage(window->getDisplay(), pbuffer, EGL_BACK_BUFFER));
+    ASSERT_EGL_SUCCESS();
+
+    drawQuad(program, essl1_shaders::PositionAttrib(), 0.5f);
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::black);
+
+    eglReleaseTexImage(window->getDisplay(), pbuffer, EGL_BACK_BUFFER);
+    destroyTestPbufferSurface(pbuffer);
     ASSERT_EGL_SUCCESS();
     ASSERT_GL_NO_ERROR();
 }
@@ -841,6 +889,206 @@ TEST_P(PbufferTest, TextureSizeReset)
     EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::black);
 }
 
+// Import an image then bind to a Pbuffer, which should orphan the image.
+TEST_P(PbufferTestES3, ImportImageThenBindTexImageShouldOrphan)
+{
+    EGLWindow *window = getEGLWindow();
+
+    // Test skipped because Pbuffers are not supported or Pbuffer does not support binding to RGBA
+    // textures.
+    ANGLE_SKIP_TEST_IF(!mSupportsPbuffers || !mSupportsBindTexImage);
+    ANGLE_SKIP_TEST_IF(!EnsureGLExtensionEnabled("GL_OES_EGL_image"));
+    ANGLE_SKIP_TEST_IF(!IsEGLDisplayExtensionEnabled(window->getDisplay(), "EGL_KHR_image_base"));
+    ANGLE_SKIP_TEST_IF(
+        !IsEGLDisplayExtensionEnabled(window->getDisplay(), "EGL_KHR_gl_texture_2D_image"));
+
+    EGLSurface pbuffer;
+
+    static EGLint pbufferAttributes[] = {
+        EGL_WIDTH,          2,
+        EGL_HEIGHT,         1,
+        EGL_TEXTURE_FORMAT, EGL_TEXTURE_RGBA,
+        EGL_TEXTURE_TARGET, EGL_TEXTURE_2D,
+        EGL_NONE,
+    };
+
+    pbuffer = eglCreatePbufferSurface(window->getDisplay(), window->getConfig(), pbufferAttributes);
+    ASSERT_EGL_SUCCESS();
+
+    ASSERT_NE(EGL_NO_SURFACE, pbuffer);
+
+    // Create a texture and make an EGL image out of it.
+    constexpr uint32_t kWidth  = 16;
+    constexpr uint32_t kHeight = 24;
+    const std::vector<GLColor> originalColor(kWidth * kHeight, GLColor::yellow);
+
+    GLTexture source;
+    glBindTexture(GL_TEXTURE_2D, source);
+    glTexStorage2D(GL_TEXTURE_2D, 5, GL_RGBA8, kWidth, kHeight);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, kWidth, kHeight, GL_RGBA, GL_UNSIGNED_BYTE,
+                    originalColor.data());
+
+    constexpr EGLint kDefaultAttribs[] = {
+        EGL_IMAGE_PRESERVED,
+        EGL_TRUE,
+        EGL_NONE,
+    };
+
+    static_assert(sizeof(EGLClientBuffer) == sizeof(size_t));
+    const size_t sourceSizeT = static_cast<size_t>(source.get());
+    EGLImageKHR image =
+        eglCreateImageKHR(window->getDisplay(), window->getContext(), EGL_GL_TEXTURE_2D_KHR,
+                          reinterpret_cast<EGLClientBuffer>(sourceSizeT), kDefaultAttribs);
+    ASSERT_EGL_SUCCESS();
+
+    // Import it into another texture.
+    GLTexture target;
+    glBindTexture(GL_TEXTURE_2D, target);
+    glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, image);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    ASSERT_GL_NO_ERROR();
+
+    // Draw into it, to later verify the texture is really attached to source.
+    GLFramebuffer fbo;
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, target, 0);
+    ANGLE_GL_PROGRAM(drawRed, essl1_shaders::vs::Simple(), essl1_shaders::fs::Red());
+    drawQuad(drawRed, essl1_shaders::PositionAttrib(), 0.5f);
+
+    // Bind pbuffer as target's storage, orphaning the image
+    eglBindTexImage(window->getDisplay(), pbuffer, EGL_BACK_BUFFER);
+    ASSERT_EGL_SUCCESS();
+    EXPECT_GL_NO_ERROR();
+
+    // Draw again, this time it should affect the pbuffer.
+    ANGLE_GL_PROGRAM(drawGreen, essl1_shaders::vs::Simple(), essl1_shaders::fs::Green());
+    drawQuad(drawGreen, essl1_shaders::PositionAttrib(), 0.5f);
+
+    // Verify rendering
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
+
+    // Verify the source image
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, source, 0);
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::red);
+
+    // Verify the pbuffer
+    target.reset();
+    EXPECT_TRUE(eglMakeCurrent(window->getDisplay(), pbuffer, pbuffer, window->getContext()));
+    ASSERT_EGL_SUCCESS();
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
+
+    eglDestroyImageKHR(window->getDisplay(), image);
+
+    window->makeCurrent();
+    eglDestroySurface(window->getDisplay(), pbuffer);
+}
+
+// Import an image then binding its source to a Pbuffer, which should orphan the image.
+TEST_P(PbufferTestES3, ImportImageThenBindTexImageSourceShouldOrphan)
+{
+    EGLWindow *window = getEGLWindow();
+
+    // Test skipped because Pbuffers are not supported or Pbuffer does not support binding to RGBA
+    // textures.
+    ANGLE_SKIP_TEST_IF(!mSupportsPbuffers || !mSupportsBindTexImage);
+    ANGLE_SKIP_TEST_IF(!EnsureGLExtensionEnabled("GL_OES_EGL_image"));
+    ANGLE_SKIP_TEST_IF(!IsEGLDisplayExtensionEnabled(window->getDisplay(), "EGL_KHR_image_base"));
+    ANGLE_SKIP_TEST_IF(
+        !IsEGLDisplayExtensionEnabled(window->getDisplay(), "EGL_KHR_gl_texture_2D_image"));
+
+    EGLSurface pbuffer;
+
+    static EGLint pbufferAttributes[] = {
+        EGL_WIDTH,          2,
+        EGL_HEIGHT,         1,
+        EGL_TEXTURE_FORMAT, EGL_TEXTURE_RGBA,
+        EGL_TEXTURE_TARGET, EGL_TEXTURE_2D,
+        EGL_NONE,
+    };
+
+    pbuffer = eglCreatePbufferSurface(window->getDisplay(), window->getConfig(), pbufferAttributes);
+    ASSERT_EGL_SUCCESS();
+
+    ASSERT_NE(EGL_NO_SURFACE, pbuffer);
+
+    // Create a texture and make an EGL image out of it.
+    constexpr uint32_t kWidth  = 16;
+    constexpr uint32_t kHeight = 24;
+    const std::vector<GLColor> originalColor(kWidth * kHeight, GLColor::yellow);
+
+    GLTexture source;
+    glBindTexture(GL_TEXTURE_2D, source);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, kWidth, kHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+                 originalColor.data());
+
+    constexpr EGLint kDefaultAttribs[] = {
+        EGL_IMAGE_PRESERVED,
+        EGL_TRUE,
+        EGL_NONE,
+    };
+
+    static_assert(sizeof(EGLClientBuffer) == sizeof(size_t));
+    const size_t sourceSizeT = static_cast<size_t>(source.get());
+    EGLImageKHR image =
+        eglCreateImageKHR(window->getDisplay(), window->getContext(), EGL_GL_TEXTURE_2D_KHR,
+                          reinterpret_cast<EGLClientBuffer>(sourceSizeT), kDefaultAttribs);
+    ASSERT_EGL_SUCCESS();
+
+    // Import it into another texture.
+    GLTexture target;
+    glBindTexture(GL_TEXTURE_2D, target);
+    glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, image);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    ASSERT_GL_NO_ERROR();
+
+    // Draw into it to modify source's current image
+    GLFramebuffer fbo;
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, target, 0);
+    ANGLE_GL_PROGRAM(drawRed, essl1_shaders::vs::Simple(), essl1_shaders::fs::Red());
+    drawQuad(drawRed, essl1_shaders::PositionAttrib(), 0.5f);
+
+    // Bind pbuffer as source's storage, orphaning the image
+    glBindTexture(GL_TEXTURE_2D, source);
+    eglBindTexImage(window->getDisplay(), pbuffer, EGL_BACK_BUFFER);
+    ASSERT_EGL_SUCCESS();
+    EXPECT_GL_NO_ERROR();
+
+    // Draw into source, it should not modify target which is still attached the source's previous
+    // image.
+    GLFramebuffer fbo2;
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo2);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, source, 0);
+
+    ANGLE_GL_PROGRAM(drawGreen, essl1_shaders::vs::Simple(), essl1_shaders::fs::Green());
+    drawQuad(drawGreen, essl1_shaders::PositionAttrib(), 0.5f);
+
+    // Verify rendering
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
+
+    // Verify the target image
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::red);
+
+    // Verify the pbuffer
+    fbo2.reset();
+    source.reset();
+    EXPECT_TRUE(eglMakeCurrent(window->getDisplay(), pbuffer, pbuffer, window->getContext()));
+    ASSERT_EGL_SUCCESS();
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
+
+    eglDestroyImageKHR(window->getDisplay(), image);
+
+    window->makeCurrent();
+    eglDestroySurface(window->getDisplay(), pbuffer);
+}
+
 // Bind a Pbuffer, redefine the texture, and verify it renders correctly
 TEST_P(PbufferTest, BindTexImageAndRedefineTexture)
 {
@@ -1098,8 +1346,9 @@ TEST_P(PbufferTest, NegativeValidationBadAttributes)
 
     for (size_t i = 0; i < 2; i++)
     {
-        pbufferSurface = eglCreatePbufferSurface(window->getDisplay(), window->getConfig(),
-                                                 &invalidPBufferAttributeList[i][0]);
+        pbufferSurface =
+            eglCreatePbufferSurface(window->getDisplay(), window->getConfig(),
+                                    &ANGLE_UNSAFE_TODO(invalidPBufferAttributeList[i][0]));
         ASSERT_EQ(pbufferSurface, EGL_NO_SURFACE);
         ASSERT_EGL_ERROR(EGL_BAD_ATTRIBUTE);
     }
@@ -1250,6 +1499,9 @@ TEST_P(PbufferTest, ZeroSizedSurfaceFormatQuery)
 }
 
 ANGLE_INSTANTIATE_TEST_ES2(PbufferTest);
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(PbufferTestES3);
+ANGLE_INSTANTIATE_TEST_ES3(PbufferTestES3);
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(PbufferColorspaceTest);
 ANGLE_INSTANTIATE_TEST_ES3_AND(PbufferColorspaceTest,

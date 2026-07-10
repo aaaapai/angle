@@ -4,11 +4,8 @@
 // found in the LICENSE file.
 //
 
-#ifdef UNSAFE_BUFFERS_BUILD
-#    pragma allow_unsafe_buffers
-#endif
-
 #include "libANGLE/Caps.h"
+#include "common/unsafe_buffers.h"
 
 #include "common/angleutils.h"
 #include "common/debug.h"
@@ -150,7 +147,7 @@ static bool GetFormatSupportBase(const TextureCapsMap &textureCaps,
 {
     for (size_t i = 0; i < requiredFormatsSize; i++)
     {
-        const TextureCaps &cap = textureCaps.get(requiredFormats[i]);
+        const TextureCaps &cap = textureCaps.get(ANGLE_UNSAFE_TODO(requiredFormats[i]));
         if (requiresTexturing && !cap.texturable)
         {
             return false;
@@ -1395,7 +1392,6 @@ std::vector<std::string> DeviceExtensions::getStrings() const
     // clang-format off
     //                   | Extension name                                 | Supported flag                | Output vector   |
     InsertExtensionString("EGL_ANGLE_device_d3d",                          deviceD3D,                      &extensionStrings);
-    InsertExtensionString("EGL_ANGLE_device_d3d9",                         deviceD3D9,                     &extensionStrings);
     InsertExtensionString("EGL_ANGLE_device_d3d11",                        deviceD3D11,                    &extensionStrings);
     InsertExtensionString("EGL_ANGLE_device_cgl",                          deviceCGL,                      &extensionStrings);
     InsertExtensionString("EGL_ANGLE_device_metal",                        deviceMetal,                    &extensionStrings);
@@ -1439,6 +1435,7 @@ std::vector<std::string> ClientExtensions::getStrings() const
     InsertExtensionString("EGL_ANGLE_platform_angle_metal",                   platformANGLEMetal,                 &extensionStrings);
     InsertExtensionString("EGL_ANGLE_platform_device_context_volatile_cgl",   platformANGLEDeviceContextVolatileCgl, &extensionStrings);
     InsertExtensionString("EGL_ANGLE_platform_angle_device_id",               platformANGLEDeviceId,              &extensionStrings);
+    InsertExtensionString("EGL_ANGLE_platform_angle_display_key",             platformANGLEDisplayKey,            &extensionStrings);
     InsertExtensionString("EGL_ANGLE_device_creation",                        deviceCreation,                     &extensionStrings);
     InsertExtensionString("EGL_ANGLE_device_creation_d3d11",                  deviceCreationD3D11,                &extensionStrings);
     InsertExtensionString("EGL_ANGLE_x11_visual",                             x11Visual,                          &extensionStrings);
