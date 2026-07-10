@@ -1573,11 +1573,11 @@ bool ValidateES2TexImageParameters(const Context *context,
                 }
             }
 
-            if (!isValidCombination)
+            /*if (!isValidCombination)
             {
                 ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInvalidFormatCombination);
                 return false;
-            }
+            }*/
         }
     }
 
