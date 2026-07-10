@@ -2661,10 +2661,7 @@ class ImageHelper final : public Resource, public angle::Subject
     angle::Result stagePartialClear(ContextVk *contextVk,
                                     const gl::Box &clearArea,
                                     const ClearTextureMode clearMode,
-                                    gl::TextureType textureType,
-                                    uint32_t levelIndexGL,
-                                    uint32_t layerIndex,
-                                    uint32_t layerCount,
+                                    const gl::ImageIndex &index,
                                     GLenum type,
                                     const gl::InternalFormat &formatInfo,
                                     const Format &vkFormat,
@@ -3107,8 +3104,6 @@ class ImageHelper final : public Resource, public angle::Subject
         uint32_t layerCount;
         VkOffset3D offset;
         VkExtent3D extent;
-        gl::TextureType textureType;
-        uint8_t _padding[3];
     };
     ANGLE_DISABLE_STRUCT_PADDING_WARNINGS
     struct BufferUpdate
@@ -3141,8 +3136,7 @@ class ImageHelper final : public Resource, public angle::Subject
                           const gl::ImageIndex &imageIndex);
         SubresourceUpdate(const VkImageAspectFlags aspectFlags,
                           const VkClearValue &clearValue,
-                          const gl::TextureType textureType,
-                          const uint32_t levelIndex,
+                          const gl::LevelIndex levelIndex,
                           const uint32_t layerIndex,
                           const uint32_t layerCount,
                           const gl::Box &clearArea);

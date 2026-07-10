@@ -167,6 +167,73 @@ struct VertexArrayStateGL
     angle::FixedVector<VertexBindingGL, gl::MAX_VERTEX_ATTRIBS> bindings;
 };
 
+struct IndexedBufferBindingGL
+{
+    size_t offset = 0;
+    size_t size   = 0;
+    GLuint buffer = 0;
+};
+
+struct ImageUnitBindingGL
+{
+    GLuint texture    = 0;
+    GLint level       = 0;
+    GLboolean layered = false;
+    GLint layer       = 0;
+    GLenum access     = GL_READ_ONLY;
+    GLenum format     = GL_R32UI;
+};
+
+struct ContextStateGL
+{
+    ContextStateGL(const gl::Caps &caps, const gl::Extensions &extensions);
+
+    GLuint program = 0;
+
+    GLuint vao = 0;
+    std::vector<gl::VertexAttribCurrentValueData> vertexAttribCurrentValues;
+
+    angle::PackedEnumMap<gl::BufferBinding, GLuint> buffers = {};
+    angle::PackedEnumMap<gl::BufferBinding, std::vector<IndexedBufferBindingGL>> indexedBuffers;
+
+    size_t textureUnitIndex                                                        = 0;
+    angle::PackedEnumMap<gl::TextureType, gl::ActiveTextureArray<GLuint>> textures = {};
+    gl::ActiveTextureArray<GLuint> samplers                                        = {};
+
+    std::vector<ImageUnitBindingGL> images;
+
+    GLuint transformFeedback = 0;
+
+    GLint unpackAlignment   = 4;
+    GLint unpackRowLength   = 0;
+    GLint unpackSkipRows    = 0;
+    GLint unpackSkipPixels  = 0;
+    GLint unpackImageHeight = 0;
+    GLint unpackSkipImages  = 0;
+
+    GLint packAlignment  = 4;
+    GLint packRowLength  = 0;
+    GLint packSkipRows   = 0;
+    GLint packSkipPixels = 0;
+
+    std::array<GLuint, angle::FramebufferBinding::FramebufferBindingSingletonMax> framebuffers = {
+        0};
+    GLuint renderbuffer = 0;
+
+    bool scissorTestEnabled = false;
+    gl::Rectangle scissor   = gl::Rectangle(0, 0, 0, 0);
+    gl::Rectangle viewport  = gl::Rectangle(0, 0, 0, 0);
+    float near              = 0.0f;
+    float far               = 1.0f;
+
+    gl::ClipOrigin clipOrigin       = gl::ClipOrigin::LowerLeft;
+    gl::ClipDepthMode clipDepthMode = gl::ClipDepthMode::NegativeOneToOne;
+
+    gl::ColorF blendColor = gl::ColorF(0, 0, 0, 0);
+    gl::BlendStateExt blendState;
+    bool blendAdvancedCoherent = true;
+};
+
 class StateManagerGL final : angle::NonCopyable
 {
   public:
@@ -322,13 +389,13 @@ class StateManagerGL final : angle::NonCopyable
         GetImplAs<ProgramExecutableGL>(executable)->updateEmulatedClipOrigin(origin);
     }
 
-    GLuint getProgramID() const { return mProgram; }
-    GLuint getVertexArrayID() const { return mVAO; }
+    GLuint getProgramID() const { return mState.program; }
+    GLuint getVertexArrayID() const { return mState.vao; }
     GLuint getFramebufferID(angle::FramebufferBinding binding) const
     {
-        return mFramebuffers[binding];
+        return mState.framebuffers[binding];
     }
-    GLuint getBufferID(gl::BufferBinding binding) const { return mBuffers[binding]; }
+    GLuint getBufferID(gl::BufferBinding binding) const { return mState.buffers[binding]; }
 
     bool getHasSeparateFramebufferBindings() const { return mHasSeparateFramebufferBindings; }
 
@@ -420,11 +487,9 @@ class StateManagerGL final : angle::NonCopyable
     const FunctionsGL *mFunctions;
     const angle::FeaturesGL &mFeatures;
 
-    GLuint mProgram;
+    ContextStateGL mState;
 
     const bool mSupportsVertexArrayObjects;
-    GLuint mVAO;
-    std::vector<gl::VertexAttribCurrentValueData> mVertexAttribCurrentValues;
 
     GLuint mDefaultVAO = 0;
     // The current state of the default VAO is owned by StateManagerGL. It may be shared between
@@ -437,38 +502,6 @@ class StateManagerGL final : angle::NonCopyable
     // current element array buffer.
     VertexArrayStateGL *mVAOState = nullptr;
 
-    angle::PackedEnumMap<gl::BufferBinding, GLuint> mBuffers;
-
-    struct IndexedBufferBinding
-    {
-        IndexedBufferBinding();
-
-        size_t offset;
-        size_t size;
-        GLuint buffer;
-    };
-    angle::PackedEnumMap<gl::BufferBinding, std::vector<IndexedBufferBinding>> mIndexedBuffers;
-
-    size_t mTextureUnitIndex;
-    angle::PackedEnumMap<gl::TextureType, gl::ActiveTextureArray<GLuint>> mTextures;
-    gl::ActiveTextureArray<GLuint> mSamplers;
-
-    struct ImageUnitBinding
-    {
-        ImageUnitBinding()
-            : texture(0), level(0), layered(false), layer(0), access(GL_READ_ONLY), format(GL_R32UI)
-        {}
-
-        GLuint texture;
-        GLint level;
-        GLboolean layered;
-        GLint layer;
-        GLenum access;
-        GLenum format;
-    };
-    std::vector<ImageUnitBinding> mImages;
-
-    GLuint mTransformFeedback;
     TransformFeedbackGL *mCurrentTransformFeedback;
 
     // Queries that are currently running on the driver
@@ -480,36 +513,9 @@ class StateManagerGL final : angle::NonCopyable
 
     gl::ContextID mPrevDrawContext;
 
-    GLint mUnpackAlignment;
-    GLint mUnpackRowLength;
-    GLint mUnpackSkipRows;
-    GLint mUnpackSkipPixels;
-    GLint mUnpackImageHeight;
-    GLint mUnpackSkipImages;
-
-    GLint mPackAlignment;
-    GLint mPackRowLength;
-    GLint mPackSkipRows;
-    GLint mPackSkipPixels;
-
-    // TODO(jmadill): Convert to std::array when available
-    std::vector<GLenum> mFramebuffers;
-    GLuint mRenderbuffer;
     GLuint mPlaceholderFbo;
     GLuint mPlaceholderRbo;
 
-    bool mScissorTestEnabled;
-    gl::Rectangle mScissor;
-    gl::Rectangle mViewport;
-    float mNear;
-    float mFar;
-
-    gl::ClipOrigin mClipOrigin;
-    gl::ClipDepthMode mClipDepthMode;
-
-    gl::ColorF mBlendColor;
-    gl::BlendStateExt mBlendStateExt;
-    bool mBlendAdvancedCoherent;
     const bool mIndependentBlendStates;
 
     bool mSampleAlphaToCoverageEnabled;
