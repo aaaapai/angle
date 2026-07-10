@@ -1,22 +1,19 @@
 target_os = "android"
 target_cpu = "arm64"
 is_component_build = false
-is_debug = true
+is_debug = false
 angle_build_all = false
 angle_expose_non_conformant_extensions_and_versions = true
 jobs = 6
 enable_iterator_debugging = false
-symbol_level = 1
+symbol_level = 0
 use_goma = false
 dcheck_always_on = true
 angle_assert_always_on = true
 is_clang = true
 android_ndk_api_level = 26
-strip_debug_info = true
-generate_debug_info = true
 enable_resource_allowlist_generation = false
 angle_enable_vulkan = true
-angle_enable_vulkan_validation_layers = false
 angle_enable_gl = true
 angle_enable_d3d9 = false
 angle_enable_d3d11 = false
@@ -78,7 +75,8 @@ cflags_c = [
   "-D__USE_BSD",
   "-D_ALLBSD_SOURCE",
   "-mllvm",
-  "-inlinehint-threshold=100000"
+  "-inlinehint-threshold=100000",
+  "-DANGLE_ENABLE_DEBUG_ANNOTATIONS"
 ]
 
 cflags_cc = [
@@ -120,7 +118,8 @@ cflags_cc = [
   "-D__USE_BSD",
   "-D_ALLBSD_SOURCE",
   "-mllvm",
-  "-inlinehint-threshold=100000"
+  "-inlinehint-threshold=100000",
+  "-DANGLE_ENABLE_DEBUG_ANNOTATIONS"
 ]
 
 ldflags = [
