@@ -96,12 +96,12 @@ FramebufferStatus CheckAttachmentCompleteness(const Context *context,
         // respectively, of the texture.
         if (!attachment.isLayered())
         {
-            if (attachment.layer() >= size.depth)
+            /*if (attachment.layer() >= size.depth)
             {
                 return FramebufferStatus::Incomplete(
                     GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT,
                     err::kFramebufferIncompleteAttachmentLayerGreaterThanDepth);
-            }
+            }*/
         }
         // If <image> is a three-dimensional texture or a two-dimensional array texture and the
         // attachment is layered, the depth or layer count, respectively, of the texture is less
