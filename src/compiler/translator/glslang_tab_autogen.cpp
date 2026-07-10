@@ -453,7 +453,6 @@ extern void yyerror(YYLTYPE *yylloc, TParseContext *context, void *scanner, cons
     {                                                                  \
         if (context->getShaderType() != GL_VERTEX_SHADER)              \
         {                                                              \
-            context->warning(L, " supported in vertex shaders only", S); \
         }                                                              \
     } while (0)
 
@@ -462,7 +461,6 @@ extern void yyerror(YYLTYPE *yylloc, TParseContext *context, void *scanner, cons
     {                                                                   \
         if (context->getShaderType() != GL_COMPUTE_SHADER)              \
         {                                                               \
-            context->warning(L, " supported in compute shaders only", S); \
         }                                                               \
     } while (0)
 
@@ -471,7 +469,6 @@ extern void yyerror(YYLTYPE *yylloc, TParseContext *context, void *scanner, cons
     {                                                                \
         if (context->getShaderVersion() != 100)                      \
         {                                                            \
-            context->warning(L, " supported in GLSL ES 1.00 only", S); \
         }                                                            \
     } while (0)
 
@@ -480,7 +477,6 @@ extern void yyerror(YYLTYPE *yylloc, TParseContext *context, void *scanner, cons
     {                                                                                        \
         if (context->getShaderVersion() < 300)                                               \
         {                                                                                    \
-            context->warning(LINE, REASON " supported in GLSL ES 3.00 and above only", TOKEN); \
         }                                                                                    \
     } while (0)
 
@@ -489,7 +485,6 @@ extern void yyerror(YYLTYPE *yylloc, TParseContext *context, void *scanner, cons
     {                                                                                        \
         if (context->getShaderVersion() < 310)                                               \
         {                                                                                    \
-            context->warning(LINE, REASON " supported in GLSL ES 3.10 and above only", TOKEN); \
         }                                                                                    \
     } while (0)
 
