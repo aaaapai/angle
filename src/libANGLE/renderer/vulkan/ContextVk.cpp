@@ -2438,8 +2438,10 @@ angle::Result ContextVk::handleDirtyGraphicsRenderPass(DirtyBits::Iterator *dirt
     // start the render pass is the same. We don't need to check clear values since mid render pass
     // clear are handled differently.
     bool reactivateStartedRenderPass =
-        hasStartedRenderPassWithQueueSerial(drawFramebufferVk->getLastRenderPassQueueSerial()) &&
-        mAllowRenderPassToReactivate && renderArea == mRenderPassCommands->getRenderArea();
+    hasStartedRenderPassWithQueueSerial(drawFramebufferVk->getLastRenderPassQueueSerial()) &&
+    mAllowRenderPassToReactivate && renderArea == mRenderPassCommands->getRenderArea() &&
+    !drawFramebufferVk->hasDeferredClears();
+
     if (reactivateStartedRenderPass)
     {
         INFO() << "Reactivate already started render pass on draw.";
