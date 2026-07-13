@@ -1,0 +1,98 @@
+name: ANGLE
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        arch: ["x86_64"] # "x86_64", "arm32",
+      fail-fast: false
+
+    name: "Build for Android ${{matrix.arch}}"
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+        with:
+          fetch-depth: 1
+
+      - name: Cache depot_tools
+        id: cache-depot-tools
+        uses: actions/cache@main
+        with:
+          path: |
+                depot_tools
+                third_party/llvm-build
+                tools/flex-bison
+          key: depot-tools-${{ runner.os }}-${{ hashFiles('.gclient') }}
+          restore-keys: |
+            depot-tools-${{ runner.os }}-
+
+      - name: Setup depot_tools
+        if: steps.cache-depot-tools.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          sudo rm -rf /usr/local/lib/android/sdk
+          git clone --depth 1 https://chromium.googlesource.com/chromium/tools/depot_tools.git
+
+      - name: Run gclient sync
+        shell: bash
+        run: |
+          export PATH=`pwd`/depot_tools:$PATH
+
+          if [ ! -f .gclient ]; then
+            python3 scripts/bootstrap.py
+          fi
+
+          COMMIT_COUNT=$(git ls-remote origin | wc -l)
+          echo "ANGLE_COMMIT_COUNT=$COMMIT_COUNT" >> $GITHUB_ENV
+          echo "DEPOT_TOOLS_COMMIT=$(git -C depot_tools rev-parse HEAD)" >> $GITHUB_ENV
+          echo $PATH
+
+          gclient sync --no-history --shallow --reset --force
+
+      - name: ccache
+        uses: hendrikmuhs/ccache-action@main
+        with:
+          key: 'angle-ccache'
+          max-size: '8G'
+          update-package-index: 'true'
+
+      - name: Build ANGLE
+        shell: bash
+        run: |
+          COMMIT_COUNT=$(git ls-remote origin | wc -l)
+          echo "ANGLE_COMMIT_COUNT=$COMMIT_COUNT" >> $GITHUB_ENV
+          echo "DEPOT_TOOLS_COMMIT=$(git -C depot_tools rev-parse HEAD)" >> $GITHUB_ENV
+          export PATH=`pwd`/depot_tools:$PATH
+          export NDK_CCACHE="ccache"
+          echo $PATH
+          cp .gn .gn.bak 2>/dev/null; if grep -q 'expand_directory_allowlist' .gn 2>/dev/null; then sed -i 's|]|,\n  "//build/modules/BUILD.gn"\n]|' .gn; else echo 'expand_directory_allowlist = [ "//build/modules/BUILD.gn" ]' >> .gn; fi
+          gn gen out/linux-${{matrix.arch}} --threads=$(nproc)
+          gn args out/linux-${{ matrix.arch }} --list --short
+          autoninja -C out/linux-${{matrix.arch}} -j $(nproc)
+
+      - name: Dump logs on failure
+        if: failure()
+        shell: bash
+        run: |
+          find out/linux-${{matrix.arch}} -name "siso_output" -exec cat {} \;
+          chmod +x ./out/linux-${{matrix.arch}}/siso_failed_commands.sh
+          ./out/linux-${{matrix.arch}}/siso_failed_commands.sh
+
+      - name: Upload angle
+        uses: actions/upload-artifact@main
+        with:
+          name: angle-${{matrix.arch}}-${{ github.run_number }}
+          path: out/linux-${{matrix.arch}}/*.so
+
+      # - name: Upload libc++
+      #   uses: actions/upload-artifact@main
+      #   with:
+      #     name: libc++-${{matrix.arch}}-${{ github.run_number }}
+      #    path: |
+      #          **/gen/third_party/libc++
+      #          **/obj/buildtools/third_party/libc++abi
