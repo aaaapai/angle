@@ -33,6 +33,9 @@
 #include "libANGLE/renderer/vulkan/vk_helpers.h"
 #include "libANGLE/renderer/vulkan/vk_internal_shaders_autogen.h"
 
+#include <ankerl/stl.h>
+#include <ankerl/unordered_dense.h>
+
 namespace rx
 {
 class UtilsVk : angle::NonCopyable

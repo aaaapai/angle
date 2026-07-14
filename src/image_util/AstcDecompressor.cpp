@@ -15,6 +15,9 @@
 #include "common/WorkerThread.h"
 #include "image_util/AstcDecompressor.h"
 
+#include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
+
 namespace angle
 {
 namespace
@@ -135,7 +138,7 @@ class AstcDecompressorContextCache
         }
     };
 
-    std::unordered_map<Key, Value, KeyHash> mContexts;
+    absl::flat_hash_map<Key, Value, KeyHash> mContexts;
 };
 
 struct DecompressTask : public Closure

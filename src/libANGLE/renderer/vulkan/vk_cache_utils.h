@@ -23,6 +23,9 @@
 #include "libANGLE/renderer/vulkan/vk_resource.h"
 #include "libANGLE/renderer/vulkan/vk_utils.h"
 
+#include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
+
 namespace gl
 {
 class ProgramExecutable;
@@ -2750,7 +2753,7 @@ class ComputePipelineCache final : HasCacheStats<rx::VulkanCacheType::ComputePip
                                  const vk::ComputePipelineDesc &desc,
                                  vk::PipelineHelper **pipelineOut);
 
-    std::unordered_map<vk::ComputePipelineDesc,
+        std::unordered_map<vk::ComputePipelineDesc,
                        vk::PipelineHelper,
                        ComputePipelineDescHash,
                        ComputePipelineDescKeyEqual>
@@ -2839,7 +2842,7 @@ class DescriptorSetLayoutCache final : angle::NonCopyable
 
   private:
     mutable angle::SimpleMutex mMutex;
-    std::unordered_map<vk::DescriptorSetLayoutDesc, vk::DescriptorSetLayoutPtr> mPayload;
+    absl::flat_hash_map<vk::DescriptorSetLayoutDesc, vk::DescriptorSetLayoutPtr> mPayload;
     CacheStats mCacheStats;
 };
 
@@ -2858,7 +2861,7 @@ class PipelineLayoutCache final : public HasCacheStats<VulkanCacheType::Pipeline
 
   private:
     mutable angle::SimpleMutex mMutex;
-    std::unordered_map<vk::PipelineLayoutDesc, vk::PipelineLayoutPtr> mPayload;
+    absl::flat_hash_map<vk::PipelineLayoutDesc, vk::PipelineLayoutPtr> mPayload;
 };
 
 class SamplerCache final : public HasCacheStats<VulkanCacheType::Sampler>
@@ -2874,7 +2877,7 @@ class SamplerCache final : public HasCacheStats<VulkanCacheType::Sampler>
                              vk::SharedSamplerPtr *samplerOut);
 
   private:
-    std::unordered_map<vk::SamplerDesc, vk::SharedSamplerPtr> mPayload;
+   absl::flat_hash_map<vk::SamplerDesc, vk::SharedSamplerPtr> mPayload;
 };
 
 // YuvConversion Cache
@@ -2893,7 +2896,7 @@ class SamplerYcbcrConversionCache final
 
   private:
     using SamplerYcbcrConversionMap =
-        std::unordered_map<vk::YcbcrConversionDesc, vk::SamplerYcbcrConversion>;
+         absl::flat_hash_map<vk::YcbcrConversionDesc, vk::SamplerYcbcrConversion>;
     SamplerYcbcrConversionMap mExternalFormatPayload;
     SamplerYcbcrConversionMap mVkFormatPayload;
 };

@@ -4279,8 +4279,8 @@ int uint_constant(TParseContext *context)
 
     if (context->getShaderVersion() < 300)
     {
-        context->error(*yylloc, "Unsigned integers are unsupported prior to GLSL ES 3.00", yytext);
-        return 0;
+        context->warning(*yylloc, "Unsigned integers are unsupported prior to GLSL ES 3.00", yytext);
+        //return 0;
     }
 
     if (!atoi_clamp(yytext, &(yylval->lex.u)))
@@ -4297,8 +4297,8 @@ int floatsuffix_check(TParseContext *context)
 
     if (context->getShaderVersion() < 300)
     {
-        context->error(*yylloc, "Floating-point suffix unsupported prior to GLSL ES 3.00", yytext);
-        return 0;
+        context->warning(*yylloc, "Floating-point suffix unsupported prior to GLSL ES 3.00", yytext);
+        //return 0;
     }
 
     std::string text = yytext;
