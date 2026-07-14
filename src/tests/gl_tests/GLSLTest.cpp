@@ -2340,10 +2340,6 @@ TEST_P(GLSLTest_ES3, InvariantAllOut)
 
 TEST_P(GLSLTest, MaxVaryingVec4)
 {
-    // TODO(geofflang): Find out why this doesn't compile on Apple AMD OpenGL drivers
-    // (http://anglebug.com/42260302)
-    ANGLE_SKIP_TEST_IF(IsMac() && IsAMD() && IsOpenGL());
-
     GLint maxVaryings = 0;
     glGetIntegerv(GL_MAX_VARYING_VECTORS, &maxVaryings);
 
@@ -2433,10 +2429,6 @@ TEST_P(GLSLTest, TwiceMaxVaryingVec2)
     // (http://anglebug.com/42262492)
     ANGLE_SKIP_TEST_IF(IsNVIDIA() && IsOpenGLES());
 
-    // TODO(geofflang): Find out why this doesn't compile on Apple AMD OpenGL drivers
-    // (http://anglebug.com/42260302)
-    ANGLE_SKIP_TEST_IF(IsMac() && IsAMD() && IsOpenGL());
-
     GLint maxVaryings = 0;
     glGetIntegerv(GL_MAX_VARYING_VECTORS, &maxVaryings);
 
@@ -2448,10 +2440,6 @@ TEST_P(GLSLTest, MaxVaryingVec2Arrays)
 {
     // TODO(geofflang): Figure out why this fails on NVIDIA's GLES driver
     ANGLE_SKIP_TEST_IF(IsOpenGLES());
-
-    // TODO(geofflang): Find out why this doesn't compile on Apple AMD OpenGL drivers
-    // (http://anglebug.com/42260302)
-    ANGLE_SKIP_TEST_IF(IsMac() && IsAMD() && IsOpenGL());
 
     GLint maxVaryings = 0;
     glGetIntegerv(GL_MAX_VARYING_VECTORS, &maxVaryings);
@@ -2469,9 +2457,6 @@ TEST_P(GLSLTest_ES3, MaxVaryingWithFeedbackAndGLline)
 {
     // (http://anglebug.com/42263058)
     ANGLE_SKIP_TEST_IF(IsAMD() && IsWindows() && IsVulkan());
-
-    // http://anglebug.com/42263066
-    ANGLE_SKIP_TEST_IF(IsMac() && IsOpenGL());
 
     GLint maxVaryings = 0;
     glGetIntegerv(GL_MAX_VARYING_VECTORS, &maxVaryings);
@@ -7388,9 +7373,6 @@ TEST_P(GLSLTest, StructsWithSameMembersDisambiguatedByName)
 // successfully.
 TEST_P(GLSLTest, InactiveVaryingInVertexActiveInFragment)
 {
-    // http://anglebug.com/42263408
-    ANGLE_SKIP_TEST_IF(IsMac() && IsOpenGL());
-
     constexpr char kVS[] =
         "attribute vec4 inputAttribute;\n"
         "varying vec4 varColor;\n"
@@ -8278,12 +8260,12 @@ TEST_P(WebGL2GLSLTest, VaryingStructNotInitializedInVertexShader)
     // in https://www.khronos.org/registry/OpenGL/specs/es/3.2/GLSL_ES_Specification_3.20.pdf
     // or section 4.3.5 in https://www.khronos.org/files/opengles_shading_language.pdf
     //
-    // However, windows and mac OpenGL drivers fail to link this program.  With a message like:
+    // However, windows drivers fail to link this program.  With a message like:
     //
     // > Input of fragment shader 'varStruct' not written by vertex shader
     //
     // http://anglebug.com/42262078
-    ANGLE_SKIP_TEST_IF(IsDesktopOpenGL() && (IsMac() || (IsWindows() && !IsNVIDIA())));
+    ANGLE_SKIP_TEST_IF(IsDesktopOpenGL() && IsWindows() && !IsNVIDIA());
 
     constexpr char kVS[] =
         "#version 300 es\n"
@@ -8839,9 +8821,6 @@ TEST_P(GLSLTest, NestedStructsWithSamplersAsFunctionArg)
     // Shader failed to compile on Nexus devices. http://anglebug.com/42260860
     ANGLE_SKIP_TEST_IF(IsNexus5X() && IsAdreno() && IsOpenGLES());
 
-    // TODO(anglebug.com/40096747): Failing on ARM-based Apple DTKs.
-    ANGLE_SKIP_TEST_IF(IsMac() && IsARM64() && IsDesktopOpenGL());
-
     const char kFragmentShader[] = R"(precision mediump float;
 struct S { sampler2D samplerMember; };
 struct T { S nest; };
@@ -8945,9 +8924,6 @@ TEST_P(GLSLTest, NestedCompoundStructsWithSamplersAsFunctionArg)
     // Shader failed to compile on Nexus devices. http://anglebug.com/42260860
     ANGLE_SKIP_TEST_IF(IsNexus5X() && IsAdreno() && IsOpenGLES());
 
-    // TODO(anglebug.com/40096747): Failing on ARM-based Apple DTKs.
-    ANGLE_SKIP_TEST_IF(IsMac() && IsARM64() && IsDesktopOpenGL());
-
     const char kFragmentShader[] = R"(precision mediump float;
 struct S { sampler2D samplerMember; bool b; };
 struct T { S nest; bool b; };
@@ -9012,9 +8988,6 @@ TEST_P(GLSLTest, MoreNestedCompoundStructsWithSamplersAsFunctionArg)
 {
     // Shader failed to compile on Nexus devices. http://anglebug.com/42260860
     ANGLE_SKIP_TEST_IF(IsNexus5X() && IsAdreno() && IsOpenGLES());
-
-    // TODO(anglebug.com/40096747): Failing on ARM-based Apple DTKs.
-    ANGLE_SKIP_TEST_IF(IsMac() && IsARM64() && IsDesktopOpenGL());
 
     const char kFragmentShader[] = R"(precision mediump float;
 struct S { bool b; sampler2D samplerMember; };
@@ -12468,7 +12441,7 @@ void main()
 TEST_P(GLSLTest_ES3, RowMajorMatrix_NestedExpression)
 {
     // Many OpenGL drivers seem to fail this
-    ANGLE_SKIP_TEST_IF((IsLinux() || IsMac()) && IsOpenGL());
+    ANGLE_SKIP_TEST_IF(IsLinux() && IsOpenGL());
 
     constexpr char kFS[] = R"(#version 300 es
 precision mediump float;
@@ -12553,9 +12526,6 @@ TEST_P(GLSLTest_ES3, MixedRowAndColumnMajorMatrices_ArrayBufferDeclaration)
     // http://anglebug.com/42262481
     ANGLE_SKIP_TEST_IF(IsLinux() && IsIntel() && IsOpenGL());
 
-    // Fails on Mac on Intel and AMD: http://anglebug.com/42262487
-    ANGLE_SKIP_TEST_IF(IsMac() && IsOpenGL() && (IsIntel() || IsAMD()));
-
     // Fails on windows AMD on GL: http://anglebug.com/42262482
     ANGLE_SKIP_TEST_IF(IsWindows() && IsOpenGL() && IsAMD());
 
@@ -12632,9 +12602,6 @@ void main()
 // Test that side effects when transforming read operations are preserved.
 TEST_P(GLSLTest_ES3, MixedRowAndColumnMajorMatrices_ReadSideEffect)
 {
-    // Fails on Mac on Intel and AMD: http://anglebug.com/42262487
-    ANGLE_SKIP_TEST_IF(IsMac() && IsOpenGL() && (IsIntel() || IsAMD()));
-
     // Fails on D3D due to mistranslation: http://anglebug.com/42262486
     ANGLE_SKIP_TEST_IF(IsD3D11());
 
@@ -12731,10 +12698,6 @@ TEST_P(GLSLTest_ES3, MixedRowAndColumnMajorMatrices_ReadSideEffectOrder)
     // http://anglebug.com/42262481
     ANGLE_SKIP_TEST_IF(IsLinux() && IsIntel() && IsOpenGL());
 
-    // IntermTraverser::insertStatementsInParentBlock that's used to move side effects does not
-    // respect the order of evaluation of logical expressions.  http://anglebug.com/42262472.
-    ANGLE_SKIP_TEST_IF(IsMac() && IsOpenGL());
-
     constexpr char kFS[] = R"(#version 300 es
 precision highp float;
 out vec4 outColor;
@@ -12792,10 +12755,6 @@ TEST_P(GLSLTest_ES3, MixedRowAndColumnMajorMatrices_ReadSideEffectOrderSurrounde
     // http://anglebug.com/42262481
     ANGLE_SKIP_TEST_IF(IsLinux() && IsIntel() && IsOpenGL());
 
-    // IntermTraverser::insertStatementsInParentBlock that's used to move side effects does not
-    // respect the order of evaluation of logical expressions.  http://anglebug.com/42262472.
-    ANGLE_SKIP_TEST_IF(IsMac() && IsOpenGL());
-
     constexpr char kFS[] = R"(#version 300 es
 precision highp float;
 out vec4 outColor;
@@ -12849,10 +12808,6 @@ TEST_P(GLSLTest_ES3, MixedRowAndColumnMajorMatrices_ReadSideEffectOrderInALoop)
     // http://anglebug.com/42262481
     ANGLE_SKIP_TEST_IF(IsLinux() && IsIntel() && IsOpenGL());
 
-    // IntermTraverser::insertStatementsInParentBlock that's used to move side effects does not
-    // respect the order of evaluation of logical expressions.  http://anglebug.com/42262472.
-    ANGLE_SKIP_TEST_IF(IsMac() && IsOpenGL());
-
     constexpr char kFS[] = R"(#version 300 es
 precision highp float;
 out vec4 outColor;
@@ -12904,10 +12859,6 @@ TEST_P(GLSLTest_ES3, MixedRowAndColumnMajorMatrices_ReadSideEffectShortCircuit)
 {
     // Fails on Android: http://anglebug.com/42262483
     ANGLE_SKIP_TEST_IF(IsAndroid() && IsOpenGL());
-
-    // IntermTraverser::insertStatementsInParentBlock that's used to move side effects does not
-    // respect the order of evaluation of logical expressions.  http://anglebug.com/42262472.
-    ANGLE_SKIP_TEST_IF(IsMac() && IsOpenGL());
 
     constexpr char kFS[] = R"(#version 300 es
 precision highp float;
@@ -20996,7 +20947,6 @@ TEST_P(GLSLTest, ESSL1ExtensionMacros)
         "GL_OES_EGL_image_external",
         "GL_OES_standard_derivatives",
         "GL_OES_texture_3D",
-        "GL_WEBGL_video_texture",
     });
     fs += UnexpectedExtensionMacros({
         "GL_ANDROID_extension_pack_es31a",
@@ -21065,7 +21015,6 @@ TEST_P(GLSLTest_ES3, ESSL3ExtensionMacros)
         "GL_OES_texture_storage_multisample_2d_array",
         "GL_OVR_multiview",
         "GL_OVR_multiview2",
-        "GL_WEBGL_video_texture",
     });
     fs += UnexpectedExtensionMacros({
         "GL_ANDROID_extension_pack_es31a",
@@ -21139,7 +21088,6 @@ TEST_P(GLSLTest_ES31, ESSL31ExtensionMacros)
         "GL_OES_texture_storage_multisample_2d_array",
         "GL_OVR_multiview",
         "GL_OVR_multiview2",
-        "GL_WEBGL_video_texture",
     });
     fs += UnexpectedExtensionMacros({
         "GL_EXT_draw_buffers",
@@ -24549,6 +24497,58 @@ void main()
     drawQuad(program, essl1_shaders::PositionAttrib(), 0.5f, 1.0f, true);
     EXPECT_PIXEL_COLOR_NEAR(0, 0, GLColor(51, 153, 0, 255), 1);
     ASSERT_GL_NO_ERROR();
+}
+
+// Test that long symbols work
+TEST_P(GLSLTest_ES3, LongIdentifiers)
+{
+    constexpr GLfloat kUBOValue = 0.4f;
+    GLBuffer ubo;
+    glBindBuffer(GL_UNIFORM_BUFFER, ubo);
+    glBufferData(GL_UNIFORM_BUFFER, sizeof(kUBOValue), &kUBOValue, GL_STATIC_COPY);
+    glBindBufferBase(GL_UNIFORM_BUFFER, 0, ubo);
+
+    // If symbols are at least 1022 characters, they don't get prefixed.  If they are below 1022,
+    // they do.  Either way, this test makes sure these symbols work.  This is particularly needed
+    // given these symbols may get suffixed with `_id`.
+    for (uint32_t len = 1020; len <= 1024; len += 2)
+    {
+        const std::string longUBO(len, 'b');
+        const std::string longUniform(len, 'u');
+        const std::string longGlobalStruct(len, 'S');
+        const std::string longLocalStruct(len, 'L');
+        const std::string longVariable(len, 'v');
+
+        std::string shader = R"(#version 300 es
+precision mediump float;
+uniform )" + longUBO + R"({
+    float u;
+};
+struct )" + longGlobalStruct +
+                             R"({
+    float f;
+} g;
+uniform float )" + longUniform +
+                             R"(;
+out vec4 color;
+
+void main() {
+    struct )" + longLocalStruct +
+                             R"({
+        float f2;
+    } l;
+    float )" + longVariable + R"( = 0.1 + u;
+    g.f = )" + longUniform + R"(;
+    l.f2 = g.f + 0.25;
+    color = vec4()" + longVariable +
+                             R"(, g.f, l.f2, 1.0);
+})";
+
+        ANGLE_GL_PROGRAM(program, essl3_shaders::vs::Simple(), shader.c_str());
+        drawQuad(program, essl1_shaders::PositionAttrib(), 0.5f, 1.0f);
+        EXPECT_PIXEL_COLOR_NEAR(0, 0, GLColor(127, 0, 63, 255), 1);
+        ASSERT_GL_NO_ERROR();
+    }
 }
 
 // Regression test for a bug in the HLSL generator where the global variable names could collide

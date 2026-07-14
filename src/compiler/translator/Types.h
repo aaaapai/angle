@@ -308,7 +308,13 @@ class TType
                 return mArraySizes[i] < right.mArraySizes[i];
         }
         if (mStructure != right.mStructure)
+        {
             return mStructure < right.mStructure;
+        }
+        if (mInterfaceBlock != right.mInterfaceBlock)
+        {
+            return mInterfaceBlock < right.mInterfaceBlock;
+        }
 
         return false;
     }
@@ -362,7 +368,6 @@ class TType
     bool isSampler() const { return IsSampler(type); }
     bool isSamplerCube() const { return type == EbtSamplerCube; }
     bool isAtomicCounter() const { return IsAtomicCounter(type); }
-    bool isSamplerVideoWEBGL() const { return type == EbtSamplerVideoWEBGL; }
     bool isImage() const { return IsImage(type); }
     bool isPixelLocal() const { return IsPixelLocal(type); }
 

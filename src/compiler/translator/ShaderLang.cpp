@@ -228,7 +228,6 @@ void InitBuiltInResources(ShBuiltInResources *resources)
     resources->ANGLE_multi_draw                               = 0;
     resources->ANGLE_base_vertex_base_instance                = 0;
     resources->ANGLE_base_vertex_base_instance_shader_builtin = 0;
-    resources->WEBGL_video_texture                            = 0;
     resources->APPLE_clip_distance                            = 0;
     resources->OES_texture_cube_map_array                     = 0;
     resources->EXT_texture_cube_map_array                     = 0;
@@ -512,7 +511,7 @@ const std::map<std::string, std::string> *GetNameHashingMap(const ShHandle handl
 {
     TCompiler *compiler = GetCompilerFromHandle(handle);
     ASSERT(compiler);
-    return &(compiler->getNameMap());
+    return &(compiler->getNameMap().getInternalMap());
 }
 
 const std::vector<ShaderVariable> *GetUniforms(const ShHandle handle)
