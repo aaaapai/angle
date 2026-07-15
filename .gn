@@ -69,7 +69,6 @@ default_args = {
   enable_rust_cxx = true
 
   # Angle must stay in C++20 for longer due to some downstream dependencies.
-  use_cxx23 = true
 }
 
 no_check_targets = [ "third_party/dawn/*" ]
