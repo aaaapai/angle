@@ -57,6 +57,7 @@ cflags_c = [
   "-inlinehint-threshold=100000",
   "-D_GNU_SOURCE",
   "-D_LIBCPP_BUILDING_LIBRARY=1",
+  "-fno-modules",
   "-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_NONE"
 ]
 
@@ -98,6 +99,7 @@ cflags_cc = [
   "-inlinehint-threshold=100000",
   "-D_GNU_SOURCE",
   "-D_LIBCPP_BUILDING_LIBRARY=1",
+  "-fno-modules",
   "-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_NONE"
 ]
 
@@ -162,3 +164,7 @@ use_goma = false
 use_clang_coverage = false
 optimize_for_fuzzing = false
 use_dummy_lastchange = false
+
+
+clang_use_chrome_plugins = false
+enable_modules = false
