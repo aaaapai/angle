@@ -55,10 +55,7 @@ cflags_c = [
   "-D_FILE_OFFSET_BITS=64",
   "-mllvm",
   "-inlinehint-threshold=100000",
-  "-D_GNU_SOURCE",
-  "-D_LIBCPP_BUILDING_LIBRARY=1",
-  "-fno-modules",
-  "-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_NONE"
+  "-D_GNU_SOURCE"
 ]
 
 cflags_cc = [
@@ -97,10 +94,7 @@ cflags_cc = [
   "-D_FILE_OFFSET_BITS=64",
   "-mllvm",
   "-inlinehint-threshold=100000",
-  "-D_GNU_SOURCE",
-  "-D_LIBCPP_BUILDING_LIBRARY=1",
-  "-fno-modules",
-  "-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_NONE"
+  "-D_GNU_SOURCE"
 ]
 
 ldflags = [
@@ -155,16 +149,12 @@ enable_unused_resource_stripping = true
 exclude_unwind_tables = true
 
 use_cxx23 = true
-use_custom_libcxx = true
-use_custom_libcxx_for_host = true
-libcxx_abi_unstable = true
+use_custom_libcxx = false
+use_custom_libcxx_for_host = false
+libcxx_abi_unstable = false
 use_rtti = true
 
 use_goma = false
 use_clang_coverage = false
 optimize_for_fuzzing = false
 use_dummy_lastchange = false
-
-
-clang_use_chrome_plugins = false
-enable_modules = false
