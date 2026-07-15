@@ -158,7 +158,7 @@ optimize_for_fuzzing = false
 use_dummy_lastchange = false
 
 
-use_wayland = true
+angle_use_wayland = true
 ozone_platform = "wayland"
 ozone_auto_platforms = false
 use_x11 = false
