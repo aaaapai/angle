@@ -32,6 +32,8 @@ namespace sh
 
 namespace
 {
+const char kUserVariableNamePrefix = 'u';
+const char kUserBlockNamePrefix    = 'b';
 
 bool isInitialized = false;
 
@@ -268,7 +270,8 @@ void InitBuiltInResources(ShBuiltInResources *resources)
     // Disable name hashing by default.
     resources->HashFunction = nullptr;
 
-    resources->UserVariableNamePrefix = kUserDefinedNamePrefix;
+    resources->UserVariableNamePrefix = kUserVariableNamePrefix;
+    resources->UserBlockNamePrefix    = kUserBlockNamePrefix;
 
     resources->MaxExpressionComplexity = 1024;
     resources->MaxStatementDepth       = 1024;
@@ -894,11 +897,6 @@ uint32_t GetAdvancedBlendEquations(const ShHandle handle)
 
     return compiler->getAdvancedBlendEquations().bits();
 }
-
-// Can't prefix with just _ because then we might introduce a double underscore, which is not safe
-// in GLSL (ESSL 3.00.6 section 3.8: All identifiers containing a double underscore are reserved for
-// use by the underlying implementation). u is short for user-defined.
-const char kUserDefinedNamePrefix = 'u';
 
 const char *BlockLayoutTypeToString(BlockLayoutType type)
 {

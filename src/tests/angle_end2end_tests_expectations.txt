@@ -23,6 +23,10 @@
 410584007 VULKAN : ImageTestES31.UseSourceTextureAsStorageImage/* = SKIP
 // Fails in Android with EGL_BAD_ALLOC
 374797737 : EGLSurfaceTest.CreateMultiWindowsSurfaceNoDestroy/* = SKIP
+// Incorrect tracking of robust init through EGL images
+532592076 : ImageTestES3RobustInit.RobustClearInTarget/* = SKIP
+532592076 : ImageTestES3RobustInit.NonZeroLevelAndSliceReadback/* = SKIP
+532592076 : ImageTestES3RobustInit.NonZeroLevelAndSliceReadbackRenderbuffer/* = SKIP
 
 381742474 : ShaderStorageBufferTest31.ExceedMaxShaderStorageBlockSize/* = SKIP
 
@@ -317,6 +321,8 @@
 464010023 NVIDIA GLES : BlitFramebufferANGLETest.* = SKIP
 // Demote-to-helper for discard incorrect derivatives
 491363839 NVIDIA VULKAN : GLSLTest_ES31.HelperInvocationsAfterDiscard/* = SKIP
+// Test cannot run when ASTC is emulated
+525079760 NVIDIA VULKAN : ImageTestES3.NonZeroLevel*GetCompressedTexImage/* = SKIP
 
 // Nvidia Vulkan
 42265709 NVIDIA VULKAN : GLSLTest_ES31.TessellationControlShaderMatrixCopyBug/* = SKIP
@@ -657,6 +663,7 @@
 458082809 PIXEL4ORXL GLES : GLSLValidationExtensionDirectiveTest_ES3.Sampler2DShadow/* = SKIP
 458082810 PIXEL4ORXL GLES : GLSLValidationExtensionDirectiveTest_ES31.TextureCubeMapArray/* = SKIP
 519218481 PIXEL4ORXL GLES : MSRTTES3Test.CubeMap/* = SKIP
+519218481 PIXEL4ORXL GLES : MSRTTES3Test.CubeMapMultipleAttachments/* = SKIP
 522247737 PIXEL4ORXL GLES : MSRTTES3Test.DrawDisabled/* = SKIP
 522247737 PIXEL4ORXL GLES : MSRTTES3Test.DrawThenDrawDisabled/* = SKIP
 516824665 PIXEL4ORXL GLES : Texture2DTestES3.InvalidFormatTypeCombosShouldFail/* = SKIP
@@ -765,6 +772,7 @@
 42265632 PIXEL6 VULKAN : ImageTestES3.SourceAHBMipTarget2DMip/* = SKIP
 42265632 PIXEL6 VULKAN : ImageTestES3.SourceAHBMipTarget2DMipGenerateMipmap/* = SKIP
 532190475 PIXEL6 VULKAN : ImageTestES3.NonZeroLevelAndFaceCopyCompressedTextureSrc/* = SKIP
+532190475 PIXEL6 VULKAN : ImageTestES3.NonZeroLevelAndFaceGetCompressedTexImage/* = SKIP
 40096838 PIXEL6 VULKAN : PixelLocalStorageTest.EarlyFragmentTests/ES3_1_Vulkan_EmulatePixelLocalStorage* = SKIP
 448658624 PIXEL6 VULKAN : GLSLTest_ES31.ConstantPrecisionPropagation/* = SKIP
 448658624 PIXEL6 VULKAN : GLSLTestLoops.ForContinueInSwitchComplex/* = SKIP
@@ -1171,6 +1179,7 @@
 512394647 PIXEL10 GLES : RobustBufferAccessBehaviorTest.OutOfBoundsArrayBuffers/* = SKIP
 512394647 PIXEL10 GLES : WebGLCompatibilityTest.EXTBlendFuncExtendedMissingOutputsWithAllChannelsMaskedOut/* = SKIP
 519218481 PIXEL10 GLES : MSRTTES3Test.CubeMap/* = SKIP
+519218481 PIXEL10 GLES : MSRTTES3Test.CubeMapMultipleAttachments/* = SKIP
 522247737 PIXEL10 GLES : MSRTTES3Test.DrawDisabled/* = SKIP
 522247737 PIXEL10 GLES : MSRTTES3Test.DrawDisabledThenDraw/* = SKIP
 522247737 PIXEL10 GLES : MSRTTES3Test.DrawThenDrawDisabled/* = SKIP
@@ -1208,6 +1217,7 @@
 525786155 PIXEL10 GLES : PbufferTestES3.BindRedefinesAllMips/* = SKIP
 526518127 PIXEL10 GLES : ImageTestES3.MipLevelsNonZeroBaseLevel/* = SKIP
 526518127 PIXEL10 GLES : ImageTestES3.NonZeroLevel*/* = SKIP
+526518127 PIXEL10 GLES : ImageTestES3RobustInit.NonZeroLevel*/* = SKIP
 533059467 PIXEL10 GLES : TextureTestES31.ComputeShaderLoadPartiallyBoundImageUnits/* = SKIP
 533059467 PIXEL10 GLES : TextureTestES31.FragmentShaderLoadUnboundImageUnits/* = SKIP
 
@@ -1893,6 +1903,7 @@
 410630704 SAMSUNG GALAXYS24EXYNOS VULKAN : ImageTestES3.SourceAHBTarget2DGenerateMipmapColorspaceBlend/* = SKIP
 410630704 SAMSUNG GALAXYS24EXYNOS VULKAN : ImageTestES3.SourceAHBTarget2DGenerateMipmap_Colorspace/* = SKIP
 410630704 SAMSUNG GALAXYS24EXYNOS VULKAN : ImageTestES3.SourceYUVAHBTargetExternalCopySrc/* = SKIP
+410630704 SAMSUNG GALAXYS24EXYNOS VULKAN : MSRTTES3Test.CubeMapMultipleAttachments/* = SKIP
 410630704 SAMSUNG GALAXYS24EXYNOS VULKAN : MultisampleTestES3.CopyTexImage2DFromMsaaDefaultFbo/* = SKIP
 410630704 SAMSUNG GALAXYS24EXYNOS VULKAN : RobustBufferAccessBehaviorTest.BufferDataWithIncreasedSize/* = SKIP
 410630704 SAMSUNG GALAXYS24EXYNOS VULKAN : RobustBufferAccessBehaviorTest.BufferDataWithIncreasedSizeAndUseWithVAOs/* = SKIP

@@ -14452,6 +14452,528 @@ TEST_P(ImageTestES3, NonZeroLevelAndFaceClearTexSubImageDstNonRenderable)
         });
 }
 
+// Export non-zero level, readback via glGetTexImage
+TEST_P(ImageTestES3, NonZeroLevelGetTexImage)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_ANGLE_get_image"));
+
+    nonZeroLevelTest(
+        [](const GLTexture &target, GLColor initColor, uint32_t size) {
+            // Verify the target
+            std::vector<GLColor> buffer(size * size);
+            glGetTexImageANGLE(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, buffer.data());
+
+            const std::vector<GLColor> expect(size * size, initColor);
+            EXPECT_EQ(buffer, expect);
+        },
+        [](const GLTexture &source, uint32_t level, GLColor initColor, uint32_t size) {});
+}
+
+// Export non-zero level and slice, readback via glGetTexImage
+TEST_P(ImageTestES3, NonZeroLevelAndSliceGetTexImage)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_ANGLE_get_image"));
+
+    nonZeroLevelAndSliceTest(
+        [](const GLTexture &target, GLColor initColor, uint32_t size) {
+            // Verify the target
+            std::vector<GLColor> buffer(size * size);
+            glGetTexImageANGLE(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, buffer.data());
+
+            const std::vector<GLColor> expect(size * size, initColor);
+            EXPECT_EQ(buffer, expect);
+        },
+        [](const GLTexture &source, uint32_t level, uint32_t slice, GLColor initColor,
+           uint32_t size, uint32_t depth) {});
+}
+
+// Export non-zero level and face, readback via glGetTexImage
+TEST_P(ImageTestES3, NonZeroLevelAndFaceGetTexImage)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_ANGLE_get_image"));
+
+    nonZeroLevelAndFaceTest(
+        [](const GLTexture &target, GLColor initColor, uint32_t size) {
+            // Verify the target
+            std::vector<GLColor> buffer(size * size);
+            glGetTexImageANGLE(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, buffer.data());
+
+            const std::vector<GLColor> expect(size * size, initColor);
+            EXPECT_EQ(buffer, expect);
+        },
+        [](const GLTexture &source, uint32_t level, uint32_t face, GLColor initColor,
+           uint32_t size) {});
+}
+
+// Export non-zero level, readback via glGetCompressedTexImage
+TEST_P(ImageTestES3, NonZeroLevelGetCompressedTexImage)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_ANGLE_get_image"));
+
+    nonZeroLevelCompressedTest(
+        [](const GLTexture &target, GLColor initColor, uint32_t size) {
+            // Verify the target
+            std::vector<uint8_t> buffer(size * size);
+            glGetCompressedTexImageANGLE(GL_TEXTURE_2D, 0, buffer.data());
+
+            const std::array<uint8_t, 16> kExpectBlock = {
+                0xFC,        0xFD,        0xFF,        0xFF,        0xFF,        0xFF,
+                0xFF,        0xFF,        initColor.R, initColor.R, initColor.G, initColor.G,
+                initColor.B, initColor.B, initColor.A, initColor.A};
+
+            std::vector<uint8_t> expect(size * size);
+            for (size_t block = 0; block < expect.size(); block += kExpectBlock.size())
+            {
+                std::copy(kExpectBlock.begin(), kExpectBlock.end(), expect.begin() + block);
+            }
+
+            EXPECT_EQ(buffer, expect);
+        },
+        [](const GLTexture &source, uint32_t level, GLColor initColor, uint32_t size) {});
+}
+
+// Export non-zero level and slice, readback via glGetCompressedTexImage
+TEST_P(ImageTestES3, NonZeroLevelAndSliceGetCompressedTexImage)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_ANGLE_get_image"));
+
+    nonZeroLevelAndSliceCompressedTest(
+        [](const GLTexture &target, GLColor initColor, uint32_t size) {
+            // Verify the target
+            std::vector<uint8_t> buffer(size * size);
+            glGetCompressedTexImageANGLE(GL_TEXTURE_2D, 0, buffer.data());
+
+            const std::array<uint8_t, 16> kExpectBlock = {
+                0xFC,        0xFD,        0xFF,        0xFF,        0xFF,        0xFF,
+                0xFF,        0xFF,        initColor.R, initColor.R, initColor.G, initColor.G,
+                initColor.B, initColor.B, initColor.A, initColor.A};
+
+            std::vector<uint8_t> expect(size * size);
+            for (size_t block = 0; block < expect.size(); block += kExpectBlock.size())
+            {
+                std::copy(kExpectBlock.begin(), kExpectBlock.end(), expect.begin() + block);
+            }
+
+            EXPECT_EQ(buffer, expect);
+        },
+        [](const GLTexture &source, uint32_t level, uint32_t slice, GLColor initColor,
+           uint32_t size, uint32_t depth) {});
+}
+
+// Export non-zero level and face, readback via glGetCompressedTexImage
+TEST_P(ImageTestES3, NonZeroLevelAndFaceGetCompressedTexImage)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_ANGLE_get_image"));
+
+    nonZeroLevelAndFaceCompressedTest(
+        [](const GLTexture &target, GLColor initColor, uint32_t size) {
+            // Verify the target
+            std::vector<uint8_t> buffer(size * size);
+            glGetCompressedTexImageANGLE(GL_TEXTURE_2D, 0, buffer.data());
+
+            const std::array<uint8_t, 16> kExpectBlock = {
+                0xFC,        0xFD,        0xFF,        0xFF,        0xFF,        0xFF,
+                0xFF,        0xFF,        initColor.R, initColor.R, initColor.G, initColor.G,
+                initColor.B, initColor.B, initColor.A, initColor.A};
+
+            std::vector<uint8_t> expect(size * size);
+            for (size_t block = 0; block < expect.size(); block += kExpectBlock.size())
+            {
+                std::copy(kExpectBlock.begin(), kExpectBlock.end(), expect.begin() + block);
+            }
+
+            EXPECT_EQ(buffer, expect);
+        },
+        [](const GLTexture &source, uint32_t level, uint32_t face, GLColor initColor,
+           uint32_t size) {});
+}
+
+class ImageTestES3RobustInit : public ImageTestES3
+{
+  protected:
+    ImageTestES3RobustInit() : ImageTestES3() { setRobustResourceInit(true); }
+};
+
+// Robust-clear the target, then draw to it, and ensure it's visible in source.
+TEST_P(ImageTestES3RobustInit, RobustClearInTarget)
+{
+    EGLWindow *window = getEGLWindow();
+    ANGLE_SKIP_TEST_IF(!hasOESExt() || !hasBaseExt() || !has2DTextureExt());
+
+    constexpr uint32_t kSize = 10;
+
+    // Create a texture that's not initialized
+    GLTexture source;
+    EGLImageKHR image;
+    createEGLImage2DTextureSource(kSize, kSize, GL_RGBA, GL_UNSIGNED_BYTE, kDefaultAttribs, nullptr,
+                                  source, &image);
+
+    // Create a texture target
+    GLTexture target;
+    createEGLImageTargetTexture2D(image, target);
+
+    // Draw into the target, making sure it's robust cleared.
+    GLFramebuffer fbo;
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, target, 0);
+    ASSERT_GL_FRAMEBUFFER_COMPLETE(GL_FRAMEBUFFER);
+
+    glEnable(GL_SCISSOR_TEST);
+    glScissor(0, 0, kSize / 2, kSize);
+    ANGLE_GL_PROGRAM(drawRed, essl1_shaders::vs::Simple(), essl1_shaders::fs::Red());
+    drawQuad(drawRed, essl1_shaders::PositionAttrib(), 0.0f);
+    EXPECT_PIXEL_RECT_EQ(0, 0, kSize / 2, kSize, GLColor::red);
+    EXPECT_PIXEL_RECT_EQ(kSize / 2, 0, kSize - kSize / 2, kSize, GLColor::transparentBlack);
+
+    // Check the source, it should see the same results (it shouldn't robust clear again).
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, source, 0);
+    ASSERT_GL_FRAMEBUFFER_COMPLETE(GL_FRAMEBUFFER);
+    EXPECT_PIXEL_RECT_EQ(0, 0, kSize / 2, kSize, GLColor::red);
+    EXPECT_PIXEL_RECT_EQ(kSize / 2, 0, kSize - kSize / 2, kSize, GLColor::transparentBlack);
+
+    // Clean up
+    eglDestroyImageKHR(window->getDisplay(), image);
+    ASSERT_GL_NO_ERROR();
+}
+
+// Export non-zero level, readback and ensure robust init
+TEST_P(ImageTestES3RobustInit, NonZeroLevelReadback)
+{
+    EGLWindow *window = getEGLWindow();
+    ANGLE_SKIP_TEST_IF(!hasOESExt() || !hasBaseExt() || !has2DTextureExt());
+
+    constexpr uint32_t kBaseLevel   = 1;
+    constexpr uint32_t kMipLevels   = 6;
+    constexpr uint32_t kTextureSize = (1 << kMipLevels) - 1;
+
+    constexpr uint32_t kExportLevel       = 5;
+    constexpr uint32_t kExportLevelOffset = kExportLevel - kBaseLevel;
+
+    GLTexture source;
+    glBindTexture(GL_TEXTURE_2D, source);
+
+    for (uint32_t level = 0; level < kMipLevels; level++)
+    {
+        glTexImage2D(GL_TEXTURE_2D, kBaseLevel + level, GL_RGBA8, kTextureSize >> level,
+                     kTextureSize >> level, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    }
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, kBaseLevel);
+
+    ASSERT_GL_NO_ERROR();
+
+    // Create the Image.  Note that the export level is not an _offset_ in the backing image but
+    // selects a level.  The offset would be this level minus the base level.
+    EGLint attribs[] = {
+        EGL_GL_TEXTURE_LEVEL_KHR,
+        kExportLevel,
+        EGL_NONE,
+    };
+    EGLImageKHR image =
+        eglCreateImageKHR(window->getDisplay(), window->getContext(), EGL_GL_TEXTURE_2D_KHR,
+                          reinterpretHelper<EGLClientBuffer>(source), attribs);
+    ASSERT_EGL_SUCCESS();
+
+    // Create a texture target
+    GLTexture target;
+    createEGLImageTargetTexture2D(image, target);
+
+    // Read back via FBO and ensure robust init is performed.
+    GLFramebuffer fbo;
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, target, 0);
+    ASSERT_GL_FRAMEBUFFER_COMPLETE(GL_FRAMEBUFFER);
+    EXPECT_PIXEL_RECT_EQ(0, 0, kTextureSize >> kExportLevelOffset,
+                         kTextureSize >> kExportLevelOffset, GLColor::transparentBlack);
+
+    // Clean up
+    eglDestroyImageKHR(window->getDisplay(), image);
+    ASSERT_GL_NO_ERROR();
+}
+
+// Export non-zero level and slice, readback and ensure robust init
+TEST_P(ImageTestES3RobustInit, NonZeroLevelAndSliceReadback)
+{
+    EGLWindow *window = getEGLWindow();
+    ANGLE_SKIP_TEST_IF(!hasOESExt() || !hasBaseExt() || !has3DTextureExt());
+
+    constexpr uint32_t kBaseLevel   = 1;
+    constexpr uint32_t kMipLevels   = 6;
+    constexpr uint32_t kDepth       = (1 << kMipLevels) - 13;
+    constexpr uint32_t kTextureSize = (1 << kMipLevels) - 1;
+
+    constexpr uint32_t kExportLevel       = 4;
+    constexpr uint32_t kExportSlice       = 2;
+    constexpr uint32_t kExportLevelOffset = kExportLevel - kBaseLevel;
+
+    GLTexture source;
+    glBindTexture(GL_TEXTURE_3D, source);
+
+    for (uint32_t level = 0; level < kMipLevels; level++)
+    {
+        glTexImage3D(GL_TEXTURE_3D, kBaseLevel + level, GL_RGBA8, kTextureSize >> level,
+                     kTextureSize >> level, kDepth >> level, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    }
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_BASE_LEVEL, kBaseLevel);
+
+    ASSERT_GL_NO_ERROR();
+
+    // Create the Image.  Note that the export level is not an _offset_ in the backing image but
+    // selects a level.  The offset would be this level minus the base level.
+    EGLint attribs[] = {
+        EGL_GL_TEXTURE_LEVEL_KHR, kExportLevel, EGL_GL_TEXTURE_ZOFFSET_KHR, kExportSlice, EGL_NONE,
+    };
+    EGLImageKHR image =
+        eglCreateImageKHR(window->getDisplay(), window->getContext(), EGL_GL_TEXTURE_3D_KHR,
+                          reinterpretHelper<EGLClientBuffer>(source), attribs);
+    ASSERT_EGL_SUCCESS();
+
+    // Create a texture target
+    GLTexture target;
+    createEGLImageTargetTexture2D(image, target);
+
+    // Read back via FBO and ensure robust init is performed.
+    GLFramebuffer fbo;
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, target, 0);
+    ASSERT_GL_FRAMEBUFFER_COMPLETE(GL_FRAMEBUFFER);
+    EXPECT_PIXEL_RECT_EQ(0, 0, kTextureSize >> kExportLevelOffset,
+                         kTextureSize >> kExportLevelOffset, GLColor::transparentBlack);
+
+    // Clean up
+    eglDestroyImageKHR(window->getDisplay(), image);
+    ASSERT_GL_NO_ERROR();
+}
+
+// Export non-zero level and face, readback and ensure robust init
+TEST_P(ImageTestES3RobustInit, NonZeroLevelAndFaceReadback)
+{
+    EGLWindow *window = getEGLWindow();
+    ANGLE_SKIP_TEST_IF(!hasOESExt() || !hasBaseExt() || !hasCubemapExt());
+
+    constexpr uint32_t kBaseLevel   = 1;
+    constexpr uint32_t kMipLevels   = 6;
+    constexpr uint32_t kTextureSize = (1 << kMipLevels) - 1;
+
+    constexpr uint32_t kExportLevel       = 4;
+    constexpr uint32_t kExportFace        = 5;
+    constexpr uint32_t kExportLevelOffset = kExportLevel - kBaseLevel;
+
+    GLTexture source;
+    glBindTexture(GL_TEXTURE_CUBE_MAP, source);
+
+    for (uint32_t level = 0; level < kMipLevels; level++)
+    {
+        for (uint32_t face = 0; face < kCubeFaceCount; ++face)
+        {
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, kBaseLevel + level, GL_RGBA8,
+                         kTextureSize >> level, kTextureSize >> level, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+                         nullptr);
+        }
+    }
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_BASE_LEVEL, kBaseLevel);
+
+    ASSERT_GL_NO_ERROR();
+
+    // Create the Image.  Note that the export level is not an _offset_ in the backing image but
+    // selects a level.  The offset would be this level minus the base level.
+    //
+    // The export layer is implicit in the face being exported.
+    EGLint attribs[] = {
+        EGL_GL_TEXTURE_LEVEL_KHR,
+        kExportLevel,
+        EGL_NONE,
+    };
+    EGLImageKHR image = eglCreateImageKHR(window->getDisplay(), window->getContext(),
+                                          EGL_GL_TEXTURE_CUBE_MAP_POSITIVE_X_KHR + kExportFace,
+                                          reinterpretHelper<EGLClientBuffer>(source), attribs);
+    ASSERT_EGL_SUCCESS();
+
+    // Create a texture target
+    GLTexture target;
+    createEGLImageTargetTexture2D(image, target);
+
+    // Read back via FBO and ensure robust init is performed.
+    GLFramebuffer fbo;
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, target, 0);
+    ASSERT_GL_FRAMEBUFFER_COMPLETE(GL_FRAMEBUFFER);
+    EXPECT_PIXEL_RECT_EQ(0, 0, kTextureSize >> kExportLevelOffset,
+                         kTextureSize >> kExportLevelOffset, GLColor::transparentBlack);
+
+    // Clean up
+    eglDestroyImageKHR(window->getDisplay(), image);
+    ASSERT_GL_NO_ERROR();
+}
+
+// Export non-zero level, readback and ensure robust init, renderbuffer
+TEST_P(ImageTestES3RobustInit, NonZeroLevelReadbackRenderbuffer)
+{
+    EGLWindow *window = getEGLWindow();
+    ANGLE_SKIP_TEST_IF(!hasOESExt() || !hasBaseExt() || !has2DTextureExt());
+
+    constexpr uint32_t kBaseLevel   = 1;
+    constexpr uint32_t kMipLevels   = 6;
+    constexpr uint32_t kTextureSize = (1 << kMipLevels) - 1;
+
+    constexpr uint32_t kExportLevel       = 5;
+    constexpr uint32_t kExportLevelOffset = kExportLevel - kBaseLevel;
+
+    GLTexture source;
+    glBindTexture(GL_TEXTURE_2D, source);
+
+    for (uint32_t level = 0; level < kMipLevels; level++)
+    {
+        glTexImage2D(GL_TEXTURE_2D, kBaseLevel + level, GL_RGBA8, kTextureSize >> level,
+                     kTextureSize >> level, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    }
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, kBaseLevel);
+
+    ASSERT_GL_NO_ERROR();
+
+    // Create the Image.  Note that the export level is not an _offset_ in the backing image but
+    // selects a level.  The offset would be this level minus the base level.
+    EGLint attribs[] = {
+        EGL_GL_TEXTURE_LEVEL_KHR,
+        kExportLevel,
+        EGL_NONE,
+    };
+    EGLImageKHR image =
+        eglCreateImageKHR(window->getDisplay(), window->getContext(), EGL_GL_TEXTURE_2D_KHR,
+                          reinterpretHelper<EGLClientBuffer>(source), attribs);
+    ASSERT_EGL_SUCCESS();
+
+    // Create a texture target
+    GLRenderbuffer target;
+    createEGLImageTargetRenderbuffer(image, target);
+
+    // Read back via FBO and ensure robust init is performed.
+    GLFramebuffer fbo;
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, target);
+    ASSERT_GL_FRAMEBUFFER_COMPLETE(GL_FRAMEBUFFER);
+    EXPECT_PIXEL_RECT_EQ(0, 0, kTextureSize >> kExportLevelOffset,
+                         kTextureSize >> kExportLevelOffset, GLColor::transparentBlack);
+
+    // Clean up
+    eglDestroyImageKHR(window->getDisplay(), image);
+    ASSERT_GL_NO_ERROR();
+}
+
+// Export non-zero level and slice, readback and ensure robust init, renderbuffer
+TEST_P(ImageTestES3RobustInit, NonZeroLevelAndSliceReadbackRenderbuffer)
+{
+    EGLWindow *window = getEGLWindow();
+    ANGLE_SKIP_TEST_IF(!hasOESExt() || !hasBaseExt() || !has3DTextureExt());
+
+    constexpr uint32_t kBaseLevel   = 1;
+    constexpr uint32_t kMipLevels   = 6;
+    constexpr uint32_t kDepth       = (1 << kMipLevels) - 13;
+    constexpr uint32_t kTextureSize = (1 << kMipLevels) - 1;
+
+    constexpr uint32_t kExportLevel       = 4;
+    constexpr uint32_t kExportSlice       = 2;
+    constexpr uint32_t kExportLevelOffset = kExportLevel - kBaseLevel;
+
+    GLTexture source;
+    glBindTexture(GL_TEXTURE_3D, source);
+
+    for (uint32_t level = 0; level < kMipLevels; level++)
+    {
+        glTexImage3D(GL_TEXTURE_3D, kBaseLevel + level, GL_RGBA8, kTextureSize >> level,
+                     kTextureSize >> level, kDepth >> level, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    }
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_BASE_LEVEL, kBaseLevel);
+
+    ASSERT_GL_NO_ERROR();
+
+    // Create the Image.  Note that the export level is not an _offset_ in the backing image but
+    // selects a level.  The offset would be this level minus the base level.
+    EGLint attribs[] = {
+        EGL_GL_TEXTURE_LEVEL_KHR, kExportLevel, EGL_GL_TEXTURE_ZOFFSET_KHR, kExportSlice, EGL_NONE,
+    };
+    EGLImageKHR image =
+        eglCreateImageKHR(window->getDisplay(), window->getContext(), EGL_GL_TEXTURE_3D_KHR,
+                          reinterpretHelper<EGLClientBuffer>(source), attribs);
+    ASSERT_EGL_SUCCESS();
+
+    // Create a texture target
+    GLRenderbuffer target;
+    createEGLImageTargetRenderbuffer(image, target);
+
+    // Read back via FBO and ensure robust init is performed.
+    GLFramebuffer fbo;
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, target);
+    ASSERT_GL_FRAMEBUFFER_COMPLETE(GL_FRAMEBUFFER);
+    EXPECT_PIXEL_RECT_EQ(0, 0, kTextureSize >> kExportLevelOffset,
+                         kTextureSize >> kExportLevelOffset, GLColor::transparentBlack);
+
+    // Clean up
+    eglDestroyImageKHR(window->getDisplay(), image);
+    ASSERT_GL_NO_ERROR();
+}
+
+// Export non-zero level and face, readback and ensure robust init, renderbuffer
+TEST_P(ImageTestES3RobustInit, NonZeroLevelAndFaceReadbackRenderbuffer)
+{
+    EGLWindow *window = getEGLWindow();
+    ANGLE_SKIP_TEST_IF(!hasOESExt() || !hasBaseExt() || !hasCubemapExt());
+
+    constexpr uint32_t kBaseLevel   = 1;
+    constexpr uint32_t kMipLevels   = 6;
+    constexpr uint32_t kTextureSize = (1 << kMipLevels) - 1;
+
+    constexpr uint32_t kExportLevel       = 4;
+    constexpr uint32_t kExportFace        = 5;
+    constexpr uint32_t kExportLevelOffset = kExportLevel - kBaseLevel;
+
+    GLTexture source;
+    glBindTexture(GL_TEXTURE_CUBE_MAP, source);
+
+    for (uint32_t level = 0; level < kMipLevels; level++)
+    {
+        for (uint32_t face = 0; face < kCubeFaceCount; ++face)
+        {
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, kBaseLevel + level, GL_RGBA8,
+                         kTextureSize >> level, kTextureSize >> level, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+                         nullptr);
+        }
+    }
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_BASE_LEVEL, kBaseLevel);
+
+    ASSERT_GL_NO_ERROR();
+
+    // Create the Image.  Note that the export level is not an _offset_ in the backing image but
+    // selects a level.  The offset would be this level minus the base level.
+    //
+    // The export layer is implicit in the face being exported.
+    EGLint attribs[] = {
+        EGL_GL_TEXTURE_LEVEL_KHR,
+        kExportLevel,
+        EGL_NONE,
+    };
+    EGLImageKHR image = eglCreateImageKHR(window->getDisplay(), window->getContext(),
+                                          EGL_GL_TEXTURE_CUBE_MAP_POSITIVE_X_KHR + kExportFace,
+                                          reinterpretHelper<EGLClientBuffer>(source), attribs);
+    ASSERT_EGL_SUCCESS();
+
+    // Create a texture target
+    GLRenderbuffer target;
+    createEGLImageTargetRenderbuffer(image, target);
+
+    // Read back via FBO and ensure robust init is performed.
+    GLFramebuffer fbo;
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, target);
+    ASSERT_GL_FRAMEBUFFER_COMPLETE(GL_FRAMEBUFFER);
+    EXPECT_PIXEL_RECT_EQ(0, 0, kTextureSize >> kExportLevelOffset,
+                         kTextureSize >> kExportLevelOffset, GLColor::transparentBlack);
+
+    // Clean up
+    eglDestroyImageKHR(window->getDisplay(), image);
+    ASSERT_GL_NO_ERROR();
+}
+
 ANGLE_INSTANTIATE_TEST_ES2_AND_ES3_AND(ImageTest,
                                        ES3_VULKAN().enable(Feature::AllocateNonZeroMemory));
 
@@ -14461,6 +14983,10 @@ ANGLE_INSTANTIATE_TEST_ES3_AND(ImageTestES3, ES3_VULKAN().enable(Feature::Alloca
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(ImageTestES31);
 ANGLE_INSTANTIATE_TEST_ES31_AND(ImageTestES31,
                                 ES31_VULKAN().enable(Feature::AllocateNonZeroMemory));
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(ImageTestES3RobustInit);
+ANGLE_INSTANTIATE_TEST_ES3_AND(ImageTestES3RobustInit,
+                               ES3_VULKAN().enable(Feature::AllocateNonZeroMemory));
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(ImageTestRGB565ES3);
 ANGLE_INSTANTIATE_TEST_ES3_AND(ImageTestRGB565ES3,

@@ -1325,6 +1325,177 @@ void main()
     }
 }
 
+// Test that defining a UBO with an "id" suffix does not collide with a struct declaration without
+// such a suffix.
+TEST_P(GLSLTest_ES3, UBOVsStructsNameCollision)
+{
+    // Try IDs between 25 to 35 for IR ids, and 3000 to 3020 for AST ids.  Also try 0, which is used
+    // by both to suffix global struct names.
+    // For IR, the first 27 or so type ids are reserved, so user ids start at that value.
+    // For AST, user ids start at 3000.
+    for (uint32_t id = 0; id <= 3020; ++id)
+    {
+        std::ostringstream fs;
+        fs << R"(#version 300 es
+precision mediump float;
+
+uniform T_)"
+           << id << R"(
+{
+    float f;
+};
+
+struct T
+{
+    float f;
+};
+
+out vec4 color;
+
+void main()
+{
+    T a;
+
+    struct T
+    {
+        float q;
+    };
+
+    T b;
+
+    color = vec4(1, 0, 0, 1);
+    color.a += a.f;
+    color.a += b.q;
+})";
+
+        ANGLE_GL_PROGRAM(program, essl3_shaders::vs::Simple(), fs.str().c_str());
+
+        if (id == 0)
+        {
+            id = 24;
+        }
+        else if (id == 35)
+        {
+            id = 2999;
+        }
+    }
+}
+
+// Test that defining an SSBO with an "id" suffix does not collide with a struct declaration without
+// such a suffix.
+TEST_P(GLSLTest_ES31, SSBOVsStructsNameCollision)
+{
+    // Try IDs between 25 to 35 for IR ids, and 3000 to 3020 for AST ids.  Also try 0, which is used
+    // by both to suffix global struct names.
+    // For IR, the first 27 or so type ids are reserved, so user ids start at that value.
+    // For AST, user ids start at 3000.
+    for (uint32_t id = 0; id <= 3020; ++id)
+    {
+        std::ostringstream fs;
+        fs << R"(#version 310 es
+precision mediump float;
+
+layout(std140) buffer T_)"
+           << id << R"(
+{
+    float f;
+};
+
+struct T
+{
+    float f;
+};
+
+out vec4 color;
+
+void main()
+{
+    T a;
+
+    struct T
+    {
+        float q;
+    };
+
+    T b;
+
+    color = vec4(1, 0, 0, 1);
+    color.a += a.f;
+    color.a += b.q;
+})";
+
+        ANGLE_GL_PROGRAM(program, essl31_shaders::vs::Simple(), fs.str().c_str());
+
+        if (id == 0)
+        {
+            id = 24;
+        }
+        else if (id == 35)
+        {
+            id = 2999;
+        }
+    }
+}
+
+// Test that defining an I/O block with an "id" suffix does not collide with a struct declaration
+// without such a suffix.
+TEST_P(GLSLTest_ES31, IOBlockVsStructsNameCollision)
+{
+    ANGLE_SKIP_TEST_IF(!IsGLExtensionEnabled("GL_EXT_shader_io_blocks"));
+
+    // Try IDs between 25 to 35 for IR ids, and 3000 to 3020 for AST ids.  Also try 0, which is used
+    // by both to suffix global struct names.
+    // For IR, the first 27 or so type ids are reserved, so user ids start at that value.
+    // For AST, user ids start at 3000.
+    for (uint32_t id = 0; id <= 3020; ++id)
+    {
+        std::ostringstream fs;
+        fs << R"(#version 310 es
+#extension GL_EXT_shader_io_blocks : require
+precision mediump float;
+
+in T_)" << id
+           << R"(
+{
+    float f;
+};
+
+struct T
+{
+    float f;
+};
+
+out vec4 color;
+
+void main()
+{
+    T a;
+
+    struct T
+    {
+        float q;
+    };
+
+    T b;
+
+    color = vec4(1, 0, 0, 1);
+    color.a += a.f;
+    color.a += b.q;
+})";
+
+        ANGLE_GL_PROGRAM(program, essl31_shaders::vs::Simple(), fs.str().c_str());
+
+        if (id == 0)
+        {
+            id = 24;
+        }
+        else if (id == 35)
+        {
+            id = 2999;
+        }
+    }
+}
+
 // Test that inactive uniforms of struct type don't cause any errors.
 TEST_P(GLSLTest, InactiveStructUniform)
 {
@@ -24580,6 +24751,54 @@ void main()
         ASSERT_GL_NO_ERROR();
     }
 }
+
+class GLSLTestPassthrough : public GLSLTest
+{};
+
+// Test that uniforms of nameless struct type work with the shader passthrough feature
+TEST_P(GLSLTestPassthrough, StructUniformNameless)
+{
+    constexpr char kFS[] = R"(
+uniform struct
+{
+    mediump vec4 c;
+} s;
+void main()
+{
+    gl_FragColor = s.c;
+})";
+
+    ANGLE_GL_PROGRAM(program, essl1_shaders::vs::Simple(), kFS);
+    glUseProgram(program);
+    glUniform4f(glGetUniformLocation(program, "s.c"), 1, 0, 0, 1);
+
+    drawQuad(program, essl1_shaders::PositionAttrib(), 0.5f);
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::red);
+    ASSERT_GL_NO_ERROR();
+}
+
+// Test that uniforms of named struct type work with the shader passthrough feature
+TEST_P(GLSLTestPassthrough, StructUniformNamed)
+{
+    constexpr char kFS[] = R"(
+uniform struct S
+{
+    mediump vec4 c;
+} s;
+void main()
+{
+    gl_FragColor = s.c;
+})";
+
+    ANGLE_GL_PROGRAM(program, essl1_shaders::vs::Simple(), kFS);
+    glUseProgram(program);
+    glUniform4f(glGetUniformLocation(program, "s.c"), 1, 0, 0, 1);
+
+    drawQuad(program, essl1_shaders::PositionAttrib(), 0.5f);
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::red);
+    ASSERT_GL_NO_ERROR();
+}
+
 }  // anonymous namespace
 
 ANGLE_INSTANTIATE_TEST_ES2_AND_ES3_AND_ES31_AND_ES32(
@@ -24672,3 +24891,6 @@ GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GLSLTest_ES3_Blend);
 ANGLE_INSTANTIATE_TEST_ES3_AND(GLSLTest_ES3_Blend,
                                ES3_OPENGL().enable(Feature::ExpandFragmentOutputsToVec4),
                                ES3_OPENGLES().enable(Feature::ExpandFragmentOutputsToVec4));
+
+ANGLE_INSTANTIATE_TEST_ES2_AND(GLSLTestPassthrough,
+                               ES2_OPENGLES().enable(Feature::ForcePassthroughShaders));

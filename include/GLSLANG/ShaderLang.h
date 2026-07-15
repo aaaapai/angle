@@ -26,7 +26,7 @@
 
 // Version number for shader translation API.
 // It is incremented every time the API changes.
-#define ANGLE_SH_VERSION 414
+#define ANGLE_SH_VERSION 417
 
 enum ShShaderSpec
 {
@@ -236,8 +236,7 @@ struct ShCompileOptions
     // Linux/Mac driver bugs.
     uint64_t scalarizeVecAndMatConstructorArgs : 1;
 
-    // This flag overwrites a struct name with a unique prefix.  It is intended as a workaround for
-    // drivers that do not handle struct scopes correctly, including all Mac drivers and Linux AMD.
+    // This flag is a no-op and will be removed once chromium code no longer references it.
     uint64_t regenerateStructNames : 1;
 
     // This flag works around a bug in the HLSL compiler optimizer that folds certain constant pow
@@ -609,7 +608,18 @@ struct ShBuiltInResources
     // User defined variables are prefixed with '_' and UserVariableNamePrefix. If UserVariableName
     // is the null character, no prefixing is done and collisions between user variables and
     // variables introduced during translation is possible.
+    //
+    // Can't prefix with just _ because then we might introduce a double underscore, which is not
+    // safe in GLSL (ESSL 3.00.6 section 3.8: All identifiers containing a double underscore are
+    // reserved for use by the underlying implementation).
+    //
+    // Defaults to 'u' for user-defined.
     char UserVariableNamePrefix;
+    // To avoid collision with structs of the same name, block names are prefixed instead with '_'
+    // and UserBlockNamePrefix.
+    //
+    // Default to 'b' for block.
+    char UserBlockNamePrefix;
 
     // The maximum complexity an expression can be when limitExpressionComplexity is turned on.
     int MaxExpressionComplexity;
@@ -966,11 +976,6 @@ inline bool IsWebGLBasedSpec(ShShaderSpec spec)
 {
     return (spec == SH_WEBGL_SPEC || spec == SH_WEBGL2_SPEC);
 }
-
-// Can't prefix with just _ because then we might introduce a double underscore, which is not safe
-// in GLSL (ESSL 3.00.6 section 3.8: All identifiers containing a double underscore are reserved for
-// use by the underlying implementation). u is short for user-defined.
-extern const char kUserDefinedNamePrefix;
 
 enum class MetadataFlags
 {

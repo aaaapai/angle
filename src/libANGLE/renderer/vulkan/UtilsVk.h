@@ -223,6 +223,7 @@ class UtilsVk : angle::NonCopyable
         gl::DrawBufferMask unresolveColorMask;
         bool unresolveDepth;
         bool unresolveStencil;
+        bool useDynamicRendering;
     };
 
     struct GenerateFragmentShadingRateParameters
