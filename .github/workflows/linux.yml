@@ -10,7 +10,7 @@ jobs:
         arch: ["x86_64"] # "x86_64", "arm32",
       fail-fast: false
 
-    name: "Build for Android ${{matrix.arch}}"
+    name: "Build for Linux ${{matrix.arch}}"
     runs-on: ubuntu-24.04
 
     steps:
