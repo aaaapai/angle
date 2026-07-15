@@ -146,7 +146,7 @@ enable_resource_allowlist_generation = false
 enable_unused_resource_stripping = true
 exclude_unwind_tables = true
 
-use_cxx23 = true
+use_cxx23 = false
 use_custom_libcxx = true
 use_custom_libcxx_for_host = false
 libcxx_abi_unstable = true
