@@ -118,8 +118,6 @@ angle_enable_vulkan_shared_ring_buffer_cmd_alloc = true
 
 angle_enable_gl = true
 
-angle_enable_cl = true
-
 angle_enable_glsl = true
 angle_enable_essl = true
 
@@ -137,7 +135,7 @@ angle_has_frame_capture = false
 
 angle_standalone = true
 angle_ir = false
-angle_force_context_check_every_call = true
+angle_force_context_check_every_call = false
 
 dcheck_always_on = false
 angle_assert_always_on = false
@@ -149,10 +147,10 @@ enable_unused_resource_stripping = true
 exclude_unwind_tables = true
 
 use_cxx23 = true
-use_custom_libcxx = false
+use_custom_libcxx = true
 use_custom_libcxx_for_host = false
-libcxx_abi_unstable = false
-use_rtti = true
+libcxx_abi_unstable = true
+use_rtti = false
 
 use_goma = false
 use_clang_coverage = false
