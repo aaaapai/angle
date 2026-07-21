@@ -137,7 +137,7 @@
                 "value":"resources"
             },
             "gl_MaxVaryingVectors":{
-                "essl_level":"ESSL1_BUILTINS",
+                "essl_level":"COMMON_BUILTINS",
                 "type":{
                     "basic":"Int",
                     "precision":"Medium",
@@ -821,7 +821,7 @@
                 }
             },
             "gl_FragColor":{
-                "essl_level":"ESSL1_BUILTINS",
+                "essl_level":"COMMON_BUILTINS",
                 "type":{
                     "basic":"Float",
                     "precision":"Medium",
@@ -830,7 +830,7 @@
                 }
             },
             "gl_FragData":{
-                "essl_level":"ESSL1_BUILTINS",
+                "essl_level":"COMMON_BUILTINS",
                 "initDynamicType":"TType *{type_name} = new TType(EbtFloat, EbpMedium, EvqFragData, 4); if (spec != SH_WEBGL2_SPEC) {{ {type_name}->makeArray(resources.MaxDrawBuffers); }} else {{ {type_name}->makeArray(1u); }}"
             },
             "gl_FragDepth":{
@@ -867,8 +867,7 @@
             "EXTBlendFuncExtended":{
                 "variables":{
                     "gl_SecondaryFragColorEXT":{
-                        "essl_level":"ESSL1_BUILTINS",
-                        "essl_extension":"EXT_blend_func_extended",
+                        "essl_level":"COMMON_BUILTINS",
                         "type":{
                             "basic":"Float",
                             "precision":"Medium",
@@ -877,7 +876,7 @@
                         }
                     },
                     "gl_SecondaryFragDataEXT":{
-                        "essl_level":"ESSL1_BUILTINS",
+                        "essl_level":"COMMON_BUILTINS",
                         "essl_extension":"EXT_blend_func_extended",
                         "initDynamicType":"TType *{type_name} = new TType(EbtFloat, EbpMedium, EvqSecondaryFragDataEXT, 4, 1); {type_name}->makeArray(resources.MaxDualSourceDrawBuffers);"
                     }
@@ -886,7 +885,7 @@
             "EXTFragDepth":{
                 "variables":{
                     "gl_FragDepthEXT":{
-                        "essl_level":"ESSL1_BUILTINS",
+                        "essl_level":"COMMON_BUILTINS",
                         "essl_extension":"EXT_frag_depth",
                         "type": {
                             "basic":"Float",
@@ -899,7 +898,7 @@
             "EXTShaderFramebufferFetch":{
                 "variables":{
                     "gl_LastFragData":{
-                        "essl_level":"ESSL1_BUILTINS",
+                        "essl_level":"COMMON_BUILTINS",
                         "essl_extension":"EXT_shader_framebuffer_fetch, EXT_shader_framebuffer_fetch_non_coherent",
                         "initDynamicType":"TType *{type_name} = new TType(EbtFloat, EbpMedium, EvqLastFragData, 4, 1); {type_name}->makeArray(resources.MaxDrawBuffers);"
                     }

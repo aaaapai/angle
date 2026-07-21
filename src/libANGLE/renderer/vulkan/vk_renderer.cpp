@@ -19,6 +19,7 @@
 
 #include <EGL/eglext.h>
 #include <fstream>
+#include <iostream>
 
 #include "common/debug.h"
 #include "common/platform.h"
@@ -198,7 +199,7 @@ bool IsVulkan11(uint32_t apiVersion)
 bool IsRADV(uint32_t vendorId, uint32_t driverId, const char *deviceName)
 {
     // Check against RADV driver id first.
-    if (driverId == VK_DRIVER_ID_MESA_RADV)
+    if (driverId == VK_DRIVER_ID_MESA_RADV || std::getenv("ANGLE_IsRADV"))
     {
         return true;
     }
@@ -211,7 +212,7 @@ bool IsRADV(uint32_t vendorId, uint32_t driverId, const char *deviceName)
 bool IsMesaPanVK(uint32_t driverId)
 {
     // rely on VkDriverId alone to identify MESA PanVK driver
-    return driverId == VK_DRIVER_ID_MESA_PANVK;
+    return (driverId == VK_DRIVER_ID_MESA_PANVK || (std::getenv("AMGLE_IsMesaPanVK")));
 }
 
 bool IsQualcommOpenSource(uint32_t vendorId, uint32_t driverId, const char *deviceName)
@@ -228,7 +229,7 @@ bool IsQualcommOpenSource(uint32_t vendorId, uint32_t driverId, const char *devi
     }
 
     // Otherwise, look for Venus or Turnip in the device name.
-    return strstr(deviceName, "Venus") != nullptr || strstr(deviceName, "Turnip") != nullptr;
+    return strstr(deviceName, "Venus") != nullptr || strstr(deviceName, "Turnip") != nullptr || strstr(deviceName, "PurpleVK") != nullptr;
 }
 
 bool IsXclipse()
@@ -272,10 +273,11 @@ VkResult VerifyExtensionsPresent(const vk::ExtensionNameList &haystack,
     {
         if (!ExtensionFound(needle, haystack))
         {
-            ERR() << "Extension not supported: " << needle;
+            WARN() << "Extension not supported: " << needle;
         }
     }
-    return VK_ERROR_EXTENSION_NOT_PRESENT;
+    printf("VK_ERROR_EXTENSION_NOT_PRESENT\n");
+    return VK_SUCCESS;
 }
 
 // Array of Validation error/warning messages that will be ignored, should include bugID
@@ -5149,6 +5151,18 @@ gl::Version Renderer::getMaxSupportedESVersion() const
     // Current highest supported version
     gl::Version maxVersion = gl::Version(3, 2);
 
+    const char* angle_gles_version = std::getenv("ANGLE_GLES_VERSION");
+    if (angle_gles_version != nullptr) {
+        std::string version_str = angle_gles_version;
+
+        if (version_str.find('.') != std::string::npos) {
+            int major = std::stoi(version_str.substr(0, version_str.find('.')));
+            int minor = std::stoi(version_str.substr(version_str.find('.') + 1));
+            maxVersion = LimitVersionTo(maxVersion, 
+                gl::Version(static_cast<uint8_t>(major), static_cast<uint8_t>(minor)));
+        }
+    }
+
     // Early out without downgrading ES version if mock ICD enabled.
     // Mock ICD doesn't expose sufficient capabilities yet.
     // https://github.com/KhronosGroup/Vulkan-Tools/issues/84
@@ -5164,7 +5178,7 @@ gl::Version Renderer::getMaxSupportedESVersion() const
     {
         return maxVersion;
     }
-    if (!CanSupportGLES32(mNativeExtensions))
+    /*if (!CanSupportGLES32(mNativeExtensions))
     {
         maxVersion = LimitVersionTo(maxVersion, {3, 1});
     }
@@ -5252,7 +5266,7 @@ gl::Version Renderer::getMaxSupportedESVersion() const
         gl::limits::kMinimumVertexOutputComponents)
     {
         maxVersion = LimitVersionTo(maxVersion, {2, 0});
-    }
+    }*/
 
     return maxVersion;
 }
@@ -5458,19 +5472,19 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
         return;
     }
 
-    const bool isAMD      = IsAMD(mPhysicalDeviceProperties.vendorID);
-    const bool isApple    = IsAppleGPU(mPhysicalDeviceProperties.vendorID);
-    const bool isARM      = IsARM(mPhysicalDeviceProperties.vendorID);
+    const bool isAMD      = (IsAMD(mPhysicalDeviceProperties.vendorID) || std::getenv("ANGLE_isAMD"));
+    const bool isApple    = (IsAppleGPU(mPhysicalDeviceProperties.vendorID) || std::getenv("ANGLE_isApple"));
+    const bool isARM      = (IsARM(mPhysicalDeviceProperties.vendorID) || std::getenv("ANGLE_isARM"));
     const bool isIntel    = IsIntel(mPhysicalDeviceProperties.vendorID);
-    const bool isNvidia   = IsNvidia(mPhysicalDeviceProperties.vendorID);
-    const bool isPowerVR  = IsPowerVR(mPhysicalDeviceProperties.vendorID);
-    const bool isQualcomm = IsQualcomm(mPhysicalDeviceProperties.vendorID);
+    const bool isNvidia   = (IsNvidia(mPhysicalDeviceProperties.vendorID) || std::getenv("ANGLE_isNV"));
+    const bool isPowerVR  = (IsPowerVR(mPhysicalDeviceProperties.vendorID) || std::getenv("ANGLE_isPowerVR"));
+    const bool isQualcomm = (IsQualcomm(mPhysicalDeviceProperties.vendorID) || std::getenv("ANGLE_isQualcomm"));
     const bool isBroadcom = IsBroadcom(mPhysicalDeviceProperties.vendorID);
     const bool isSamsung  = IsSamsung(mPhysicalDeviceProperties.vendorID);
     const bool isSwiftShader =
-        IsSwiftshader(mPhysicalDeviceProperties.vendorID, mPhysicalDeviceProperties.deviceID);
+        (IsSwiftshader(mPhysicalDeviceProperties.vendorID, mPhysicalDeviceProperties.deviceID) || std::getenv("ANGLE_isSwiftShader"));
     const bool isLavapipe =
-        IsLavapipe(mPhysicalDeviceProperties.vendorID, mPhysicalDeviceProperties.deviceID);
+        (IsLavapipe(mPhysicalDeviceProperties.vendorID, mPhysicalDeviceProperties.deviceID) || std::getenv("ANGLE_isLavapipe"));
     const bool isSoftwareRenderer = isSwiftShader || isLavapipe;
 
     const bool isGalaxyS23 =
@@ -5478,8 +5492,8 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
 
     // Distinguish between the open source and proprietary Qualcomm drivers
     const bool isQualcommOpenSource =
-        IsQualcommOpenSource(mPhysicalDeviceProperties.vendorID, mDriverProperties.driverID,
-                             mPhysicalDeviceProperties.deviceName);
+        (IsQualcommOpenSource(mPhysicalDeviceProperties.vendorID, mDriverProperties.driverID,
+                             mPhysicalDeviceProperties.deviceName) || (std::getenv("ANGLE_isQualcommOpenSource")));
     const bool isQualcommProprietary = isQualcomm && !isQualcommOpenSource;
 
     // Distinguish between the ARM proprietary driver and the Mesa open source driver
@@ -5550,6 +5564,8 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     {
         WARN() << "Unknown GPU architecture";
     }
+
+    ANGLE_FEATURE_CONDITION(&mFeatures, preferBGRA8ToRGBA8, std::getenv("ANGLE_preferBGRA8"));
 
     ANGLE_FEATURE_CONDITION(&mFeatures, appendAliasedMemoryDecorations, true);
 
@@ -8042,7 +8058,8 @@ VkResult ImageMemorySuballocator::allocateAndBindMemory(
     {
         renderer->getMemoryAllocationTracker()->onExceedingMaxMemoryAllocationSize(
             memoryRequirements->size);
-        return VK_ERROR_OUT_OF_DEVICE_MEMORY;
+        printf("VK_ERROR_OUT_OF_DEVICE_MEMORY\n");
+        return VK_SUCCESS;
     }
 
     // Avoid device-local and host-visible combinations if possible. Here, "preferredFlags" is

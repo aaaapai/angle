@@ -9,12 +9,16 @@
 #ifndef COMMON_HASH_CONTAINERS_H_
 #define COMMON_HASH_CONTAINERS_H_
 
+//#undef ANGLE_USE_ABSEIL // Is ABSEIL faster?
+
 #if defined(ANGLE_USE_ABSEIL)
 #    include "absl/container/flat_hash_map.h"
 #    include "absl/container/flat_hash_set.h"
 #else
 #    include <unordered_map>
 #    include <unordered_set>
+#    include <ankerl/stl.h>
+#    include <ankerl/unordered_dense.h>
 #endif  // defined(ANGLE_USE_ABSEIL)
 
 namespace angle
@@ -38,9 +42,9 @@ template <typename Key,
           typename T,
           class Hash     = std::hash<Key>,
           class KeyEqual = std::equal_to<Key>>
-using HashMap = std::unordered_map<Key, T, Hash, KeyEqual>;
+using HashMap = ankerl::unordered_dense::map<Key, T, Hash, KeyEqual>;
 template <typename Key, class Hash = std::hash<Key>, class KeyEqual = std::equal_to<Key>>
-using HashSet = std::unordered_set<Key, Hash, KeyEqual>;
+using HashSet = ankerl::unordered_dense::set<Key, Hash, KeyEqual>;
 #    if __cpp_lib_generic_unordered_lookup >= 201811L
 #        define ANGLE_HAS_HASH_MAP_GENERIC_LOOKUP 1
 #    else
