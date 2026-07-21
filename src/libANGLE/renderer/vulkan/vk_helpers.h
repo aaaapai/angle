@@ -1988,13 +1988,6 @@ class RenderPassCommandBufferHelper final : public CommandBufferHelperCommon
     bool isTransformFeedbackStarted() const { return mValidTransformFeedbackBufferCount > 0; }
     bool isTransformFeedbackActiveUnpaused() const { return mIsTransformFeedbackActiveUnpaused; }
 
-    uint32_t getAndResetCounter()
-    {
-        uint32_t count = mCounter;
-        mCounter       = 0;
-        return count;
-    }
-
     RenderPassFramebuffer &getFramebuffer() { return mFramebuffer; }
     const RenderPassFramebuffer &getFramebuffer() const { return mFramebuffer; }
 
@@ -2160,7 +2153,6 @@ class RenderPassCommandBufferHelper final : public CommandBufferHelperCommon
     uint32_t mCurrentSubpassCommandBufferIndex;
 
     // RenderPass state
-    uint32_t mCounter;
     RenderPassDesc mRenderPassDesc;
     AttachmentOpsArray mAttachmentOps;
     RenderPassFramebuffer mFramebuffer;

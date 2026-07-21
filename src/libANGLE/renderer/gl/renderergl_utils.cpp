@@ -2451,6 +2451,10 @@ void InitializeFeatures(const FunctionsGL *functions, angle::FeaturesGL *feature
     ANGLE_FEATURE_CONDITION(features, resetTexImage2DBaseLevel,
                             IsApple() && isIntel && GetMacOSVersion() >= OSVersion(10, 12, 4));
 
+    ANGLE_FEATURE_CONDITION(features, resetBaseLevelForASTCSubImage, IsPowerVR(vendor));
+    ANGLE_FEATURE_CONDITION(features, recreateImmutableTextureOnBaseLevelIncrease,
+                            IsPowerVR(vendor));
+
     ANGLE_FEATURE_CONDITION(features, adjustSrcDstRegionForBlitFramebuffer,
                             IsLinux() || (IsAndroid() && isNvidia) || (IsWindows() && isNvidia) ||
                                 (IsApple() && functions->standard == STANDARD_GL_ES));
@@ -2790,6 +2794,17 @@ void InitializeFeatures(const FunctionsGL *functions, angle::FeaturesGL *feature
 
     // IMG GL drivers crash while compiling shaders with more than the limit of uniform blocks.
     ANGLE_FEATURE_CONDITION(features, validateMaxPerStageUniformBlocksAtCompileTime,
+                            IsPowerVR(vendor));
+
+    // Some drivers have compilation issues when shaders declare too many output varyings.
+    // crbug.com/529991907
+    ANGLE_FEATURE_CONDITION(features, limitOutputVaryingsTo256AtCompileTime, IsPowerVR(vendor));
+
+    // crbug.com/529509587 -- IMG GLSL frontend OOB-writes during semantic analysis of a struct
+    // constructor whose array-typed member receives a constant array-constructor argument with a
+    // precision mismatch.  The workaround avoids all complex expressions, not just constant arrays
+    // just in case.
+    ANGLE_FEATURE_CONDITION(features, avoidComplexExpressionsInStructConstructor,
                             IsPowerVR(vendor));
 
     // Mac Intel drivers are unable to allocate buffers larger than ~1gb

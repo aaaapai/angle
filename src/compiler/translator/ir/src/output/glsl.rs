@@ -379,10 +379,8 @@ impl Generator {
             Self::name_str(name, temp_prefix, id)
         };
 
-        let mut declaration_text = format!(
-            "{qualifiers}{} {var_name}{}",
-            &type_info.use_text_pre, &type_info.use_text_post
-        );
+        let mut declaration_text =
+            format!("{qualifiers}{} {var_name}{}", type_info.use_text_pre, type_info.use_text_post);
 
         if let Some(constant_id) = initializer {
             write!(declaration_text, " = {}", self.get_constant_expression(constant_id)).unwrap();
@@ -642,18 +640,18 @@ impl ast::Target for Generator {
                     let base_type = &self.types[&type_id];
                     (
                         base_type.declaration_text_pre.clone(),
-                        format!("{}[{count}]", &base_type.declaration_text_post),
+                        format!("{}[{count}]", base_type.declaration_text_post),
                         Some(base_type.use_text_pre.clone()),
-                        Some(format!("{}[{count}]", &base_type.use_text_post)),
+                        Some(format!("{}[{count}]", base_type.use_text_post)),
                     )
                 }
                 &Type::UnsizedArray(type_id) => {
                     let base_type = &self.types[&type_id];
                     (
                         base_type.declaration_text_pre.clone(),
-                        format!("{}[]", &base_type.declaration_text_post),
+                        format!("{}[]", base_type.declaration_text_post),
                         Some(base_type.use_text_pre.clone()),
-                        Some(format!("{}[]", &base_type.use_text_post)),
+                        Some(format!("{}[]", base_type.use_text_post)),
                     )
                 }
                 &Type::Image(basic_type, image_type) => {
@@ -663,7 +661,7 @@ impl ast::Target for Generator {
                     let name = Self::name_str(name, TEMP_STRUCT_PREFIX, id.id);
                     let declaration_text = format!(
                         "{} {{\n{}}}",
-                        &name,
+                        name,
                         fields
                             .iter()
                             .enumerate()
@@ -688,7 +686,7 @@ impl ast::Target for Generator {
 
                     // Declare the struct for future use.
                     if *specialization == StructSpecialization::Struct {
-                        writeln!(self.type_declarations, "struct {};", &declaration_text).unwrap();
+                        writeln!(self.type_declarations, "struct {};", declaration_text).unwrap();
                     }
 
                     (
@@ -736,8 +734,8 @@ impl ast::Target for Generator {
             &ConstantValue::YuvCsc(yuv_csc) => Self::yuv_csc_standard_str(yuv_csc),
             ConstantValue::Composite(elements) => format!(
                 "{}{}({})",
-                &type_info.use_text_pre,
-                &type_info.use_text_post,
+                type_info.use_text_pre,
+                type_info.use_text_post,
                 elements
                     .iter()
                     .map(|element| self.constants[element].text.clone())
@@ -795,9 +793,9 @@ impl ast::Target for Generator {
 
         let declaration_text = format!(
             "{qualifiers}{}{} {}({})",
-            &return_type.use_text_pre,
-            &return_type.use_text_post,
-            &name,
+            return_type.use_text_pre,
+            return_type.use_text_post,
+            name,
             function
                 .params
                 .iter()
@@ -805,7 +803,7 @@ impl ast::Target for Generator {
                     format!(
                         "{} {}",
                         Self::function_param_direction_str(param.direction),
-                        &self.variables[&param.variable_id].declaration_text
+                        self.variables[&param.variable_id].declaration_text
                     )
                 })
                 .collect::<Vec<_>>()

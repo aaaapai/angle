@@ -254,6 +254,18 @@ struct FeaturesGL : FeatureSetBase
         &members,
     };
 
+    FeatureInfo resetBaseLevelForASTCSubImage = {
+        "resetBaseLevelForASTCSubImage",
+        FeatureCategory::OpenGLWorkarounds,
+        &members,
+    };
+
+    FeatureInfo recreateImmutableTextureOnBaseLevelIncrease = {
+        "recreateImmutableTextureOnBaseLevelIncrease",
+        FeatureCategory::OpenGLWorkarounds,
+        &members,
+    };
+
     FeatureInfo limitMax3dArrayTextureSizeTo1024 = {
         "limitMax3dArrayTextureSizeTo1024",
         FeatureCategory::OpenGLWorkarounds,
@@ -712,6 +724,18 @@ struct FeaturesGL : FeatureSetBase
 
     FeatureInfo splitLevel0PboFullSubImage2D = {
         "splitLevel0PboFullSubImage2D",
+        FeatureCategory::OpenGLWorkarounds,
+        &members,
+    };
+
+    FeatureInfo limitOutputVaryingsTo256AtCompileTime = {
+        "limitOutputVaryingsTo256AtCompileTime",
+        FeatureCategory::OpenGLWorkarounds,
+        &members,
+    };
+
+    FeatureInfo avoidComplexExpressionsInStructConstructor = {
+        "avoidComplexExpressionsInStructConstructor",
         FeatureCategory::OpenGLWorkarounds,
         &members,
     };
