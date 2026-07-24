@@ -16,6 +16,9 @@
 
 #include "image_util/imageformats.h"
 
+#include <ankerl/stl.h>
+#include <ankerl/unordered_dense.h>
+
 namespace angle
 {
 
@@ -112,7 +115,7 @@ void StoreRGBA8ToPalettedImpl(size_t width,
                               size_t outputRowPitch,
                               size_t outputDepthPitch)
 {
-    std::unordered_map<uint32_t, size_t> invPalette;
+    ankerl::unordered_dense::map<uint32_t, size_t> invPalette;
 
     ASSERT((redBlueBits + greenBits + redBlueBits + alphaBits) % 8 == 0);
 
