@@ -394,8 +394,7 @@ VkResult MemoryProperties::findCompatibleMemoryIndex(
     {
         renderer->getMemoryAllocationTracker()->onExceedingMaxMemoryAllocationSize(
             memoryRequirements.size);
-        printf("VK_ERROR_OUT_OF_DEVICE_MEMORY\n");
-        return VK_SUCCESS;
+        return VK_ERROR_OUT_OF_DEVICE_MEMORY;
     }
 
     // Find a compatible memory pool index. If the index doesn't change, we could cache it.
