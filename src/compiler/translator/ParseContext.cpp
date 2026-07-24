@@ -281,6 +281,11 @@ bool IsSamplerOrStructWithOnlySamplers(const TType *type)
     return IsSampler(type->getBasicType()) || type->isStructureContainingOnlySamplers();
 }
 
+bool IsClipCullEncountered(const ClipCullDistanceInfo &info)
+{
+    return info.maxIndex >= 0 || info.hasNonConstIndex || info.hasArrayLengthMethodCall;
+}
+
 void MarkClipCullFirstEncounter(const TSourceLoc &line, ClipCullDistanceInfo *info)
 {
     if (info->firstEncounter.first_line < 0)
@@ -2347,12 +2352,29 @@ bool TParseContext::declareVariable(const TSourceLoc &line,
             }
         }
 
+        // Record the redeclared size of gl_Clip/CullDistance.  Do not allow redeclaration after
+        // these built-ins are already referenced to avoid having to fix the AST after the fact.
+        // With IR, this could be more easily supported if needed.
         switch (expectedType.getQualifier())
         {
             case EvqClipDistance:
+                if (IsClipCullEncountered(mClipDistanceInfo))
+                {
+                    error(line,
+                          "redeclaration of gl_ClipDistance after it is referenced is not allowed",
+                          identifier);
+                    return false;
+                }
                 MarkClipCullRedeclaredSize(line, type->getOutermostArraySize(), &mClipDistanceInfo);
                 break;
             case EvqCullDistance:
+                if (IsClipCullEncountered(mCullDistanceInfo))
+                {
+                    error(line,
+                          "redeclaration of gl_CullDistance after it is referenced is not allowed",
+                          identifier);
+                    return false;
+                }
                 MarkClipCullRedeclaredSize(line, type->getOutermostArraySize(), &mCullDistanceInfo);
                 break;
             default:
@@ -3270,7 +3292,7 @@ void TParseContext::functionCallRValueLValueErrorCheck(const TFunction *fnCandid
     for (size_t i = 0; i < fnCandidate->getParamCount(); ++i)
     {
         TQualifier qual        = fnCandidate->getParam(i)->getType().getQualifier();
-        TIntermTyped *argument = (*(fnCall->getSequence()))[i]->getAsTyped();
+        TIntermTyped *argument = (*fnCall->getSequence())[i]->getAsTyped();
         bool argumentIsRead    = (IsQualifierUnspecified(qual) || qual == EvqParamIn ||
                                qual == EvqParamInOut || qual == EvqParamConst);
         if (argumentIsRead)
@@ -3296,6 +3318,61 @@ void TParseContext::functionCallRValueLValueErrorCheck(const TFunction *fnCandid
                       fnCall->functionName());
                 return;
             }
+        }
+    }
+}
+
+void TParseContext::checkClipCullDistanceWholeArrayUse(const TSourceLoc &location,
+                                                       TQualifier qualifier,
+                                                       const char *message)
+{
+    switch (qualifier)
+    {
+        case EvqClipDistance:
+            if (mClipDistanceInfo.size == 0)
+            {
+                error(location, message, "gl_ClipDistance");
+                return;
+            }
+            break;
+        case EvqCullDistance:
+            if (mCullDistanceInfo.size == 0)
+            {
+                error(location, message, "gl_CullDistance");
+                return;
+            }
+            break;
+        default:
+            break;
+    }
+}
+
+void TParseContext::functionCallClipCullDistanceCheck(const TFunction *fnCandidate,
+                                                      TIntermAggregate *fnCall)
+{
+    // If clip/cull distance is not redeclared, they can't be passed to a function because their
+    // size is unknown.  Per EXT_clip_cull_distance, only indexing with constants can implicitly
+    // size the built-ins, passing to a function shouldn't try to size them.
+    for (size_t i = 0; i < fnCandidate->getParamCount(); ++i)
+    {
+        TIntermTyped *argument = (*fnCall->getSequence())[i]->getAsTyped();
+        checkClipCullDistanceWholeArrayUse(argument->getLine(), argument->getQualifier(),
+                                           "Cannot pass to function unless it is explicitly sized");
+    }
+}
+
+void TParseContext::functionCallFragDataCheck(const TFunction *fnCandidate,
+                                              TIntermAggregate *fnCall)
+{
+    for (size_t i = 0; i < fnCandidate->getParamCount(); ++i)
+    {
+        TIntermTyped *argument = (*fnCall->getSequence())[i]->getAsTyped();
+        if (argument->getType().getQualifier() == EvqFragData)
+        {
+            // The whole array is passed to the function.  For validation purposes, assume all
+            // indices are accessed in the function.
+            ASSERT(argument->getType().isArray());
+            mMaxFragDataArrayIndexUsed = argument->getType().getOutermostArraySize() - 1;
         }
     }
 }
@@ -9075,6 +9152,16 @@ bool TParseContext::binaryOpCommonCheck(TOperator op,
             error(loc, "array size mismatch", GetOperatorString(op));
             return false;
         }
+
+        // If either side is gl_Clip/CullDistance but the built-in is not sized, that's not allowed.
+        // Per EXT_clip_cull_distance, only indexing with constants can implicitly size the
+        // built-ins, using them in whole-array assignment shouldn't try to size them.
+        checkClipCullDistanceWholeArrayUse(
+            loc, left->getType().getQualifier(),
+            "Cannot use as left-hand side of assignment unless it is explicitly sized");
+        checkClipCullDistanceWholeArrayUse(
+            loc, right->getType().getQualifier(),
+            "Cannot use as right-hand side of assignment unless it is explicitly sized");
     }
 
     // Check ops which require integer / ivec parameters
@@ -10051,6 +10138,8 @@ TIntermTyped *TParseContext::addNonConstructorFunctionCallImpl(TFunctionLookup *
             callNode->setLine(loc);
             checkImageMemoryAccessForUserDefinedFunctions(fnCandidate, callNode);
             functionCallRValueLValueErrorCheck(fnCandidate, callNode);
+            functionCallClipCullDistanceCheck(fnCandidate, callNode);
+            functionCallFragDataCheck(fnCandidate, callNode);
 
             mCallGraph[mCurrentFunction].insert(fnCandidate);
             mIRBuilder.callFunction(mFunctionToId.at(fnCandidate));
