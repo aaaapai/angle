@@ -8068,8 +8068,7 @@ VkResult ImageMemorySuballocator::allocateAndBindMemory(
     {
         renderer->getMemoryAllocationTracker()->onExceedingMaxMemoryAllocationSize(
             memoryRequirements->size);
-        printf("VK_ERROR_OUT_OF_DEVICE_MEMORY\n");
-        return VK_SUCCESS;
+        return VK_ERROR_OUT_OF_DEVICE_MEMORY;
     }
 
     // Avoid device-local and host-visible combinations if possible. Here, "preferredFlags" is
