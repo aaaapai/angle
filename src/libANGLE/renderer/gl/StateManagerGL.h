@@ -173,9 +173,12 @@ struct IndexedBufferBindingGL
     GLsizeiptr size = 0;
     GLuint buffer   = 0;
 };
+bool operator==(const IndexedBufferBindingGL &a, const IndexedBufferBindingGL &b);
 
 struct ImageUnitBindingGL
 {
+    explicit ImageUnitBindingGL(GLenum defaultFormat);
+
     GLuint texture    = 0;
     GLint level       = 0;
     GLboolean layered = false;
@@ -183,15 +186,31 @@ struct ImageUnitBindingGL
     GLenum access     = GL_READ_ONLY;
     GLenum format     = GL_R32UI;
 };
+bool operator==(const ImageUnitBindingGL &a, const ImageUnitBindingGL &b);
+
+// Caps needed to initialize a new ContextStateGL
+struct ContextStateGLCaps
+{
+    ContextStateGLCaps(const FunctionsGL *functions, const gl::Caps &caps);
+
+    bool defaultFramebufferSrgbState = false;
+    GLenum defaultImageBindingFormat = GL_R32UI;
+
+    GLint maxImageUnits                  = 0;
+    GLint maxDrawBuffers                 = 0;
+    GLint maxUniformBufferBindings       = 0;
+    GLint maxAtomicCounterBufferBindings = 0;
+    GLint maxShaderStorageBufferBindings = 0;
+};
 
 struct ContextStateGL
 {
-    ContextStateGL(const gl::Caps &caps, const gl::Extensions &extensions);
+    explicit ContextStateGL(const ContextStateGLCaps &caps);
 
     GLuint program = 0;
 
     GLuint vao = 0;
-    std::vector<gl::VertexAttribCurrentValueData> vertexAttribCurrentValues;
+    gl::AttribArray<gl::VertexAttribCurrentValueData> vertexAttribCurrentValues;
 
     angle::PackedEnumMap<gl::BufferBinding, GLuint> buffers = {};
     angle::PackedEnumMap<gl::BufferBinding, std::vector<IndexedBufferBindingGL>> indexedBuffers;
@@ -289,8 +308,6 @@ struct ContextStateGL
     bool multisamplingEnabled    = true;
     bool sampleAlphaToOneEnabled = false;
 
-    GLenum coverageModulation = GL_NONE;
-
     GLenum provokingVertex = GL_LAST_VERTEX_CONVENTION;
 
     gl::ClipDistanceEnableBits enabledClipDistances;
@@ -298,6 +315,8 @@ struct ContextStateGL
     bool logicOpEnabled          = false;
     gl::LogicalOperation logicOp = gl::LogicalOperation::Copy;
 };
+bool operator==(const ContextStateGL &a, const ContextStateGL &b);
+bool operator!=(const ContextStateGL &a, const ContextStateGL &b);
 
 class StateManagerGL final : angle::NonCopyable
 {
@@ -418,8 +437,6 @@ class StateManagerGL final : angle::NonCopyable
 
     void setMultisamplingStateEnabled(bool enabled);
     void setSampleAlphaToOneStateEnabled(bool enabled);
-
-    void setCoverageModulation(GLenum components);
 
     void setProvokingVertex(GLenum mode);
 
@@ -556,6 +573,7 @@ class StateManagerGL final : angle::NonCopyable
     const FunctionsGL *mFunctions;
     const angle::FeaturesGL &mFeatures;
 
+    ContextStateGLCaps mCaps;
     ContextStateGL mState;
 
     const bool mSupportsVertexArrayObjects;

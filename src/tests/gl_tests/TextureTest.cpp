@@ -7675,8 +7675,23 @@ TEST_P(Texture2DBaseMaxTestES3, Fuzz545ImmutableTexRenderFeedback)
 
                         for (GLint dstMip = 0; dstMip < (MIPS + 1); dstMip++)
                         {
+                            // For glFramebufferTexture2D() validation in ES 3.1, it would fail for
+                            // an immutable texture if level exceeds GL_TEXTURE_IMMUTABLE_LEVELS.
+                            if (tex == immutTex && isAtLeastClientVersion(3, 1))
+                            {
+                                GLint texImmutableLevels;
+                                glGetTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_IMMUTABLE_LEVELS,
+                                                    &texImmutableLevels);
+                                ASSERT_GL_NO_ERROR();
+                                if (dstMip >= texImmutableLevels)
+                                {
+                                    continue;
+                                }
+                            }
+
                             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
                                                    GL_TEXTURE_2D, tex, dstMip);
+                            EXPECT_GL_NO_ERROR();
 
                             // ES3.0 p213-214
                             bool fbComplete = true;
@@ -21788,9 +21803,7 @@ void main()
     load_float4 = imageLoad(img_float4, coord);
     load_int4   = imageLoad(img_int4, coord);
     load_float1 = imageLoad(img_float1, coord);
-    imageStore(img_float1, coord, vec4(1.0));
     load_int1   = imageLoad(img_int1, coord);
-    imageStore(img_int1, coord, ivec4(1));
     gl_Position = position;
 })";
 
@@ -21911,9 +21924,7 @@ void main()
     load_float4 = imageLoad(img_float4, coord);
     load_int4   = imageLoad(img_int4, coord);
     load_float1 = imageLoad(img_float1, coord);
-    imageStore(img_float1, coord, vec4(1.0));
     load_int1   = imageLoad(img_int1, coord);
-    imageStore(img_int1, coord, ivec4(1));
     fragColor = vec4(1.0);
 })";
 
@@ -22018,9 +22029,7 @@ void main()
     load_float4 = imageLoad(img_float4, coord);
     load_int4   = imageLoad(img_int4, coord);
     load_float1 = imageLoad(img_float1, coord);
-    imageStore(img_float1, coord, vec4(1.0));
     load_int1   = imageLoad(img_int1, coord);
-    imageStore(img_int1, coord, ivec4(1));
 })";
 
     ANGLE_GL_COMPUTE_PROGRAM(program, kCS);
@@ -22107,7 +22116,6 @@ void main()
     load_float1 = imageLoad(img_float1, coord);
     imageStore(img_float1, coord, vec4(2.0));
     load_int1   = imageLoad(img_int1, coord);
-    imageStore(img_int1, coord, ivec4(1));
 })";
 
     ANGLE_GL_COMPUTE_PROGRAM(program, kCS);
@@ -22267,196 +22275,6 @@ void main()
     ASSERT_GL_NO_ERROR();
     EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::cyan);
 }
-
-// Use this to select which configurations (e.g. which renderer, which GLES major version) these
-// tests should be run against.
-#define ES2_EMULATE_COPY_TEX_IMAGE_VIA_SUB()             \
-    ES2_OPENGL().enable(Feature::EmulateCopyTexImage2D), \
-        ES2_OPENGLES().enable(Feature::EmulateCopyTexImage2D)
-#define ES3_EMULATE_COPY_TEX_IMAGE_VIA_SUB()             \
-    ES3_OPENGL().enable(Feature::EmulateCopyTexImage2D), \
-        ES3_OPENGLES().enable(Feature::EmulateCopyTexImage2D)
-#define ES2_EMULATE_COPY_TEX_IMAGE()                                      \
-    ES2_OPENGL().enable(Feature::EmulateCopyTexImage2DFromRenderbuffers), \
-        ES2_OPENGLES().enable(Feature::EmulateCopyTexImage2DFromRenderbuffers)
-#define ES3_EMULATE_COPY_TEX_IMAGE()                                      \
-    ES3_OPENGL().enable(Feature::EmulateCopyTexImage2DFromRenderbuffers), \
-        ES3_OPENGLES().enable(Feature::EmulateCopyTexImage2DFromRenderbuffers)
-ANGLE_INSTANTIATE_TEST_ES2_AND(Texture2DTest,
-                               ES2_EMULATE_COPY_TEX_IMAGE_VIA_SUB(),
-                               ES2_EMULATE_COPY_TEX_IMAGE(),
-                               ES2_OPENGLES().enable(Feature::ForcePassthroughShaders));
-ANGLE_INSTANTIATE_TEST_ES2(TextureCubeTest);
-ANGLE_INSTANTIATE_TEST_ES2(Texture2DTestWithDrawScale);
-ANGLE_INSTANTIATE_TEST_ES2(Sampler2DAsFunctionParameterTest);
-ANGLE_INSTANTIATE_TEST_ES2(SamplerArrayTest);
-ANGLE_INSTANTIATE_TEST_ES2(SamplerArrayAsFunctionParameterTest);
-
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture2DTestES3);
-ANGLE_INSTANTIATE_TEST_ES3_AND(Texture2DTestES3,
-                               ES3_VULKAN().enable(Feature::AllocateNonZeroMemory),
-                               ES3_VULKAN().enable(Feature::ForceFallbackFormat),
-                               ES3_VULKAN_SWIFTSHADER().enable(Feature::PreferBGR565ToRGB565));
-
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture2DMemoryTestES3);
-ANGLE_INSTANTIATE_TEST_ES3(Texture2DMemoryTestES3);
-
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture2DTestES3YUV);
-ANGLE_INSTANTIATE_TEST_ES3_AND(Texture2DTestES3YUV,
-                               ES3_VULKAN().enable(Feature::PreferLinearFilterForYUV),
-                               ES3_VULKAN().enable(Feature::DisableProgramCaching));
-
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture2DTestES3RobustInit);
-ANGLE_INSTANTIATE_TEST_ES3(Texture2DTestES3RobustInit);
-
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture2DTestES3PBO);
-ANGLE_INSTANTIATE_TEST_ES3_AND(Texture2DTestES3PBO,
-                               ES3_OPENGL().enable(Feature::SplitLevel0PboFullSubImage2D),
-                               ES3_OPENGLES().enable(Feature::SplitLevel0PboFullSubImage2D));
-
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture2DTestES3Foveation);
-ANGLE_INSTANTIATE_TEST_ES3_AND(
-    Texture2DTestES3Foveation,
-    ES3_VULKAN().enable(Feature::GenerateFragmentShadingRateAttchementWithCpu));
-
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture2DTestES31Foveation);
-ANGLE_INSTANTIATE_TEST_ES31_AND(
-    Texture2DTestES31Foveation,
-    ES31_VULKAN().enable(Feature::GenerateFragmentShadingRateAttchementWithCpu));
-
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture2DTestES31PPO);
-ANGLE_INSTANTIATE_TEST_ES31(Texture2DTestES31PPO);
-
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture2DBaseMaxTestES3);
-ANGLE_INSTANTIATE_TEST_ES3(Texture2DBaseMaxTestES3);
-
-ANGLE_INSTANTIATE_TEST_ES2(Texture3DTestES2);
-
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture3DTestES3);
-ANGLE_INSTANTIATE_TEST_ES3(Texture3DTestES3);
-
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture2DIntegerAlpha1TestES3);
-ANGLE_INSTANTIATE_TEST_ES3(Texture2DIntegerAlpha1TestES3);
-
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture2DUnsignedIntegerAlpha1TestES3);
-ANGLE_INSTANTIATE_TEST_ES3(Texture2DUnsignedIntegerAlpha1TestES3);
-
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(ShadowSamplerPlusSampler3DTestES3);
-ANGLE_INSTANTIATE_TEST_ES3(ShadowSamplerPlusSampler3DTestES3);
-
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(SamplerTypeMixTestES3);
-ANGLE_INSTANTIATE_TEST_ES3(SamplerTypeMixTestES3);
-
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture2DArrayTestES3);
-ANGLE_INSTANTIATE_TEST_ES3(Texture2DArrayTestES3);
-
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(TextureSizeTextureArrayTest);
-ANGLE_INSTANTIATE_TEST_ES3(TextureSizeTextureArrayTest);
-
-ANGLE_INSTANTIATE_TEST_ES2(SamplerInStructTest);
-ANGLE_INSTANTIATE_TEST_ES2(SamplerInStructAsFunctionParameterTest);
-ANGLE_INSTANTIATE_TEST_ES2(SamplerInStructArrayAsFunctionParameterTest);
-ANGLE_INSTANTIATE_TEST_ES2(SamplerInNestedStructAsFunctionParameterTest);
-ANGLE_INSTANTIATE_TEST_ES2(SamplerInStructAndOtherVariableTest);
-ANGLE_INSTANTIATE_TEST_ES2(TextureAnisotropyTest);
-ANGLE_INSTANTIATE_TEST_ES2_AND(TextureBorderClampTest,
-                               ES2_VULKAN_SWIFTSHADER().enable(Feature::PreferBGR565ToRGB565));
-
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(TextureBorderClampTestES3);
-ANGLE_INSTANTIATE_TEST_ES3(TextureBorderClampTestES3);
-
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(TextureBorderClampTestES31);
-ANGLE_INSTANTIATE_TEST_ES31(TextureBorderClampTestES31);
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(TextureBorderClampTestES32);
-ANGLE_INSTANTIATE_TEST_ES32(TextureBorderClampTestES32);
-
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(TextureBorderClampIntegerTestES3);
-ANGLE_INSTANTIATE_TEST_ES3(TextureBorderClampIntegerTestES3);
-
-ANGLE_INSTANTIATE_TEST_ES2_AND_ES3(TextureMirrorClampToEdgeTest);
-
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(TextureMirrorClampToEdgeTestES3);
-ANGLE_INSTANTIATE_TEST_ES3(TextureMirrorClampToEdgeTestES3);
-
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(TextureMirrorClampToEdgeIntegerTestES3);
-ANGLE_INSTANTIATE_TEST_ES3(TextureMirrorClampToEdgeIntegerTestES3);
-
-ANGLE_INSTANTIATE_TEST_ES2(TextureLimitsTest);
-
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture2DNorm16TestES3);
-ANGLE_INSTANTIATE_TEST_ES3_AND(
-    Texture2DNorm16TestES3,
-    ES3_OPENGL().enable(Feature::ReadPixelsUsingImplementationColorReadFormatForNorm16),
-    ES3_OPENGLES().enable(Feature::ReadPixelsUsingImplementationColorReadFormatForNorm16));
-
-ANGLE_INSTANTIATE_TEST_ES2_AND_ES3_AND(Texture2DRGTest,
-                                       ES2_EMULATE_COPY_TEX_IMAGE_VIA_SUB(),
-                                       ES3_EMULATE_COPY_TEX_IMAGE_VIA_SUB(),
-                                       ES2_EMULATE_COPY_TEX_IMAGE(),
-                                       ES3_EMULATE_COPY_TEX_IMAGE());
-
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture2DFloatTestES3);
-ANGLE_INSTANTIATE_TEST_ES3(Texture2DFloatTestES3);
-
-ANGLE_INSTANTIATE_TEST_ES2(Texture2DFloatTestES2);
-
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(TextureCubeTestES3);
-ANGLE_INSTANTIATE_TEST_ES3(TextureCubeTestES3);
-
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(TextureDefaultTextureTest);
-ANGLE_INSTANTIATE_TEST_ES3(TextureDefaultTextureTest);
-
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(TextureCubeTestES32);
-ANGLE_INSTANTIATE_TEST_ES32(TextureCubeTestES32);
-
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture2DIntegerTestES3);
-ANGLE_INSTANTIATE_TEST_ES3(Texture2DIntegerTestES3);
-
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(TextureCubeIntegerTestES3);
-ANGLE_INSTANTIATE_TEST_ES3(TextureCubeIntegerTestES3);
-
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(TextureCubeIntegerEdgeTestES3);
-ANGLE_INSTANTIATE_TEST_ES3(TextureCubeIntegerEdgeTestES3);
-
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture2DIntegerProjectiveOffsetTestES3);
-ANGLE_INSTANTIATE_TEST_ES3(Texture2DIntegerProjectiveOffsetTestES3);
-
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture2DArrayIntegerTestES3);
-ANGLE_INSTANTIATE_TEST_ES3(Texture2DArrayIntegerTestES3);
-
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture3DIntegerTestES3);
-ANGLE_INSTANTIATE_TEST_ES3(Texture3DIntegerTestES3);
-
-ANGLE_INSTANTIATE_TEST_ES2_AND_ES3(Texture2DDepthTest);
-ANGLE_INSTANTIATE_TEST_ES2_AND_ES3(PBOCompressedTextureTest);
-ANGLE_INSTANTIATE_TEST_ES2_AND_ES3(ETC1CompressedTextureTest);
-ANGLE_INSTANTIATE_TEST_ES3(PBOCompressedTexture3DTest);
-
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(TextureBufferTestES31);
-ANGLE_INSTANTIATE_TEST_ES31(TextureBufferTestES31);
-
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(TextureBufferTestES32);
-ANGLE_INSTANTIATE_TEST_ES32(TextureBufferTestES32);
-
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(TextureTestES31);
-ANGLE_INSTANTIATE_TEST_ES31(TextureTestES31);
-
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(CopyImageTestES31);
-ANGLE_INSTANTIATE_TEST_ES31(CopyImageTestES31);
-
-ANGLE_INSTANTIATE_TEST_ES3(TextureChangeStorageUploadTest);
-
-ANGLE_INSTANTIATE_TEST_ES3(ExtraSamplerCubeShadowUseTest);
-
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture2DDepthStencilTestES3);
-ANGLE_INSTANTIATE_TEST_ES3_AND(Texture2DDepthStencilTestES3,
-                               ES3_VULKAN().enable(Feature::ForceFallbackFormat));
-
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(RGBTextureBufferTestES31);
-ANGLE_INSTANTIATE_TEST_ES31(RGBTextureBufferTestES31);
-
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(MultisampleTexture2DTestES31);
-ANGLE_INSTANTIATE_TEST_ES31(MultisampleTexture2DTestES31);
 
 class TextureSizeLimitTest : public ANGLETest<>
 {
@@ -22988,6 +22806,362 @@ TEST_P(Texture2DTestES3, ClearMidRenderPassThenSample)
     EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::blue);
     ASSERT_GL_NO_ERROR();
 }
+
+class Texture2DTestES3_NonZeroBaseLevelGenMipmaps : public Texture2DTestES3
+{};
+
+// Test that performing an upload after draw, and glGenerateMipmap
+// with non-zero base level, does not crash.
+TEST_P(Texture2DTestES3_NonZeroBaseLevelGenMipmaps, UploadAfterDrawShouldNotCrash)
+{
+    for (int k = 0; k < 4; ++k)
+    {
+        GLTexture tex;
+        glBindTexture(GL_TEXTURE_2D, tex);
+        glTexStorage2D(GL_TEXTURE_2D, 12, GL_RGBA8, 3, 2048);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+        drawQuad(mProgram, "position", 0.5f);
+        glFinish();
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 10);
+        glGenerateMipmap(GL_TEXTURE_2D);
+        glFinish();
+        EXPECT_GL_NO_ERROR();
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+        std::vector<uint8_t> data(1 * 1024 * 4, 0x41);
+        glTexSubImage2D(GL_TEXTURE_2D, 1, 0, 0, 1, 1024, GL_RGBA, GL_UNSIGNED_BYTE, data.data());
+        EXPECT_GL_NO_ERROR();
+    }
+}
+
+// Test that generating mipmaps with non-zero base level preserves texture contents across all mip
+// levels.
+TEST_P(Texture2DTestES3_NonZeroBaseLevelGenMipmaps, VerifyMipmapContents)
+{
+    GLTexture texture;
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+    // Allocate 6 levels (levels 0 to 5) for a 32x32 immutable RGBA8 texture.
+    glTexStorage2D(GL_TEXTURE_2D, 6, GL_RGBA8, 32, 32);
+
+    // Set base level to 1 and max level to 4.
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 1);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 4);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+    // Upload different data (e.g. solid blue) to level 0 (32x32).
+    std::vector<GLColor> level0Data(32 * 32, GLColor::blue);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 32, 32, GL_RGBA, GL_UNSIGNED_BYTE, level0Data.data());
+
+    // Upload distinct data (solid cyan) to level 5 (1x1) to verify it is untouched.
+    std::vector<GLColor> level5Data(1 * 1, GLColor::cyan);
+    glTexSubImage2D(GL_TEXTURE_2D, 5, 0, 0, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, level5Data.data());
+
+    // Upload a square 2x2 checkerboard pattern to level 1 (16x16).
+    // Top-left: Red, Top-right: Green, Bottom-left: Yellow, Bottom-right: Magenta.
+    std::vector<GLColor> level1Data(16 * 16);
+    for (int y = 0; y < 16; ++y)
+    {
+        for (int x = 0; x < 16; ++x)
+        {
+            if (x < 8 && y < 8)
+            {
+                level1Data[y * 16 + x] = GLColor::red;
+            }
+            else if (x >= 8 && y < 8)
+            {
+                level1Data[y * 16 + x] = GLColor::green;
+            }
+            else if (x < 8 && y >= 8)
+            {
+                level1Data[y * 16 + x] = GLColor::yellow;
+            }
+            else
+            {
+                level1Data[y * 16 + x] = GLColor::magenta;
+            }
+        }
+    }
+    glTexSubImage2D(GL_TEXTURE_2D, 1, 0, 0, 16, 16, GL_RGBA, GL_UNSIGNED_BYTE, level1Data.data());
+
+    // Generate mipmaps with base level = 1 and max level = 4.
+    glGenerateMipmap(GL_TEXTURE_2D);
+    ASSERT_GL_NO_ERROR();
+
+    // Verify that the four colors are preserved correctly in each quadrant up to max level (level
+    // 4).
+    GLFramebuffer fbo;
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+
+    for (int level = 1; level <= 4; ++level)
+    {
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, level);
+        ASSERT_GL_FRAMEBUFFER_COMPLETE(GL_FRAMEBUFFER);
+
+        int dim  = 32 >> level;  // level 1: 16, level 2: 8, level 3: 4, level 4: 2
+        int half = dim / 2;
+
+        // Top-left quadrant (Red)
+        EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::red);
+        EXPECT_PIXEL_COLOR_EQ(half - 1, half - 1, GLColor::red);
+
+        // Top-right quadrant (Green)
+        EXPECT_PIXEL_COLOR_EQ(half, 0, GLColor::green);
+        EXPECT_PIXEL_COLOR_EQ(dim - 1, half - 1, GLColor::green);
+
+        // Bottom-left quadrant (Yellow)
+        EXPECT_PIXEL_COLOR_EQ(0, half, GLColor::yellow);
+        EXPECT_PIXEL_COLOR_EQ(half - 1, dim - 1, GLColor::yellow);
+
+        // Bottom-right quadrant (Magenta)
+        EXPECT_PIXEL_COLOR_EQ(half, half, GLColor::magenta);
+        EXPECT_PIXEL_COLOR_EQ(dim - 1, dim - 1, GLColor::magenta);
+    }
+
+    // At the end of the test, verify that level 0's contents and level 5's contents were preserved.
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
+    ASSERT_GL_FRAMEBUFFER_COMPLETE(GL_FRAMEBUFFER);
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::blue);
+    EXPECT_PIXEL_COLOR_EQ(15, 15, GLColor::blue);
+    EXPECT_PIXEL_COLOR_EQ(31, 31, GLColor::blue);
+
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 5);
+    ASSERT_GL_FRAMEBUFFER_COMPLETE(GL_FRAMEBUFFER);
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::cyan);
+
+    EXPECT_GL_NO_ERROR();
+}
+
+// Test that robust init via nullptr-upload to texture after invalidating an image with emulated
+// alpha works.
+TEST_P(Texture2DTestES3RobustInit, InvalidateEmulatedAlphaThenInitViaEmptyUpload)
+{
+    constexpr uint32_t kWidth  = 5;
+    constexpr uint32_t kHeight = 7;
+
+    // Create an RGB texture, which often has an emulated alpha channel.
+    GLTexture texture;
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, kWidth, kHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+
+    GLFramebuffer fbo;
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
+
+    // Draw into it, then invalidate it.  On some configurations, this may stage a clear to the
+    // texture so that the emulated alpha channel has valid values.
+    ANGLE_GL_PROGRAM(program, essl3_shaders::vs::Simple(), essl3_shaders::fs::Red());
+    drawQuad(program, essl3_shaders::PositionAttrib(), 0.0f);
+    constexpr GLenum kInvalidate[] = {GL_COLOR_ATTACHMENT0};
+    glInvalidateFramebuffer(GL_FRAMEBUFFER, 1, kInvalidate);
+
+    // Redefine the texture with no data.  This causes it to robust-init.
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, kWidth, kHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+
+    // Verify the texture is cleared.
+    EXPECT_PIXEL_RECT_EQ(0, 0, kWidth, kHeight, GLColor::black);
+}
+
+#define ES2_EMULATE_COPY_TEX_IMAGE_VIA_SUB()             \
+    ES2_OPENGL().enable(Feature::EmulateCopyTexImage2D), \
+        ES2_OPENGLES().enable(Feature::EmulateCopyTexImage2D)
+#define ES3_EMULATE_COPY_TEX_IMAGE_VIA_SUB()             \
+    ES3_OPENGL().enable(Feature::EmulateCopyTexImage2D), \
+        ES3_OPENGLES().enable(Feature::EmulateCopyTexImage2D)
+#define ES2_EMULATE_COPY_TEX_IMAGE()                                      \
+    ES2_OPENGL().enable(Feature::EmulateCopyTexImage2DFromRenderbuffers), \
+        ES2_OPENGLES().enable(Feature::EmulateCopyTexImage2DFromRenderbuffers)
+#define ES3_EMULATE_COPY_TEX_IMAGE()                                      \
+    ES3_OPENGL().enable(Feature::EmulateCopyTexImage2DFromRenderbuffers), \
+        ES3_OPENGLES().enable(Feature::EmulateCopyTexImage2DFromRenderbuffers)
+ANGLE_INSTANTIATE_TEST_ES2_AND(Texture2DTest,
+                               ES2_EMULATE_COPY_TEX_IMAGE_VIA_SUB(),
+                               ES2_EMULATE_COPY_TEX_IMAGE(),
+                               ES2_OPENGLES().enable(Feature::ForcePassthroughShaders));
+ANGLE_INSTANTIATE_TEST_ES2(TextureCubeTest);
+ANGLE_INSTANTIATE_TEST_ES2(Texture2DTestWithDrawScale);
+ANGLE_INSTANTIATE_TEST_ES2(Sampler2DAsFunctionParameterTest);
+ANGLE_INSTANTIATE_TEST_ES2(SamplerArrayTest);
+ANGLE_INSTANTIATE_TEST_ES2(SamplerArrayAsFunctionParameterTest);
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture2DTestES3);
+ANGLE_INSTANTIATE_TEST_ES3_AND(Texture2DTestES3,
+                               ES3_VULKAN().enable(Feature::AllocateNonZeroMemory),
+                               ES3_VULKAN().enable(Feature::ForceFallbackFormat),
+                               ES3_VULKAN_SWIFTSHADER().enable(Feature::PreferBGR565ToRGB565));
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture2DMemoryTestES3);
+ANGLE_INSTANTIATE_TEST_ES3(Texture2DMemoryTestES3);
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture2DTestES3YUV);
+ANGLE_INSTANTIATE_TEST_ES3_AND(Texture2DTestES3YUV,
+                               ES3_VULKAN().enable(Feature::PreferLinearFilterForYUV),
+                               ES3_VULKAN().enable(Feature::DisableProgramCaching));
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture2DTestES3RobustInit);
+ANGLE_INSTANTIATE_TEST_ES3_AND(
+    Texture2DTestES3RobustInit,
+    ES3_VULKAN().enable(Feature::PreferSkippingInvalidateForEmulatedFormats),
+    ES3_VULKAN().disable(Feature::PreferSkippingInvalidateForEmulatedFormats));
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture2DTestES3PBO);
+ANGLE_INSTANTIATE_TEST_ES3_AND(Texture2DTestES3PBO,
+                               ES3_OPENGL().enable(Feature::SplitLevel0PboFullSubImage2D),
+                               ES3_OPENGLES().enable(Feature::SplitLevel0PboFullSubImage2D));
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture2DTestES3Foveation);
+ANGLE_INSTANTIATE_TEST_ES3_AND(
+    Texture2DTestES3Foveation,
+    ES3_VULKAN().enable(Feature::GenerateFragmentShadingRateAttchementWithCpu));
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture2DTestES31Foveation);
+ANGLE_INSTANTIATE_TEST_ES31_AND(
+    Texture2DTestES31Foveation,
+    ES31_VULKAN().enable(Feature::GenerateFragmentShadingRateAttchementWithCpu));
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture2DTestES31PPO);
+ANGLE_INSTANTIATE_TEST_ES31(Texture2DTestES31PPO);
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture2DBaseMaxTestES3);
+ANGLE_INSTANTIATE_TEST_ES3(Texture2DBaseMaxTestES3);
+
+ANGLE_INSTANTIATE_TEST_ES2(Texture3DTestES2);
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture3DTestES3);
+ANGLE_INSTANTIATE_TEST_ES3(Texture3DTestES3);
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture2DIntegerAlpha1TestES3);
+ANGLE_INSTANTIATE_TEST_ES3(Texture2DIntegerAlpha1TestES3);
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture2DUnsignedIntegerAlpha1TestES3);
+ANGLE_INSTANTIATE_TEST_ES3(Texture2DUnsignedIntegerAlpha1TestES3);
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(ShadowSamplerPlusSampler3DTestES3);
+ANGLE_INSTANTIATE_TEST_ES3(ShadowSamplerPlusSampler3DTestES3);
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(SamplerTypeMixTestES3);
+ANGLE_INSTANTIATE_TEST_ES3(SamplerTypeMixTestES3);
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture2DArrayTestES3);
+ANGLE_INSTANTIATE_TEST_ES3(Texture2DArrayTestES3);
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(TextureSizeTextureArrayTest);
+ANGLE_INSTANTIATE_TEST_ES3(TextureSizeTextureArrayTest);
+
+ANGLE_INSTANTIATE_TEST_ES2(SamplerInStructTest);
+ANGLE_INSTANTIATE_TEST_ES2(SamplerInStructAsFunctionParameterTest);
+ANGLE_INSTANTIATE_TEST_ES2(SamplerInStructArrayAsFunctionParameterTest);
+ANGLE_INSTANTIATE_TEST_ES2(SamplerInNestedStructAsFunctionParameterTest);
+ANGLE_INSTANTIATE_TEST_ES2(SamplerInStructAndOtherVariableTest);
+ANGLE_INSTANTIATE_TEST_ES2(TextureAnisotropyTest);
+ANGLE_INSTANTIATE_TEST_ES2_AND(TextureBorderClampTest,
+                               ES2_VULKAN_SWIFTSHADER().enable(Feature::PreferBGR565ToRGB565));
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(TextureBorderClampTestES3);
+ANGLE_INSTANTIATE_TEST_ES3(TextureBorderClampTestES3);
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(TextureBorderClampTestES31);
+ANGLE_INSTANTIATE_TEST_ES31(TextureBorderClampTestES31);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(TextureBorderClampTestES32);
+ANGLE_INSTANTIATE_TEST_ES32(TextureBorderClampTestES32);
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(TextureBorderClampIntegerTestES3);
+ANGLE_INSTANTIATE_TEST_ES3(TextureBorderClampIntegerTestES3);
+
+ANGLE_INSTANTIATE_TEST_ES2_AND_ES3(TextureMirrorClampToEdgeTest);
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(TextureMirrorClampToEdgeTestES3);
+ANGLE_INSTANTIATE_TEST_ES3(TextureMirrorClampToEdgeTestES3);
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(TextureMirrorClampToEdgeIntegerTestES3);
+ANGLE_INSTANTIATE_TEST_ES3(TextureMirrorClampToEdgeIntegerTestES3);
+
+ANGLE_INSTANTIATE_TEST_ES2(TextureLimitsTest);
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture2DNorm16TestES3);
+ANGLE_INSTANTIATE_TEST_ES3_AND(
+    Texture2DNorm16TestES3,
+    ES3_OPENGL().enable(Feature::ReadPixelsUsingImplementationColorReadFormatForNorm16),
+    ES3_OPENGLES().enable(Feature::ReadPixelsUsingImplementationColorReadFormatForNorm16));
+
+ANGLE_INSTANTIATE_TEST_ES2_AND_ES3_AND(Texture2DRGTest,
+                                       ES2_EMULATE_COPY_TEX_IMAGE_VIA_SUB(),
+                                       ES3_EMULATE_COPY_TEX_IMAGE_VIA_SUB(),
+                                       ES2_EMULATE_COPY_TEX_IMAGE(),
+                                       ES3_EMULATE_COPY_TEX_IMAGE());
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture2DFloatTestES3);
+ANGLE_INSTANTIATE_TEST_ES3(Texture2DFloatTestES3);
+
+ANGLE_INSTANTIATE_TEST_ES2(Texture2DFloatTestES2);
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(TextureCubeTestES3);
+ANGLE_INSTANTIATE_TEST_ES3(TextureCubeTestES3);
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(TextureDefaultTextureTest);
+ANGLE_INSTANTIATE_TEST_ES3(TextureDefaultTextureTest);
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(TextureCubeTestES32);
+ANGLE_INSTANTIATE_TEST_ES32(TextureCubeTestES32);
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture2DIntegerTestES3);
+ANGLE_INSTANTIATE_TEST_ES3(Texture2DIntegerTestES3);
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(TextureCubeIntegerTestES3);
+ANGLE_INSTANTIATE_TEST_ES3(TextureCubeIntegerTestES3);
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(TextureCubeIntegerEdgeTestES3);
+ANGLE_INSTANTIATE_TEST_ES3(TextureCubeIntegerEdgeTestES3);
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture2DIntegerProjectiveOffsetTestES3);
+ANGLE_INSTANTIATE_TEST_ES3(Texture2DIntegerProjectiveOffsetTestES3);
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture2DArrayIntegerTestES3);
+ANGLE_INSTANTIATE_TEST_ES3(Texture2DArrayIntegerTestES3);
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture3DIntegerTestES3);
+ANGLE_INSTANTIATE_TEST_ES3(Texture3DIntegerTestES3);
+
+ANGLE_INSTANTIATE_TEST_ES2_AND_ES3(Texture2DDepthTest);
+ANGLE_INSTANTIATE_TEST_ES2_AND_ES3(PBOCompressedTextureTest);
+ANGLE_INSTANTIATE_TEST_ES2_AND_ES3(ETC1CompressedTextureTest);
+ANGLE_INSTANTIATE_TEST_ES3(PBOCompressedTexture3DTest);
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(TextureBufferTestES31);
+ANGLE_INSTANTIATE_TEST_ES31(TextureBufferTestES31);
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(TextureBufferTestES32);
+ANGLE_INSTANTIATE_TEST_ES32(TextureBufferTestES32);
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(TextureTestES31);
+ANGLE_INSTANTIATE_TEST_ES31(TextureTestES31);
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(CopyImageTestES31);
+ANGLE_INSTANTIATE_TEST_ES31(CopyImageTestES31);
+
+ANGLE_INSTANTIATE_TEST_ES3(TextureChangeStorageUploadTest);
+
+ANGLE_INSTANTIATE_TEST_ES3(ExtraSamplerCubeShadowUseTest);
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture2DDepthStencilTestES3);
+ANGLE_INSTANTIATE_TEST_ES3_AND(Texture2DDepthStencilTestES3,
+                               ES3_VULKAN().enable(Feature::ForceFallbackFormat));
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(RGBTextureBufferTestES31);
+ANGLE_INSTANTIATE_TEST_ES31(RGBTextureBufferTestES31);
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(MultisampleTexture2DTestES31);
+ANGLE_INSTANTIATE_TEST_ES31(MultisampleTexture2DTestES31);
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Texture2DTestES3_NonZeroBaseLevelGenMipmaps);
+ANGLE_INSTANTIATE_TEST_ES3_AND(
+    Texture2DTestES3_NonZeroBaseLevelGenMipmaps,
+    ES3_OPENGL().enable(Feature::UseTempForNonZeroBaseLevelGenMipmapUsingCopyImageSubData),
+    ES3_OPENGLES().enable(Feature::UseTempForNonZeroBaseLevelGenMipmapUsingCopyImageSubData));
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(TextureSizeLimitTest);
 ANGLE_INSTANTIATE_TEST(TextureSizeLimitTest,

@@ -1372,7 +1372,8 @@ angle::Result ContextVk::getOrCreateNullStorageImageView(GLenum shaderFormat,
         vk::LevelIndex(0), 1, 0, 1, VK_IMAGE_USAGE_STORAGE_BIT, GL_NONE));
 
     const VkClearValue zeroClear = {};
-    entry->image.stageClear(gl::ImageIndex::Make2D(0), VK_IMAGE_ASPECT_COLOR_BIT, zeroClear);
+    entry->image.stageClear(gl::SourceImageIndex::Make2D(gl::SourceLevel::Zero()),
+                            VK_IMAGE_ASPECT_COLOR_BIT, zeroClear);
     ANGLE_TRY(entry->image.flushAllStagedUpdates(this));
 
     entry->image.recordWriteBarrier(this, VK_IMAGE_ASPECT_COLOR_BIT,
@@ -1628,7 +1629,7 @@ angle::Result ContextVk::setupDraw(const gl::Context *context,
                                    gl::PrimitiveMode mode,
                                    GLint firstVertexOrInvalid,
                                    GLsizei vertexOrIndexCount,
-                                   GLsizei baseInstance,
+                                   GLuint baseInstance,
                                    GLsizei instanceCount,
                                    gl::DrawElementsType indexTypeOrInvalid,
                                    const void *indices,
@@ -1741,7 +1742,7 @@ angle::Result ContextVk::setupDraw(const gl::Context *context,
 angle::Result ContextVk::setupIndexedDraw(const gl::Context *context,
                                           gl::PrimitiveMode mode,
                                           GLsizei indexCount,
-                                          GLsizei baseInstance,
+                                          GLuint baseInstance,
                                           GLsizei instanceCount,
                                           gl::DrawElementsType indexType,
                                           const void *indices)
@@ -1943,7 +1944,7 @@ angle::Result ContextVk::setupLineLoopDraw(const gl::Context *context,
                                            gl::PrimitiveMode mode,
                                            GLint firstVertex,
                                            GLsizei vertexOrIndexCount,
-                                           GLsizei baseInstance,
+                                           GLuint baseInstance,
                                            GLsizei instanceCount,
                                            gl::DrawElementsType indexTypeOrInvalid,
                                            const void *indices,
@@ -5875,8 +5876,6 @@ angle::Result ContextVk::syncState(const gl::Context *context,
             case gl::state::DIRTY_BIT_SAMPLE_SHADING:
                 updateSampleShadingWithRasterizationSamples(drawFramebufferVk->getSamples());
                 break;
-            case gl::state::DIRTY_BIT_COVERAGE_MODULATION:
-                break;
             case gl::state::DIRTY_BIT_FRAMEBUFFER_SRGB_WRITE_CONTROL_MODE:
                 break;
             case gl::state::DIRTY_BIT_CURRENT_VALUES:
@@ -5885,6 +5884,29 @@ angle::Result ContextVk::syncState(const gl::Context *context,
                 break;
             }
             case gl::state::DIRTY_BIT_PROVOKING_VERTEX:
+                break;
+            case gl::state::DIRTY_BIT_CLIP_CONTROL:
+                updateViewport(vk::GetImpl(glState.getDrawFramebuffer()), glState.getViewport(),
+                               glState.getNearPlane(), glState.getFarPlane());
+                // Since we are flipping the y coordinate, update front face state
+                updateFrontFace();
+                updateScissor(glState);
+
+                // If VK_EXT_depth_clip_control is not enabled, there's nothing needed
+                // for depth correction for EXT_clip_control.
+                // glState will be used to toggle control path of depth correction code
+                // in SPIR-V transform options.
+                if (getFeatures().supportsDepthClipControl.enabled)
+                {
+                    mGraphicsPipelineDesc->updateDepthClipControl(
+                        &mGraphicsPipelineTransition, !glState.isClipDepthModeZeroToOne());
+                }
+                else
+                {
+                    const uint32_t transformDepth = !mState.isClipDepthModeZeroToOne();
+                    mGraphicsDriverUniforms.updateTransformDepth(transformDepth);
+                    mGraphicsDirtyBits.set(DIRTY_BIT_DRIVER_UNIFORMS);
+                }
                 break;
             case gl::state::DIRTY_BIT_EXTENDED:
             {
@@ -5895,31 +5917,6 @@ angle::Result ContextVk::syncState(const gl::Context *context,
                     const size_t extendedDirtyBit = *extendedIter;
                     switch (extendedDirtyBit)
                     {
-                        case gl::state::EXTENDED_DIRTY_BIT_CLIP_CONTROL:
-                            updateViewport(vk::GetImpl(glState.getDrawFramebuffer()),
-                                           glState.getViewport(), glState.getNearPlane(),
-                                           glState.getFarPlane());
-                            // Since we are flipping the y coordinate, update front face state
-                            updateFrontFace();
-                            updateScissor(glState);
-
-                            // If VK_EXT_depth_clip_control is not enabled, there's nothing needed
-                            // for depth correction for EXT_clip_control.
-                            // glState will be used to toggle control path of depth correction code
-                            // in SPIR-V transform options.
-                            if (getFeatures().supportsDepthClipControl.enabled)
-                            {
-                                mGraphicsPipelineDesc->updateDepthClipControl(
-                                    &mGraphicsPipelineTransition,
-                                    !glState.isClipDepthModeZeroToOne());
-                            }
-                            else
-                            {
-                                const uint32_t transformDepth = !mState.isClipDepthModeZeroToOne();
-                                mGraphicsDriverUniforms.updateTransformDepth(transformDepth);
-                                mGraphicsDirtyBits.set(DIRTY_BIT_DRIVER_UNIFORMS);
-                            }
-                            break;
                         case gl::state::EXTENDED_DIRTY_BIT_CLIP_DISTANCES:
                             mGraphicsDriverUniforms.updateEnabledClipDistances(
                                 mState.getEnabledClipDistances().bits());
@@ -7112,12 +7109,9 @@ angle::Result ContextVk::initImageAllocation(vk::ImageHelper *imageHelper,
     // Get memory requirements for the allocation.
     VkMemoryRequirements memoryRequirements;
     imageHelper->getImage().getMemoryRequirements(getDevice(), &memoryRequirements);
-    bool allocateDedicatedMemory =
-        mRenderer->getImageMemorySuballocator().needsDedicatedMemory(memoryRequirements.size);
 
-    VkResult result =
-        imageHelper->initMemory(this, flags, oomExcludedFlags, &memoryRequirements,
-                                allocateDedicatedMemory, allocationType, &outputFlags, &outputSize);
+    VkResult result = imageHelper->initMemory(this, flags, oomExcludedFlags, &memoryRequirements,
+                                              allocationType, &outputFlags, &outputSize);
     if (ANGLE_LIKELY(result == VK_SUCCESS))
     {
         if (mRenderer->getFeatures().allocateNonZeroMemory.enabled)
@@ -7145,8 +7139,7 @@ angle::Result ContextVk::initImageAllocation(vk::ImageHelper *imageHelper,
         {
             someGarbageCleaned = true;
             result = imageHelper->initMemory(this, flags, oomExcludedFlags, &memoryRequirements,
-                                             allocateDedicatedMemory, allocationType, &outputFlags,
-                                             &outputSize);
+                                             allocationType, &outputFlags, &outputSize);
         }
     } while (result != VK_SUCCESS && anyGarbageCleaned);
 
@@ -7163,8 +7156,7 @@ angle::Result ContextVk::initImageAllocation(vk::ImageHelper *imageHelper,
         ANGLE_TRY(finishImpl(QueueSubmitReason::OutOfMemory));
         INFO() << "Context flushed due to out-of-memory error.";
         result = imageHelper->initMemory(this, flags, oomExcludedFlags, &memoryRequirements,
-                                         allocateDedicatedMemory, allocationType, &outputFlags,
-                                         &outputSize);
+                                         allocationType, &outputFlags, &outputSize);
     }
 
     // If no fallback has worked so far, we should record the failed allocation information in case
@@ -7172,6 +7164,9 @@ angle::Result ContextVk::initImageAllocation(vk::ImageHelper *imageHelper,
     if (result != VK_SUCCESS)
     {
         uint32_t pendingMemoryTypeIndex;
+        bool allocateDedicatedMemory =
+            mRenderer->getImageMemorySuballocator().needsDedicatedMemory(memoryRequirements.size);
+
         if (vma::FindMemoryTypeIndexForImageInfo(
                 mRenderer->getAllocator().getHandle(), &imageHelper->getVkImageCreateInfo(), flags,
                 flags, allocateDedicatedMemory, &pendingMemoryTypeIndex) == VK_SUCCESS)
@@ -7188,8 +7183,7 @@ angle::Result ContextVk::initImageAllocation(vk::ImageHelper *imageHelper,
     {
         oomExcludedFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
         result = imageHelper->initMemory(this, flags, oomExcludedFlags, &memoryRequirements,
-                                         allocateDedicatedMemory, allocationType, &outputFlags,
-                                         &outputSize);
+                                         allocationType, &outputFlags, &outputSize);
         INFO()
             << "Allocation failed. Removed the DEVICE_LOCAL bit requirement | Allocation result: "
             << ((result == VK_SUCCESS) ? "SUCCESS" : "FAIL");
@@ -8492,7 +8486,8 @@ angle::Result ContextVk::initializeMultisampleTextureToBlack(const gl::Context *
 {
     const gl::TextureType type = glTexture->getType();
     ASSERT(type == gl::TextureType::_2DMultisample || type == gl::TextureType::_2DMultisampleArray);
-    const gl::ImageIndex imageIndex = gl::ImageIndex::MakeFromType(type, 0);
+    const gl::SourceImageIndex imageIndex =
+        gl::SourceImageIndex::MakeFromType(type, gl::SourceLevel::Zero());
 
     TextureVk *textureVk = vk::GetImpl(glTexture);
     return textureVk->initializeContentsWithBlack(context, GL_NONE, imageIndex);
