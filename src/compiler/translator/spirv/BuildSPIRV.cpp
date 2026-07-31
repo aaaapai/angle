@@ -2515,7 +2515,7 @@ void SPIRVBuilder::writeMemberDecorations(const SpirvType &type, spirv::IdRef ty
         }
 
         // Add matrix decorations if any.
-        if (fieldType.isMatrix())
+        if (fieldType.isMatrix() && type.typeSpec.blockStorage != EbsUnspecified)
         {
             // ColMajor or RowMajor
             const bool isRowMajor =

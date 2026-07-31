@@ -120,7 +120,7 @@ class UtilsVk : angle::NonCopyable
     {
         VkImageAspectFlags aspectFlags;
         vk::LevelIndex level;
-        uint32_t layer;
+        vk::LayerIndex layer;
         gl::Box clearArea;
         VkClearValue clearValue;
     };
@@ -143,7 +143,7 @@ class UtilsVk : angle::NonCopyable
         // and source clipping effects have already been applied to it.
         gl::Rectangle blitArea;
         vk::LevelIndex srcMip;
-        int srcLayer;
+        vk::LayerIndex srcLayer;
         // Whether linear or point sampling should be used.
         bool linear;
         bool flipX;
@@ -156,7 +156,7 @@ class UtilsVk : angle::NonCopyable
         gl::Rectangle clearArea;
 
         vk::LevelIndex dstMip;
-        int dstLayer;
+        vk::LayerIndex dstLayer;
 
         VkColorComponentFlags colorMaskFlags;
         VkClearColorValue colorClearValue;
@@ -168,11 +168,11 @@ class UtilsVk : angle::NonCopyable
         int srcExtents[2];
         int dstOffset[2];
         vk::LevelIndex srcMip;
-        int srcLayer;
+        vk::LayerIndex srcLayer;
         int srcSampleCount;
         int srcHeight;
-        gl::LevelIndex dstMip;
-        int dstLayer;
+        gl::SourceLevel dstMip;
+        gl::SourceLayer dstLayer;
         bool srcPremultiplyAlpha;
         bool srcUnmultiplyAlpha;
         bool srcFlipY;
@@ -186,9 +186,9 @@ class UtilsVk : angle::NonCopyable
     struct CopyImageBitsParameters
     {
         int srcOffset[3];
-        gl::LevelIndex srcLevel;
+        gl::SourceLevel srcLevel;
         int dstOffset[3];
-        gl::LevelIndex dstLevel;
+        gl::SourceLevel dstLevel;
         uint32_t copyExtents[3];
     };
 
@@ -196,7 +196,7 @@ class UtilsVk : angle::NonCopyable
     {
         int srcOffset[2];
         vk::LevelIndex srcMip;
-        int srcLayer;
+        vk::LayerIndex srcLayer;
         uint32_t size[2];
         ptrdiff_t outputOffset;
         uint32_t outputPitch;
@@ -291,8 +291,8 @@ class UtilsVk : angle::NonCopyable
                                           vk::RenderPassCommandBufferHelper *renderPassCommands,
                                           vk::ImageHelper *dstImage,
                                           const vk::ImageView &dstImageView,
-                                          gl::LevelIndex dstImageLevel,
-                                          uint32_t dstImageLayer,
+                                          gl::SourceLevel dstImageLevel,
+                                          gl::SourceLayer dstImageLayer,
                                           vk::ImageHelper *srcImage,
                                           const vk::ImageView *srcDepthView,
                                           const vk::ImageView *srcStencilView,
@@ -300,8 +300,8 @@ class UtilsVk : angle::NonCopyable
 
     angle::Result stencilBlitResolveNoShaderExport(ContextVk *contextVk,
                                                    vk::ImageHelper *dstImage,
-                                                   gl::LevelIndex dstLevelIndex,
-                                                   uint32_t dstLayerIndex,
+                                                   gl::SourceLevel dstLevelIndex,
+                                                   gl::SourceLayer dstLayerIndex,
                                                    vk::ImageHelper *srcImage,
                                                    const vk::ImageView *srcStencilView,
                                                    const BlitResolveParameters &params);

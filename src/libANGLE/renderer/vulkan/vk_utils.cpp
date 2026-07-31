@@ -1975,7 +1975,7 @@ void GetExtentsAndLayerCount(gl::TextureType textureType,
     }
 }
 
-vk::LevelIndex GetLevelIndex(gl::LevelIndex levelGL, gl::LevelIndex baseLevel)
+vk::LevelIndex GetLevelIndex(gl::SourceLevel levelGL, gl::SourceLevel baseLevel)
 {
     ASSERT(baseLevel <= levelGL);
     return vk::LevelIndex(levelGL.get() - baseLevel.get());
@@ -2090,9 +2090,9 @@ GLuint GetSampleCount(VkSampleCountFlags supportedCounts, GLuint requestedCount)
     return 0;
 }
 
-gl::LevelIndex GetLevelIndex(vk::LevelIndex levelVk, gl::LevelIndex baseLevel)
+gl::SourceLevel GetLevelIndex(vk::LevelIndex levelVk, gl::SourceLevel baseLevel)
 {
-    return gl::LevelIndex(levelVk.get() + baseLevel.get());
+    return baseLevel + levelVk.get();
 }
 
 GLenum ConvertVkFixedRateToGLFixedRate(const VkImageCompressionFixedRateFlagsEXT vkCompressionRate)
