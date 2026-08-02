@@ -3989,6 +3989,7 @@ Extensions Context::generateSupportedExtensions() const
         supportedExtensions.pointSpriteOES           = true;
         supportedExtensions.drawTextureOES           = true;
         supportedExtensions.framebufferObjectOES     = true;
+        supportedExtensions.stencil8OES              = true;
         supportedExtensions.parallelShaderCompileKHR = false;
         supportedExtensions.texture3DOES             = false;
         supportedExtensions.clipDistanceAPPLE        = false;

@@ -315,7 +315,27 @@ void GetHelper(const FunctionsGL *functions, GLenum name, GLuint index, GLintptr
     *value = static_cast<GLintptr>(v);
 }
 
-void QueryContextStateGL(const FunctionsGL *functions, ContextStateGL *state)
+struct ScopedBindDrawFramebuffer
+{
+    ScopedBindDrawFramebuffer(const FunctionsGL *functions, GLuint prevFbo, GLuint fbo)
+        : functions(functions),
+          binding(nativegl::SupportsSeparateFramebufferBindings(functions) ? GL_DRAW_FRAMEBUFFER
+                                                                           : GL_FRAMEBUFFER),
+          prevFbo(prevFbo)
+    {
+        functions->bindFramebuffer(binding, fbo);
+    }
+
+    ~ScopedBindDrawFramebuffer() { functions->bindFramebuffer(binding, prevFbo); }
+
+    const FunctionsGL *functions = nullptr;
+    GLenum binding               = 0;
+    GLenum prevFbo               = 0;
+};
+
+void QueryContextStateGL(const FunctionsGL *functions,
+                         GLuint framebufferWithStencilBits,
+                         ContextStateGL *state)
 {
     GetHelper(functions, GL_CURRENT_PROGRAM, &state->program);
 
@@ -469,6 +489,11 @@ void QueryContextStateGL(const FunctionsGL *functions, ContextStateGL *state)
         state->framebuffers[angle::FramebufferBindingRead] =
             state->framebuffers[angle::FramebufferBindingDraw];
     }
+
+    // Bind a framebuffer with stencil bits for the rest of the queries. Many queries related to
+    // stencil will mask with the number of bits in the current stencil buffer.
+    ScopedBindDrawFramebuffer scopedFramebufferWithStencil(
+        functions, state->framebuffers[angle::FramebufferBindingDraw], framebufferWithStencilBits);
 
     GetHelper(functions, GL_RENDERBUFFER_BINDING, &state->renderbuffer);
 
@@ -732,6 +757,8 @@ auto TieImageUnitBindingGL(const ImageUnitBindingGL &binding)
 auto TieContextStateGL(const ContextStateGL &state)
 {
     // state.vertexAttribCurrentValues is omitted and handled specially in the comparison operator
+    // state.Stencil(Front|Back)(WriteMask|ValueMask) is omitted and handled specifically in the
+    // comparison operator because it must be masked
     return std::tie(
         state.program, state.vao, /*state.vertexAttribCurrentValues,*/ state.buffers,
         state.indexedBuffers, state.textureUnitIndex, state.textures, state.samplers, state.images,
@@ -744,23 +771,106 @@ auto TieContextStateGL(const ContextStateGL &state)
         state.sampleAlphaToCoverageEnabled, state.sampleCoverageEnabled, state.sampleCoverageValue,
         state.sampleCoverageInvert, state.sampleMaskEnabled, state.sampleMaskValues,
         state.depthTestEnabled, state.depthFunc, state.depthMask, state.stencilTestEnabled,
-        state.stencilFrontFunc, state.stencilFrontRef, state.stencilFrontValueMask,
+        state.stencilFrontFunc, state.stencilFrontRef, /*state.stencilFrontValueMask,*/
         state.stencilFrontStencilFailOp, state.stencilFrontStencilPassDepthFailOp,
-        state.stencilFrontStencilPassDepthPassOp, state.stencilFrontWritemask,
-        state.stencilBackFunc, state.stencilBackRef, state.stencilBackValueMask,
+        state.stencilFrontStencilPassDepthPassOp,    /*state.stencilFrontWritemask,*/
+        state.stencilBackFunc, state.stencilBackRef, /*state.stencilBackValueMask,*/
         state.stencilBackStencilFailOp, state.stencilBackStencilPassDepthFailOp,
-        state.stencilBackStencilPassDepthPassOp, state.stencilBackWritemask, state.cullFaceEnabled,
-        state.cullFace, state.frontFace, state.polygonMode, state.polygonOffsetPointEnabled,
-        state.polygonOffsetLineEnabled, state.polygonOffsetFillEnabled, state.polygonOffsetFactor,
-        state.polygonOffsetUnits, state.polygonOffsetClamp, state.depthClampEnabled,
-        state.rasterizerDiscardEnabled, state.lineWidth, state.primitiveRestartFixedIndexEnabled,
-        state.primitiveRestartEnabled, state.primitiveRestartIndex, state.clearColor,
-        state.clearDepth, state.clearStencil, state.framebufferSRGBEnabled, state.ditherEnabled,
-        state.textureCubemapSeamlessEnabled, state.multisamplingEnabled,
-        state.sampleAlphaToOneEnabled, state.provokingVertex, state.enabledClipDistances,
-        state.logicOpEnabled, state.logicOp);
+        state.stencilBackStencilPassDepthPassOp,
+        /*state.stencilBackWritemask,*/ state.cullFaceEnabled, state.cullFace, state.frontFace,
+        state.polygonMode, state.polygonOffsetPointEnabled, state.polygonOffsetLineEnabled,
+        state.polygonOffsetFillEnabled, state.polygonOffsetFactor, state.polygonOffsetUnits,
+        state.polygonOffsetClamp, state.depthClampEnabled, state.rasterizerDiscardEnabled,
+        state.lineWidth, state.primitiveRestartFixedIndexEnabled, state.primitiveRestartEnabled,
+        state.primitiveRestartIndex, state.clearColor, state.clearDepth, state.clearStencil,
+        state.framebufferSRGBEnabled, state.ditherEnabled, state.textureCubemapSeamlessEnabled,
+        state.multisamplingEnabled, state.sampleAlphaToOneEnabled, state.provokingVertex,
+        state.enabledClipDistances, state.logicOpEnabled, state.logicOp);
 }
 
+void Indent(std::ostream &os, size_t count)
+{
+    for (size_t indent = 0; indent < count; indent++)
+    {
+        os << " ";
+    }
+}
+
+template <typename T>
+void PrintCompressedArray(std::ostream &os,
+                          const T &values,
+                          size_t indentation,
+                          bool wrapValueInParens)
+{
+    for (size_t i = 0; i < values.size(); i++)
+    {
+        size_t start = i;
+        while (i + 1 < values.size() && values[i + 1] == values[i])
+        {
+            i++;
+        }
+
+        Indent(os, indentation);
+        os << "[" << start;
+        if (i > start)
+        {
+            os << ".." << i;
+        }
+        os << "] = ";
+        if (wrapValueInParens)
+        {
+            os << "(";
+        }
+        os << values[i];
+        if (wrapValueInParens)
+        {
+            os << ")";
+        }
+        os << std::endl;
+    }
+}
+
+std::string PrintIndexedBlendState(const gl::BlendStateExt &blendState, size_t index)
+{
+    std::ostringstream os;
+    os << "enabled = " << blendState.getEnabledMask().test(index) << ", ";
+    bool r, g, b, a;
+    blendState.getColorMaskIndexed(index, &r, &g, &b, &a);
+    os << "mask = " << (r ? "R" : "_") << (g ? "G" : "_") << (b ? "B" : "_") << (a ? "A" : "_")
+       << ",";
+    os << "colorMode = " << blendState.getEquationColorIndexed(index) << ", ";
+    os << "alphaMode = " << blendState.getEquationAlphaIndexed(index) << ", ";
+    os << "srcColor = " << blendState.getSrcColorIndexed(index) << ", ";
+    os << "dstColor = " << blendState.getDstColorIndexed(index) << ", ";
+    os << "srcAlpha = " << blendState.getSrcAlphaIndexed(index) << ", ";
+    os << "dstAlpha = " << blendState.getDstAlphaIndexed(index);
+    return os.str();
+}
+
+void PrintCompressedBlendState(std::ostream &os,
+                               const gl::BlendStateExt &blendState,
+                               size_t indentation)
+{
+    for (size_t i = 0; i < blendState.getDrawBufferCount(); i++)
+    {
+        std::string printed = PrintIndexedBlendState(blendState, i);
+
+        size_t start = i;
+        while (i + 1 < blendState.getDrawBufferCount() &&
+               PrintIndexedBlendState(blendState, i + 1) == printed)
+        {
+            i++;
+        }
+
+        Indent(os, indentation);
+        os << "[" << start;
+        if (i > start)
+        {
+            os << ".." << i;
+        }
+        os << "] = (" << printed << ")" << std::endl;
+    }
+}
 }  // anonymous namespace
 
 VertexArrayStateGL::VertexArrayStateGL(size_t maxAttribs, size_t maxBindings)
@@ -779,11 +889,27 @@ bool operator==(const IndexedBufferBindingGL &a, const IndexedBufferBindingGL &b
     return TieIndexedBufferBindingGL(a) == TieIndexedBufferBindingGL(b);
 }
 
+std::ostream &operator<<(std::ostream &os, const IndexedBufferBindingGL &binding)
+{
+    os << "offset = " << binding.offset << ", size = " << binding.size
+       << ", buffer = " << binding.buffer;
+    return os;
+}
+
 ImageUnitBindingGL::ImageUnitBindingGL(GLenum defaultFormat) : format(defaultFormat) {}
 
 bool operator==(const ImageUnitBindingGL &a, const ImageUnitBindingGL &b)
 {
     return TieImageUnitBindingGL(a) == TieImageUnitBindingGL(b);
+}
+
+std::ostream &operator<<(std::ostream &os, const ImageUnitBindingGL &binding)
+{
+    os << "texture = " << binding.texture << ", level = " << binding.level
+       << ", layered = " << gl::ConvertToBool(binding.layered) << ", layer = " << binding.layer
+       << ", access = " << gl::FmtHex(binding.access)
+       << ", format = " << gl::FmtHex(binding.format);
+    return os;
 }
 
 ContextStateGLCaps::ContextStateGLCaps(const FunctionsGL *functions, const gl::Caps &caps)
@@ -822,11 +948,146 @@ bool operator==(const ContextStateGL &a, const ContextStateGL &b)
         return false;
     }
 
+    auto makeStencilMaskTuple = [](const ContextStateGL &state) {
+        return std::make_tuple(
+            state.stencilFrontValueMask & 0xFF, state.stencilFrontWritemask & 0xFF,
+            state.stencilBackValueMask & 0xFF, state.stencilBackWritemask & 0xFF);
+    };
+    if (makeStencilMaskTuple(a) != makeStencilMaskTuple(b))
+    {
+        return false;
+    }
+
     return true;
 }
+
 bool operator!=(const ContextStateGL &a, const ContextStateGL &b)
 {
     return !(a == b);
+}
+
+std::ostream &operator<<(std::ostream &os, const ContextStateGL &state)
+{
+    os << "program = " << state.program << std::endl;
+    os << "vao = " << state.vao << std::endl;
+    os << "vertexAttribCurrentValues =" << std::endl;
+    PrintCompressedArray(os, state.vertexAttribCurrentValues, 4, true);
+    os << "buffers =" << std::endl;
+    for (gl::BufferBinding bufferBinding : angle::AllEnums<gl::BufferBinding>())
+    {
+        os << "    [" << bufferBinding << "] = " << state.buffers[bufferBinding] << std::endl;
+    }
+    os << "indexedBuffers =" << std::endl;
+    for (gl::BufferBinding bufferBinding : angle::AllEnums<gl::BufferBinding>())
+    {
+        const std::vector<IndexedBufferBindingGL> &buffers = state.indexedBuffers[bufferBinding];
+        if (buffers.empty())
+        {
+            continue;
+        }
+        os << "    [" << bufferBinding << "] =" << std::endl;
+        PrintCompressedArray(os, buffers, 8, true);
+    }
+    os << "textureUnitIndex = " << state.textureUnitIndex << std::endl;
+    os << "textures =" << std::endl;
+    for (gl::TextureType textureType : angle::AllEnums<gl::TextureType>())
+    {
+        os << "    [" << textureType << "] =" << std::endl;
+        PrintCompressedArray(os, state.textures[textureType], 8, false);
+    }
+    os << "samplers =" << std::endl;
+    PrintCompressedArray(os, state.samplers, 4, false);
+    os << "images =" << std::endl;
+    PrintCompressedArray(os, state.images, 4, true);
+    os << "transformFeedback = " << state.transformFeedback << std::endl;
+    os << "unpackAlignment = " << state.unpackAlignment << std::endl;
+    os << "unpackRowLength = " << state.unpackRowLength << std::endl;
+    os << "unpackSkipRows = " << state.unpackSkipRows << std::endl;
+    os << "unpackSkipPixels = " << state.unpackSkipPixels << std::endl;
+    os << "unpackImageHeight = " << state.unpackImageHeight << std::endl;
+    os << "unpackSkipImages = " << state.unpackSkipImages << std::endl;
+    os << "packAlignment = " << state.packAlignment << std::endl;
+    os << "packRowLength = " << state.packRowLength << std::endl;
+    os << "packSkipRows = " << state.packSkipRows << std::endl;
+    os << "packSkipPixels = " << state.packSkipPixels << std::endl;
+    os << "framebuffers =" << std::endl;
+    os << "    [GL_READ_FRAMEBUFFER] = " << state.framebuffers[angle::FramebufferBindingRead]
+       << std::endl;
+    os << "    [GL_DRAW_FRAMEBUFFER] = " << state.framebuffers[angle::FramebufferBindingDraw]
+       << std::endl;
+    os << "renderbuffer = " << state.renderbuffer << std::endl;
+    os << "scissorTestEnabled = " << state.scissorTestEnabled << std::endl;
+    os << "scissor = (" << state.scissor << ")" << std::endl;
+    os << "viewport = (" << state.viewport << ")" << std::endl;
+    os << "near = " << state.near << std::endl;
+    os << "far = " << state.far << std::endl;
+    os << "clipOrigin = " << state.clipOrigin << std::endl;
+    os << "clipDepthMode = " << state.clipDepthMode << std::endl;
+    os << "blendColor = (" << state.blendColor << ")" << std::endl;
+    os << "blendState =" << std::endl;
+    PrintCompressedBlendState(os, state.blendState, 4);
+    os << "blendAdvancedCoherent = " << state.blendAdvancedCoherent << std::endl;
+    os << "sampleAlphaToCoverageEnabled = " << state.sampleAlphaToCoverageEnabled << std::endl;
+    os << "sampleCoverageEnabled = " << state.sampleCoverageEnabled << std::endl;
+    os << "sampleCoverageValue = " << state.sampleCoverageValue << std::endl;
+    os << "sampleCoverageInvert = " << state.sampleCoverageInvert << std::endl;
+    os << "sampleMaskEnabled = " << state.sampleMaskEnabled << std::endl;
+    os << "sampleMaskValues =" << std::endl;
+    PrintCompressedArray(os, state.sampleMaskValues, 4, false);
+    os << "depthTestEnabled = " << state.depthTestEnabled << std::endl;
+    os << "depthFunc = " << gl::FmtHex(state.depthFunc) << std::endl;
+    os << "depthMask = " << state.depthMask << std::endl;
+    os << "stencilTestEnabled = " << state.stencilTestEnabled << std::endl;
+    os << "stencilFrontFunc = " << gl::FmtHex(state.stencilFrontFunc) << std::endl;
+    os << "stencilFrontRef = " << state.stencilFrontRef << std::endl;
+    os << "stencilFrontValueMask = " << gl::FmtHex(state.stencilFrontValueMask) << std::endl;
+    os << "stencilFrontStencilFailOp = " << gl::FmtHex(state.stencilFrontStencilFailOp)
+       << std::endl;
+    os << "stencilFrontStencilPassDepthFailOp = "
+       << gl::FmtHex(state.stencilFrontStencilPassDepthFailOp) << std::endl;
+    os << "stencilFrontStencilPassDepthPassOp = "
+       << gl::FmtHex(state.stencilFrontStencilPassDepthPassOp) << std::endl;
+    os << "stencilFrontWritemask = " << gl::FmtHex(state.stencilFrontWritemask) << std::endl;
+    os << "stencilBackFunc = " << gl::FmtHex(state.stencilBackFunc) << std::endl;
+    os << "stencilBackRef = " << state.stencilBackRef << std::endl;
+    os << "stencilBackValueMask = " << gl::FmtHex(state.stencilBackValueMask) << std::endl;
+    os << "stencilBackStencilFailOp = " << gl::FmtHex(state.stencilBackStencilFailOp) << std::endl;
+    os << "stencilBackStencilPassDepthFailOp = "
+       << gl::FmtHex(state.stencilBackStencilPassDepthFailOp) << std::endl;
+    os << "stencilBackStencilPassDepthPassOp = "
+       << gl::FmtHex(state.stencilBackStencilPassDepthPassOp) << std::endl;
+    os << "stencilBackWritemask = " << gl::FmtHex(state.stencilBackWritemask) << std::endl;
+    os << "cullFaceEnabled = " << state.cullFaceEnabled << std::endl;
+    os << "cullFace = " << state.cullFace << std::endl;
+    os << "frontFace = " << gl::FmtHex(state.frontFace) << std::endl;
+    os << "polygonMode = " << state.polygonMode << std::endl;
+    os << "polygonOffsetPointEnabled = " << state.polygonOffsetPointEnabled << std::endl;
+    os << "polygonOffsetLineEnabled = " << state.polygonOffsetLineEnabled << std::endl;
+    os << "polygonOffsetFillEnabled = " << state.polygonOffsetFillEnabled << std::endl;
+    os << "polygonOffsetFactor = " << state.polygonOffsetFactor << std::endl;
+    os << "polygonOffsetUnits = " << state.polygonOffsetUnits << std::endl;
+    os << "polygonOffsetClamp = " << state.polygonOffsetClamp << std::endl;
+    os << "depthClampEnabled = " << state.depthClampEnabled << std::endl;
+    os << "rasterizerDiscardEnabled = " << state.rasterizerDiscardEnabled << std::endl;
+    os << "lineWidth = " << state.lineWidth << std::endl;
+    os << "primitiveRestartFixedIndexEnabled = " << state.primitiveRestartFixedIndexEnabled
+       << std::endl;
+    os << "primitiveRestartEnabled = " << state.primitiveRestartEnabled << std::endl;
+    os << "primitiveRestartIndex = " << state.primitiveRestartIndex << std::endl;
+    os << "clearColor = " << state.clearColor << std::endl;
+    os << "clearDepth = " << state.clearDepth << std::endl;
+    os << "clearStencil = " << state.clearStencil << std::endl;
+    os << "framebufferSRGBEnabled = " << state.framebufferSRGBEnabled << std::endl;
+    os << "ditherEnabled = " << state.ditherEnabled << std::endl;
+    os << "textureCubemapSeamlessEnabled = " << state.textureCubemapSeamlessEnabled << std::endl;
+    os << "multisamplingEnabled = " << state.multisamplingEnabled << std::endl;
+    os << "sampleAlphaToOneEnabled = " << state.sampleAlphaToOneEnabled << std::endl;
+    os << "provokingVertex = " << gl::FmtHex(state.provokingVertex) << std::endl;
+    os << "enabledClipDistances =" << std::endl;
+    PrintCompressedArray(os, state.enabledClipDistances, 4, false);
+    os << "logicOpEnabled = " << state.logicOpEnabled << std::endl;
+    os << "logicOp = " << state.logicOp << std::endl;
+    return os;
 }
 
 StateManagerGL::StateManagerGL(const FunctionsGL *functions,
@@ -843,8 +1104,6 @@ StateManagerGL::StateManagerGL(const FunctionsGL *functions,
       mCurrentTransformFeedback(nullptr),
       mQueries(),
       mPrevDrawContext({0}),
-      mPlaceholderFbo(0),
-      mPlaceholderRbo(0),
       mIndependentBlendStates(extensions.drawBuffersIndexedAny()),
       mSampleCoverageEverChanged(false),
       mHasUnflushedQueries(false),
@@ -899,13 +1158,6 @@ StateManagerGL::StateManagerGL(const FunctionsGL *functions,
     // made current with. Query it back.
     GetHelper(mFunctions, GL_SCISSOR_BOX, &mState.scissor);
     GetHelper(mFunctions, GL_VIEWPORT, &mState.viewport);
-
-    // Drivers have differing opinions on what the initial stencil mask should be (between
-    // 0xFFFFFFFF or 0xFF) so query it to be sure.
-    GetHelper(functions, GL_STENCIL_VALUE_MASK, &mState.stencilFrontValueMask);
-    GetHelper(functions, GL_STENCIL_WRITEMASK, &mState.stencilFrontWritemask);
-    GetHelper(functions, GL_STENCIL_BACK_VALUE_MASK, &mState.stencilBackValueMask);
-    GetHelper(functions, GL_STENCIL_BACK_WRITEMASK, &mState.stencilBackWritemask);
 }
 
 StateManagerGL::~StateManagerGL()
@@ -914,10 +1166,15 @@ StateManagerGL::~StateManagerGL()
     {
         deleteFramebuffer(mPlaceholderFbo);
     }
-    if (mPlaceholderRbo != 0)
+    if (mPlaceholderFboColorRenderbuffer != 0)
     {
-        deleteRenderbuffer(mPlaceholderRbo);
+        deleteRenderbuffer(mPlaceholderFboColorRenderbuffer);
     }
+    if (mPlaceholderFboDepthStencilRenderbuffer != 0)
+    {
+        deleteRenderbuffer(mPlaceholderFboDepthStencilRenderbuffer);
+    }
+
     if (mDefaultVAO != 0)
     {
         mFunctions->deleteVertexArrays(1, &mDefaultVAO);
@@ -1502,25 +1759,8 @@ void StateManagerGL::beginQuery(gl::QueryType type, QueryGL *queryObject, GLuint
          mFunctions->checkFramebufferStatus(GL_DRAW_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) &&
         (type == gl::QueryType::TimeElapsed || type == gl::QueryType::Timestamp))
     {
-        if (!mPlaceholderFbo)
-        {
-            mFunctions->genFramebuffers(1, &mPlaceholderFbo);
-        }
+        ensurePlaceholderFramebuffer();
         bindFramebuffer(GL_DRAW_FRAMEBUFFER, mPlaceholderFbo);
-
-        if (!mPlaceholderRbo)
-        {
-            GLuint oldRenderBufferBinding = mState.renderbuffer;
-            mFunctions->genRenderbuffers(1, &mPlaceholderRbo);
-            bindRenderbuffer(GL_RENDERBUFFER, mPlaceholderRbo);
-            mFunctions->renderbufferStorage(GL_RENDERBUFFER, GL_RGBA8, 2, 2);
-            mFunctions->framebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-                                                GL_RENDERBUFFER, mPlaceholderRbo);
-            bindRenderbuffer(GL_RENDERBUFFER, oldRenderBufferBinding);
-
-            // This ensures renderbuffer attachment is not lazy.
-            mFunctions->checkFramebufferStatus(GL_DRAW_FRAMEBUFFER);
-        }
     }
 
     mQueries[type] = queryObject;
@@ -3469,11 +3709,20 @@ VertexArrayStateGL *StateManagerGL::getDefaultVAOState()
     return &mDefaultVAOState;
 }
 
-void StateManagerGL::validateState() const
+void StateManagerGL::validateState()
 {
+    ensurePlaceholderFramebuffer();
+
     ContextStateGL queriedState(mCaps);
-    QueryContextStateGL(mFunctions, &queriedState);
-    ASSERT(mState == queriedState);
+    QueryContextStateGL(mFunctions, mPlaceholderFbo, &queriedState);
+    if (mState != queriedState)
+    {
+        std::ostringstream msg;
+        msg << "Queried state does not match tracked state!" << std::endl;
+        msg << "Tracked state:" << std::endl << mState << std::endl << std::endl;
+        msg << "Queried state:" << std::endl << queriedState << std::endl;
+        FATAL() << msg.str();
+    }
 }
 
 void StateManagerGL::setBufferBindingDirty(gl::BufferBinding binding)
@@ -4392,6 +4641,38 @@ void StateManagerGL::restoreVertexArraysNativeContext(const gl::Extensions &exte
 
     // Mark VAO state dirty and force it to be re-synced on the next draw
     mLocalDirtyBits.set(gl::state::DIRTY_BIT_VERTEX_ARRAY_BINDING);
+}
+void StateManagerGL::ensurePlaceholderFramebuffer()
+{
+    if (mPlaceholderFbo)
+    {
+        return;
+    }
+
+    GLenum framebufferBinding =
+        mHasSeparateFramebufferBindings ? GL_DRAW_FRAMEBUFFER : GL_FRAMEBUFFER;
+    mFunctions->genFramebuffers(1, &mPlaceholderFbo);
+    mFunctions->bindFramebuffer(framebufferBinding, mPlaceholderFbo);
+
+    mFunctions->genRenderbuffers(1, &mPlaceholderFboColorRenderbuffer);
+    mFunctions->bindRenderbuffer(GL_RENDERBUFFER, mPlaceholderFboColorRenderbuffer);
+    mFunctions->renderbufferStorage(GL_RENDERBUFFER, GL_RGBA8, 2, 2);
+    mFunctions->framebufferRenderbuffer(framebufferBinding, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER,
+                                        mPlaceholderFboColorRenderbuffer);
+
+    mFunctions->genRenderbuffers(1, &mPlaceholderFboDepthStencilRenderbuffer);
+    mFunctions->bindRenderbuffer(GL_RENDERBUFFER, mPlaceholderFboDepthStencilRenderbuffer);
+    mFunctions->renderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, 2, 2);
+    mFunctions->framebufferRenderbuffer(framebufferBinding, GL_DEPTH_STENCIL_ATTACHMENT,
+                                        GL_RENDERBUFFER, mPlaceholderFboDepthStencilRenderbuffer);
+
+    // This ensures renderbuffer attachment is not lazy.
+    mFunctions->checkFramebufferStatus(framebufferBinding);
+
+    // Reset state
+    mFunctions->bindFramebuffer(framebufferBinding,
+                                mState.framebuffers[angle::FramebufferBindingDraw]);
+    mFunctions->bindRenderbuffer(GL_RENDERBUFFER, mState.renderbuffer);
 }
 
 void StateManagerGL::setDefaultVAOStateDirty()

@@ -143,7 +143,7 @@ FramebufferImpl *ContextGL::createFramebuffer(const gl::FramebufferState &data)
         funcs->genFramebuffers(1, &fbo);
     }
 
-    return new FramebufferGL(data, fbo, false);
+    return new FramebufferGL(data, fbo, false, funcs, getStateManager());
 }
 
 TextureImpl *ContextGL::createTexture(const gl::TextureState &state)
@@ -1046,9 +1046,9 @@ void ContextGL::setMaxShaderCompilerThreads(GLuint count)
     mRenderer->setMaxShaderCompilerThreads(count);
 }
 
-void ContextGL::validateState() const
+void ContextGL::validateState()
 {
-    const StateManagerGL *stateManager = mRenderer->getStateManager();
+    StateManagerGL *stateManager = mRenderer->getStateManager();
     stateManager->validateState();
 }
 
