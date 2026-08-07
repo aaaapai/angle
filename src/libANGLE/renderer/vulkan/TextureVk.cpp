@@ -2500,11 +2500,11 @@ void TextureVk::initImageUsageFlags(ContextVk *contextVk,
         // fallback format is.  This way, the image is more likely to be usable with
         // VK_EXT_host_image_copy.
 
-        //if (!intendedFormat.isLUMA() ||
-        //    mRequiredFormatSupport == vk::ImageFormatSupport::Renderable)
-        //{
+        if (!intendedFormat.isLUMA() ||
+            mRequiredFormatSupport == vk::ImageFormatSupport::Renderable)
+        {
             mImageUsageFlags |= kColorAttachmentImageFlags;
-        //}
+        }
     }
 }
 
