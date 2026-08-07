@@ -1346,7 +1346,6 @@
 480069042 PIXEL10 VULKAN : StateChangeTestES3.LineWidth/* = SKIP
 480069042 PIXEL10 VULKAN : StateChangeTestES3.RasterizerDiscard/*_Vulkan = SKIP
 480069042 PIXEL10 VULKAN : StateChangeTestES3.RasterizerDiscard/ES3_Vulkan_EnableParallelCompileAndLink_VaryingsRequireMatchingPrecisionInSpirv = SKIP
-480069042 PIXEL10 VULKAN : StateChangeTestES3.RasterizerDiscard/ES3_Vulkan_NoSupportsIndexTypeUint8 = SKIP
 480069042 PIXEL10 VULKAN : StateChangeTestES3.RasterizerDiscard/ES3_Vulkan_NoUseDepthWriteEnableDynamicState = SKIP
 480069042 PIXEL10 VULKAN : StateChangeTestES3.RasterizerDiscard/ES3_Vulkan_NoUsePrimitiveRestartEnableDynamicState = SKIP
 480069042 PIXEL10 VULKAN : StateChangeTestES3.RasterizerDiscard/ES3_Vulkan_NoUseVertexInputBindingStrideDynamicState = SKIP
@@ -1512,9 +1511,6 @@
 
 42264855 VULKAN : GetImageTest.InconsistentTexture2D/* = SKIP
 
-// Vulkan initializes the backend textures immediately on eglBindTexImage
-498372331 VULKAN : PbufferTestES3.BindRedefinesAllMips/* = SKIP
-
 40050011 D3D11 : GLSLTest_ES3.UnsuccessfulRelinkWithBindAttribLocation/* = SKIP
 40050011 SWIFTSHADER : GLSLTest_ES3.UnsuccessfulRelinkWithBindAttribLocation/* = SKIP
 
@@ -1643,8 +1639,6 @@
 
 42266092 WIN SWIFTSHADER : VulkanPerformanceCounterTest.EndXfbAfterRenderPassClosed/* = SKIP
 466331749 SWIFTSHADER : GLSLTest_ES31.ShortCircuitOutOfBoundsAccess/* = SKIP
-// Flakily reads NaN/-1 instead of zero from the images.
-524800809 SWIFTSHADER : TextureTestES31.FragmentShaderLoadUnboundImageUnits/* = SKIP
 
 // Flat shading bug with lighting
 42264726 VULKAN : LightsTest.FlatLitMesh/* = SKIP

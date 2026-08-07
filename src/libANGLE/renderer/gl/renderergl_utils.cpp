@@ -1294,8 +1294,7 @@ void GenerateCaps(const FunctionsGL *functions,
         //LimitVersion(maxSupportedESVersion, gl::Version(3, 0));
     }
 
-    if (functions->isAtLeastGL(gl::Version(4, 3)) || functions->isAtLeastGLES(gl::Version(3, 1)) ||
-        functions->hasGLExtension("GL_ARB_vertex_attrib_binding"))
+    if (nativegl::SupportsVertexAttributeBindings(functions))
     {
         caps->maxVertexAttribRelativeOffset =
             QuerySingleGLInt(functions, GL_MAX_VERTEX_ATTRIB_RELATIVE_OFFSET);
@@ -2757,6 +2756,10 @@ void InitializeFeatures(const FunctionsGL *functions, angle::FeaturesGL *feature
 
     // Mac Intel drivers are unable to allocate buffers larger than ~1gb
     ANGLE_FEATURE_CONDITION(features, limitMaxBufferSizeTo1gb, isApple && isIntel);
+
+    // Default to state validation disabled. It is extremely costly and should only be enabled
+    // explicitly when debugging.
+    ANGLE_FEATURE_CONDITION(features, validateState, false);
 }
 
 void InitializeFrontendFeatures(const FunctionsGL *functions, angle::FrontendFeatures *features)
@@ -2825,6 +2828,12 @@ bool SupportsVertexArrayObjects(const FunctionsGL *functions)
            functions->hasGLESExtension("GL_OES_vertex_array_object") ||
            functions->isAtLeastGL(gl::Version(3, 0)) ||
            functions->hasGLExtension("GL_ARB_vertex_array_object");
+}
+bool SupportsVertexAttributeBindings(const FunctionsGL *functions)
+{
+    return functions->isAtLeastGL(gl::Version(4, 3)) ||
+           functions->isAtLeastGLES(gl::Version(3, 1)) ||
+           functions->hasGLExtension("GL_ARB_vertex_attrib_binding");
 }
 
 bool SupportsTextureBufferObjects(const FunctionsGL *functions)

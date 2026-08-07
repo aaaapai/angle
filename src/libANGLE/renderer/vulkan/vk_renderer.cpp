@@ -2727,14 +2727,14 @@ angle::Result Renderer::initialize(vk::ErrorContext *context,
 
     // Query all supported global priorities if supported.
     std::vector<VkQueueFamilyGlobalPriorityProperties> globalPriorityProperties;
-    if (mFeatures.supportsGlobalPriorityQuery.enabled)
+    if (mFeatures.supportsGlobalPriority.enabled)
     {
         globalPriorityProperties.resize(queueFamilyCount);
         for (uint32_t i = 0; i < queueFamilyCount; i++)
         {
             globalPriorityProperties[i] = {};
             globalPriorityProperties[i].sType =
-                VK_STRUCTURE_TYPE_QUEUE_FAMILY_GLOBAL_PRIORITY_PROPERTIES_EXT;
+                VK_STRUCTURE_TYPE_QUEUE_FAMILY_GLOBAL_PRIORITY_PROPERTIES;
             vk::AddToPNextChain(&mQueueFamilyProperties2[i], &globalPriorityProperties[i]);
         }
     }
@@ -2766,13 +2766,13 @@ angle::Result Renderer::initialize(vk::ErrorContext *context,
                    VK_ERROR_INITIALIZATION_FAILED);
 
     VkQueueGlobalPriority globalPriority = VK_QUEUE_GLOBAL_PRIORITY_MEDIUM;
-    if (mFeatures.supportsGlobalPriorityQuery.enabled &&
+    if (mFeatures.supportsGlobalPriority.enabled &&
         HasRequiredGlobalPriority(globalPriorityProperties[firstQueueFamily],
-                                  VK_QUEUE_GLOBAL_PRIORITY_REALTIME_EXT))
+                                  VK_QUEUE_GLOBAL_PRIORITY_REALTIME))
     {
         // Realtime global priority is supported, so we can use it in
         // queueGlobalPriorityCreateInfo
-        globalPriority = VK_QUEUE_GLOBAL_PRIORITY_REALTIME_EXT;
+        globalPriority = VK_QUEUE_GLOBAL_PRIORITY_REALTIME;
     }
 
     // Store the physical device memory properties so we can find the right memory pools.
@@ -2974,22 +2974,19 @@ angle::Result Renderer::initializeMemoryAllocator(vk::ErrorContext *context)
 }
 
 // The following features and properties are not promoted to any core Vulkan versions (up to Vulkan
-// 1.3):
+// 1.4):
 //
-// - VK_EXT_line_rasterization:                        bresenhamLines (feature)
 // - VK_EXT_provoking_vertex:                          provokingVertexLast (feature)
-// - VK_EXT_vertex_attribute_divisor:                  vertexAttributeInstanceRateDivisor (feature),
-//                                                     maxVertexAttribDivisor (property)
 // - VK_EXT_transform_feedback:                        transformFeedback (feature),
 //                                                     geometryStreams (feature)
-// - VK_EXT_index_type_uint8:                          indexTypeUint8 (feature)
 // - VK_EXT_device_memory_report:                      deviceMemoryReport (feature)
 // - VK_EXT_multisampled_render_to_single_sampled:     multisampledRenderToSingleSampled (feature)
 // - VK_EXT_image_2d_view_of_3d:                       image2DViewOf3D (feature)
 //                                                     sampler2DViewOf3D (feature)
 // - VK_EXT_custom_border_color:                       customBorderColors (feature)
 //                                                     customBorderColorWithoutFormat (feature)
-// - VK_EXT_depth_clamp_zero_one:                      depthClampZeroOne (feature)
+// - VK_KHR_depth_clamp_zero_one or
+//   VK_EXT_depth_clamp_zero_one:                      depthClampZeroOne (feature)
 // - VK_EXT_depth_clip_control:                        depthClipControl (feature)
 // - VK_EXT_primitives_generated_query:                primitivesGeneratedQuery (feature),
 //                                                     primitivesGeneratedQueryWithRasterizerDiscard
@@ -3013,13 +3010,8 @@ angle::Result Renderer::initializeMemoryAllocator(vk::ErrorContext *context)
 // - VK_EXT_legacy_dithering:                          supportsLegacyDithering (feature)
 // - VK_EXT_physical_device_drm:                       hasPrimary (property),
 //                                                     hasRender (property)
-// - VK_EXT_host_image_copy:                           hostImageCopy (feature),
-//                                                     pCopySrcLayouts (property),
-//                                                     pCopyDstLayouts (property),
-//                                                     identicalMemoryTypeRequirements (property)
 // - VK_ANDROID_external_format_resolve:               externalFormatResolve (feature)
 // - VK_EXT_vertex_input_dynamic_state:                vertexInputDynamicState (feature)
-// - VK_KHR_dynamic_rendering_local_read:              dynamicRenderingLocalRead (feature)
 // - VK_EXT_shader_atomic_float                        shaderImageFloat32Atomics (feature)
 // - VK_EXT_image_compression_control                  imageCompressionControl (feature)
 // - VK_EXT_image_compression_control_swapchain        imageCompressionControlSwapchain (feature)
@@ -3027,7 +3019,6 @@ angle::Result Renderer::initializeMemoryAllocator(vk::ErrorContext *context)
 //                                                     deviceFaultVendorBinary (feature)
 // - VK_EXT_astc_decode_mode                           decodeModeSharedExponent (feature)
 // - VK_KHR_unified_image_layouts                      unifiedImageLayouts (feature)
-// - VK_EXT_global_priority_query                      globalPriorityQuery (feature)
 // - VK_EXT_external_memory_host                       minImportedHostPointerAlignment (property)
 // - VK_QCOM_tile_memory_heap                          tileMemoryHeapFeatures (feature)
 //                                                     tileMemoryHeapProperties (property)
@@ -3040,30 +3031,14 @@ void Renderer::appendDeviceExtensionFeaturesNotPromoted(
     VkPhysicalDeviceFeatures2KHR *deviceFeatures,
     VkPhysicalDeviceProperties2 *deviceProperties)
 {
-    if (ExtensionFound(VK_EXT_LINE_RASTERIZATION_EXTENSION_NAME, deviceExtensionNames))
-    {
-        vk::AddToPNextChain(deviceFeatures, &mLineRasterizationFeatures);
-    }
-
     if (ExtensionFound(VK_EXT_PROVOKING_VERTEX_EXTENSION_NAME, deviceExtensionNames))
     {
         vk::AddToPNextChain(deviceFeatures, &mProvokingVertexFeatures);
     }
 
-    if (ExtensionFound(VK_EXT_VERTEX_ATTRIBUTE_DIVISOR_EXTENSION_NAME, deviceExtensionNames))
-    {
-        vk::AddToPNextChain(deviceFeatures, &mVertexAttributeDivisorFeatures);
-        vk::AddToPNextChain(deviceProperties, &mVertexAttributeDivisorProperties);
-    }
-
     if (ExtensionFound(VK_EXT_TRANSFORM_FEEDBACK_EXTENSION_NAME, deviceExtensionNames))
     {
         vk::AddToPNextChain(deviceFeatures, &mTransformFeedbackFeatures);
-    }
-
-    if (ExtensionFound(VK_EXT_INDEX_TYPE_UINT8_EXTENSION_NAME, deviceExtensionNames))
-    {
-        vk::AddToPNextChain(deviceFeatures, &mIndexTypeUint8Features);
     }
 
     if (ExtensionFound(VK_EXT_DEVICE_MEMORY_REPORT_EXTENSION_NAME, deviceExtensionNames))
@@ -3087,7 +3062,8 @@ void Renderer::appendDeviceExtensionFeaturesNotPromoted(
         vk::AddToPNextChain(deviceFeatures, &mCustomBorderColorFeatures);
     }
 
-    if (ExtensionFound(VK_EXT_DEPTH_CLAMP_ZERO_ONE_EXTENSION_NAME, deviceExtensionNames))
+    if (ExtensionFound(VK_KHR_DEPTH_CLAMP_ZERO_ONE_EXTENSION_NAME, deviceExtensionNames) ||
+        ExtensionFound(VK_EXT_DEPTH_CLAMP_ZERO_ONE_EXTENSION_NAME, deviceExtensionNames))
     {
         vk::AddToPNextChain(deviceFeatures, &mDepthClampZeroOneFeatures);
     }
@@ -3167,25 +3143,6 @@ void Renderer::appendDeviceExtensionFeaturesNotPromoted(
         vk::AddToPNextChain(deviceProperties, &mDrmProperties);
     }
 
-    if (ExtensionFound(VK_EXT_HOST_IMAGE_COPY_EXTENSION_NAME, deviceExtensionNames))
-    {
-        // VkPhysicalDeviceHostImageCopyPropertiesEXT has a count + array query.  Typically, that
-        // requires getting the properties once with a nullptr array, to get the count, and then
-        // again with an array of that size.  For simplicity, ANGLE just uses an array that's big
-        // enough.  If that array goes terribly large in the future, ANGLE may lose knowledge of
-        // some likely esoteric layouts, which doesn't really matter.
-        constexpr uint32_t kMaxLayoutCount = 50;
-        mHostImageCopySrcLayoutsStorage.resize(kMaxLayoutCount, VK_IMAGE_LAYOUT_UNDEFINED);
-        mHostImageCopyDstLayoutsStorage.resize(kMaxLayoutCount, VK_IMAGE_LAYOUT_UNDEFINED);
-        mHostImageCopyProperties.copySrcLayoutCount = kMaxLayoutCount;
-        mHostImageCopyProperties.copyDstLayoutCount = kMaxLayoutCount;
-        mHostImageCopyProperties.pCopySrcLayouts    = mHostImageCopySrcLayoutsStorage.data();
-        mHostImageCopyProperties.pCopyDstLayouts    = mHostImageCopyDstLayoutsStorage.data();
-
-        vk::AddToPNextChain(deviceFeatures, &mHostImageCopyFeatures);
-        vk::AddToPNextChain(deviceProperties, &mHostImageCopyProperties);
-    }
-
     if (ExtensionFound(VK_EXT_VERTEX_INPUT_DYNAMIC_STATE_EXTENSION_NAME, deviceExtensionNames))
     {
         vk::AddToPNextChain(deviceFeatures, &mVertexInputDynamicStateFeatures);
@@ -3198,11 +3155,6 @@ void Renderer::appendDeviceExtensionFeaturesNotPromoted(
         vk::AddToPNextChain(deviceProperties, &mExternalFormatResolveProperties);
     }
 #endif
-
-    if (ExtensionFound(VK_KHR_DYNAMIC_RENDERING_LOCAL_READ_EXTENSION_NAME, deviceExtensionNames))
-    {
-        vk::AddToPNextChain(deviceFeatures, &mDynamicRenderingLocalReadFeatures);
-    }
 
     if (ExtensionFound(VK_KHR_UNIFIED_IMAGE_LAYOUTS_EXTENSION_NAME, deviceExtensionNames))
     {
@@ -3230,10 +3182,6 @@ void Renderer::appendDeviceExtensionFeaturesNotPromoted(
     if (ExtensionFound(VK_EXT_ASTC_DECODE_MODE_EXTENSION_NAME, deviceExtensionNames))
     {
         vk::AddToPNextChain(deviceFeatures, &mPhysicalDeviceAstcDecodeFeatures);
-    }
-    if (ExtensionFound(VK_EXT_GLOBAL_PRIORITY_QUERY_EXTENSION_NAME, deviceExtensionNames))
-    {
-        vk::AddToPNextChain(deviceFeatures, &mPhysicalDeviceGlobalPriorityQueryFeatures);
     }
     if (ExtensionFound(VK_EXT_EXTERNAL_MEMORY_HOST_EXTENSION_NAME, deviceExtensionNames))
     {
@@ -3459,12 +3407,82 @@ void Renderer::appendDeviceExtensionFeaturesPromotedTo13(
     }
 }
 
+// The following features and properties used by ANGLE have been promoted to Vulkan 1.4:
+//
+// - VK_KHR_line_rasterization or
+//   VK_EXT_line_rasterization:                        bresenhamLines (feature)
+// - VK_KHR_vertex_attribute_divisor or
+//   VK_EXT_vertex_attribute_divisor:                  vertexAttributeInstanceRateDivisor (feature),
+//                                                     maxVertexAttribDivisor (property)
+// - VK_KHR_index_type_uint8 or
+//   VK_EXT_index_type_uint8:                          indexTypeUint8 (feature)
+// - VK_KHR_global_priority                            globalPriorityQuery (feature)
+// - VK_KHR_dynamic_rendering_local_read:              dynamicRenderingLocalRead (feature)
+// - VK_EXT_host_image_copy:                           hostImageCopy (feature),
+//                                                     pCopySrcLayouts (property),
+//                                                     pCopyDstLayouts (property),
+//                                                     identicalMemoryTypeRequirements (property)
+//
+void Renderer::appendDeviceExtensionFeaturesPromotedTo14(
+    const vk::ExtensionNameList &deviceExtensionNames,
+    VkPhysicalDeviceFeatures2KHR *deviceFeatures,
+    VkPhysicalDeviceProperties2 *deviceProperties)
+{
+    if (ExtensionFound(VK_KHR_LINE_RASTERIZATION_EXTENSION_NAME, deviceExtensionNames) ||
+        ExtensionFound(VK_EXT_LINE_RASTERIZATION_EXTENSION_NAME, deviceExtensionNames))
+    {
+        vk::AddToPNextChain(deviceFeatures, &mLineRasterizationFeatures);
+    }
+
+    if (ExtensionFound(VK_KHR_VERTEX_ATTRIBUTE_DIVISOR_EXTENSION_NAME, deviceExtensionNames) ||
+        ExtensionFound(VK_EXT_VERTEX_ATTRIBUTE_DIVISOR_EXTENSION_NAME, deviceExtensionNames))
+    {
+        vk::AddToPNextChain(deviceFeatures, &mVertexAttributeDivisorFeatures);
+        vk::AddToPNextChain(deviceProperties, &mVertexAttributeDivisorProperties);
+    }
+
+    if (ExtensionFound(VK_KHR_INDEX_TYPE_UINT8_EXTENSION_NAME, deviceExtensionNames) ||
+        ExtensionFound(VK_EXT_INDEX_TYPE_UINT8_EXTENSION_NAME, deviceExtensionNames))
+    {
+        vk::AddToPNextChain(deviceFeatures, &mIndexTypeUint8Features);
+    }
+
+    if (ExtensionFound(VK_KHR_GLOBAL_PRIORITY_EXTENSION_NAME, deviceExtensionNames))
+    {
+        vk::AddToPNextChain(deviceFeatures, &mPhysicalDeviceGlobalPriorityQueryFeatures);
+    }
+
+    if (ExtensionFound(VK_KHR_DYNAMIC_RENDERING_LOCAL_READ_EXTENSION_NAME, deviceExtensionNames))
+    {
+        vk::AddToPNextChain(deviceFeatures, &mDynamicRenderingLocalReadFeatures);
+    }
+
+    if (ExtensionFound(VK_EXT_HOST_IMAGE_COPY_EXTENSION_NAME, deviceExtensionNames))
+    {
+        // VkPhysicalDeviceHostImageCopyProperties has a count + array query.  Typically, that
+        // requires getting the properties once with a nullptr array, to get the count, and then
+        // again with an array of that size.  For simplicity, ANGLE just uses an array that's big
+        // enough.  If that array goes terribly large in the future, ANGLE may lose knowledge of
+        // some likely esoteric layouts, which doesn't really matter.
+        constexpr uint32_t kMaxLayoutCount = 50;
+        mHostImageCopySrcLayoutsStorage.resize(kMaxLayoutCount, VK_IMAGE_LAYOUT_UNDEFINED);
+        mHostImageCopyDstLayoutsStorage.resize(kMaxLayoutCount, VK_IMAGE_LAYOUT_UNDEFINED);
+        mHostImageCopyProperties.copySrcLayoutCount = kMaxLayoutCount;
+        mHostImageCopyProperties.copyDstLayoutCount = kMaxLayoutCount;
+        mHostImageCopyProperties.pCopySrcLayouts    = mHostImageCopySrcLayoutsStorage.data();
+        mHostImageCopyProperties.pCopyDstLayouts    = mHostImageCopyDstLayoutsStorage.data();
+
+        vk::AddToPNextChain(deviceFeatures, &mHostImageCopyFeatures);
+        vk::AddToPNextChain(deviceProperties, &mHostImageCopyProperties);
+    }
+}
+
 void Renderer::queryDeviceExtensionFeatures(const vk::ExtensionNameList &deviceExtensionNames)
 {
     // Default initialize all extension features to false.
     mLineRasterizationFeatures = {};
     mLineRasterizationFeatures.sType =
-        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_LINE_RASTERIZATION_FEATURES_EXT;
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_LINE_RASTERIZATION_FEATURES;
 
     mProvokingVertexFeatures = {};
     mProvokingVertexFeatures.sType =
@@ -3472,18 +3490,24 @@ void Renderer::queryDeviceExtensionFeatures(const vk::ExtensionNameList &deviceE
 
     mVertexAttributeDivisorFeatures = {};
     mVertexAttributeDivisorFeatures.sType =
-        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_DIVISOR_FEATURES_EXT;
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_DIVISOR_FEATURES;
 
+    // Note: VkPhysicalDeviceVertexAttributeDivisorProperties is different from the EXT version.
+    // It should be ok to set the EXT struct type on it though in the absence of KHR/Vulkan1.4 since
+    // the EXT struct can be laid over the KHR one, and the unfilled properties are automatically
+    // zeroed here.
     mVertexAttributeDivisorProperties = {};
     mVertexAttributeDivisorProperties.sType =
-        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_DIVISOR_PROPERTIES_EXT;
+        ExtensionFound(VK_KHR_VERTEX_ATTRIBUTE_DIVISOR_EXTENSION_NAME, deviceExtensionNames)
+            ? VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_DIVISOR_PROPERTIES
+            : VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_DIVISOR_PROPERTIES_EXT;
 
     mTransformFeedbackFeatures = {};
     mTransformFeedbackFeatures.sType =
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TRANSFORM_FEEDBACK_FEATURES_EXT;
 
     mIndexTypeUint8Features       = {};
-    mIndexTypeUint8Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INDEX_TYPE_UINT8_FEATURES_EXT;
+    mIndexTypeUint8Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INDEX_TYPE_UINT8_FEATURES;
 
     mSubgroupProperties       = {};
     mSubgroupProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_PROPERTIES;
@@ -3543,7 +3567,7 @@ void Renderer::queryDeviceExtensionFeatures(const vk::ExtensionNameList &deviceE
 
     mDepthClampZeroOneFeatures = {};
     mDepthClampZeroOneFeatures.sType =
-        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_CLAMP_ZERO_ONE_FEATURES_EXT;
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_CLAMP_ZERO_ONE_FEATURES_KHR;
 
     mDepthClipControlFeatures = {};
     mDepthClipControlFeatures.sType =
@@ -3635,11 +3659,10 @@ void Renderer::queryDeviceExtensionFeatures(const vk::ExtensionNameList &deviceE
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES_KHR;
 
     mHostImageCopyFeatures       = {};
-    mHostImageCopyFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_HOST_IMAGE_COPY_FEATURES_EXT;
+    mHostImageCopyFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_HOST_IMAGE_COPY_FEATURES;
 
     mHostImageCopyProperties = {};
-    mHostImageCopyProperties.sType =
-        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_HOST_IMAGE_COPY_PROPERTIES_EXT;
+    mHostImageCopyProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_HOST_IMAGE_COPY_PROPERTIES;
 
     m8BitStorageFeatures       = {};
     m8BitStorageFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_8BIT_STORAGE_FEATURES_KHR;
@@ -3700,7 +3723,7 @@ void Renderer::queryDeviceExtensionFeatures(const vk::ExtensionNameList &deviceE
 
     mPhysicalDeviceGlobalPriorityQueryFeatures = {};
     mPhysicalDeviceGlobalPriorityQueryFeatures.sType =
-        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GLOBAL_PRIORITY_QUERY_FEATURES_EXT;
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GLOBAL_PRIORITY_QUERY_FEATURES;
 
     mExternalMemoryHostProperties = {};
     mExternalMemoryHostProperties.sType =
@@ -3752,6 +3775,8 @@ void Renderer::queryDeviceExtensionFeatures(const vk::ExtensionNameList &deviceE
     appendDeviceExtensionFeaturesPromotedTo12(deviceExtensionNames, &deviceFeatures,
                                               &deviceProperties);
     appendDeviceExtensionFeaturesPromotedTo13(deviceExtensionNames, &deviceFeatures,
+                                              &deviceProperties);
+    appendDeviceExtensionFeaturesPromotedTo14(deviceExtensionNames, &deviceFeatures,
                                               &deviceProperties);
 
     vkGetPhysicalDeviceFeatures2(mPhysicalDevice, &deviceFeatures);
@@ -3849,8 +3874,6 @@ void Renderer::queryDeviceExtensionFeatures(const vk::ExtensionNameList &deviceE
 // - VK_KHR_external_fence_fd
 // - VK_FUCHSIA_external_semaphore
 // - VK_EXT_shader_stencil_export
-// - VK_EXT_load_store_op_none
-// - VK_QCOM_render_pass_store_ops
 // - VK_GOOGLE_display_timing
 // - VK_EXT_external_memory_dma_buf
 // - VK_EXT_image_drm_format_modifier
@@ -3869,7 +3892,10 @@ void Renderer::enableDeviceExtensionsNotPromoted(const vk::ExtensionNameList &de
 
     if (mFeatures.supportsDepthClampZeroOne.enabled)
     {
-        mEnabledDeviceExtensions.push_back(VK_EXT_DEPTH_CLAMP_ZERO_ONE_EXTENSION_NAME);
+        const bool hasKHR =
+            ExtensionFound(VK_KHR_DEPTH_CLAMP_ZERO_ONE_EXTENSION_NAME, deviceExtensionNames);
+        mEnabledDeviceExtensions.push_back(hasKHR ? VK_KHR_DEPTH_CLAMP_ZERO_ONE_EXTENSION_NAME
+                                                  : VK_EXT_DEPTH_CLAMP_ZERO_ONE_EXTENSION_NAME);
         vk::AddToPNextChain(&mEnabledFeatures, &mDepthClampZeroOneFeatures);
     }
 
@@ -3924,42 +3950,15 @@ void Renderer::enableDeviceExtensionsNotPromoted(const vk::ExtensionNameList &de
         mEnabledDeviceExtensions.push_back(VK_EXT_SHADER_STENCIL_EXPORT_EXTENSION_NAME);
     }
 
-    if (mFeatures.supportsRenderPassLoadStoreOpNone.enabled)
-    {
-        mEnabledDeviceExtensions.push_back(VK_EXT_LOAD_STORE_OP_NONE_EXTENSION_NAME);
-    }
-    else if (mFeatures.supportsRenderPassStoreOpNone.enabled)
-    {
-        mEnabledDeviceExtensions.push_back(VK_QCOM_RENDER_PASS_STORE_OPS_EXTENSION_NAME);
-    }
-
     if (mFeatures.supportsTimestampSurfaceAttribute.enabled)
     {
         mEnabledDeviceExtensions.push_back(VK_GOOGLE_DISPLAY_TIMING_EXTENSION_NAME);
-    }
-
-    if (mFeatures.bresenhamLineRasterization.enabled)
-    {
-        mEnabledDeviceExtensions.push_back(VK_EXT_LINE_RASTERIZATION_EXTENSION_NAME);
-        vk::AddToPNextChain(&mEnabledFeatures, &mLineRasterizationFeatures);
     }
 
     if (mFeatures.provokingVertex.enabled)
     {
         mEnabledDeviceExtensions.push_back(VK_EXT_PROVOKING_VERTEX_EXTENSION_NAME);
         vk::AddToPNextChain(&mEnabledFeatures, &mProvokingVertexFeatures);
-    }
-
-    if (mVertexAttributeDivisorFeatures.vertexAttributeInstanceRateDivisor)
-    {
-        mEnabledDeviceExtensions.push_back(VK_EXT_VERTEX_ATTRIBUTE_DIVISOR_EXTENSION_NAME);
-        vk::AddToPNextChain(&mEnabledFeatures, &mVertexAttributeDivisorFeatures);
-
-        // We only store 8 bit divisor in GraphicsPipelineDesc so capping value & we emulate if
-        // exceeded
-        mMaxVertexAttribDivisor =
-            std::min(mVertexAttributeDivisorProperties.maxVertexAttribDivisor,
-                     static_cast<uint32_t>(std::numeric_limits<uint8_t>::max()));
     }
 
     if (mFeatures.supportsTransformFeedbackExtension.enabled)
@@ -3972,12 +3971,6 @@ void Renderer::enableDeviceExtensionsNotPromoted(const vk::ExtensionNameList &de
     {
         mEnabledDeviceExtensions.push_back(VK_EXT_CUSTOM_BORDER_COLOR_EXTENSION_NAME);
         vk::AddToPNextChain(&mEnabledFeatures, &mCustomBorderColorFeatures);
-    }
-
-    if (mFeatures.supportsIndexTypeUint8.enabled)
-    {
-        mEnabledDeviceExtensions.push_back(VK_EXT_INDEX_TYPE_UINT8_EXTENSION_NAME);
-        vk::AddToPNextChain(&mEnabledFeatures, &mIndexTypeUint8Features);
     }
 
     if (mFeatures.supportsMultisampledRenderToSingleSampled.enabled)
@@ -4100,11 +4093,10 @@ void Renderer::enableDeviceExtensionsNotPromoted(const vk::ExtensionNameList &de
 
     if (mFeatures.supportsSwapchainMaintenance1.enabled)
     {
-        const bool hasSwapchainMaintenance1KHR =
+        const bool hasKHR =
             ExtensionFound(VK_KHR_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME, deviceExtensionNames);
-        mEnabledDeviceExtensions.push_back(hasSwapchainMaintenance1KHR
-                                               ? VK_KHR_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME
-                                               : VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME);
+        mEnabledDeviceExtensions.push_back(hasKHR ? VK_KHR_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME
+                                                  : VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME);
         vk::AddToPNextChain(&mEnabledFeatures, &mSwapchainMaintenance1Features);
     }
 
@@ -4114,33 +4106,10 @@ void Renderer::enableDeviceExtensionsNotPromoted(const vk::ExtensionNameList &de
         vk::AddToPNextChain(&mEnabledFeatures, &mDitheringFeatures);
     }
 
-    if (mFeatures.supportsFormatFeatureFlags2.enabled)
-    {
-        mEnabledDeviceExtensions.push_back(VK_KHR_FORMAT_FEATURE_FLAGS_2_EXTENSION_NAME);
-    }
-
-    if (mFeatures.supportsHostImageCopy.enabled)
-    {
-        // VK_EXT_host_image_copy requires VK_KHR_copy_commands2 and VK_KHR_format_feature_flags2.
-        // VK_KHR_format_feature_flags2 is enabled separately.
-        ASSERT(ExtensionFound(VK_KHR_COPY_COMMANDS_2_EXTENSION_NAME, deviceExtensionNames));
-        ASSERT(ExtensionFound(VK_KHR_FORMAT_FEATURE_FLAGS_2_EXTENSION_NAME, deviceExtensionNames));
-        mEnabledDeviceExtensions.push_back(VK_KHR_COPY_COMMANDS_2_EXTENSION_NAME);
-
-        mEnabledDeviceExtensions.push_back(VK_EXT_HOST_IMAGE_COPY_EXTENSION_NAME);
-        vk::AddToPNextChain(&mEnabledFeatures, &mHostImageCopyFeatures);
-    }
-
     if (getFeatures().supportsVertexInputDynamicState.enabled)
     {
         mEnabledDeviceExtensions.push_back(VK_EXT_VERTEX_INPUT_DYNAMIC_STATE_EXTENSION_NAME);
         vk::AddToPNextChain(&mEnabledFeatures, &mVertexInputDynamicStateFeatures);
-    }
-
-    if (getFeatures().supportsDynamicRenderingLocalRead.enabled)
-    {
-        mEnabledDeviceExtensions.push_back(VK_KHR_DYNAMIC_RENDERING_LOCAL_READ_EXTENSION_NAME);
-        vk::AddToPNextChain(&mEnabledFeatures, &mDynamicRenderingLocalReadFeatures);
     }
 
     if (getFeatures().supportsUnifiedImageLayouts.enabled)
@@ -4203,17 +4172,6 @@ void Renderer::enableDeviceExtensionsNotPromoted(const vk::ExtensionNameList &de
         vk::AddToPNextChain(&mEnabledFeatures, &mExternalFormatResolveFeatures);
     }
 #endif
-
-    if (mFeatures.supportsGlobalPriority.enabled)
-    {
-        mEnabledDeviceExtensions.push_back(VK_EXT_GLOBAL_PRIORITY_EXTENSION_NAME);
-    }
-
-    if (mFeatures.supportsGlobalPriorityQuery.enabled)
-    {
-        mEnabledDeviceExtensions.push_back(VK_EXT_GLOBAL_PRIORITY_QUERY_EXTENSION_NAME);
-        vk::AddToPNextChain(&mEnabledFeatures, &mPhysicalDeviceGlobalPriorityQueryFeatures);
-    }
 
     if (getFeatures().supportsTileMemoryHeap.enabled)
     {
@@ -4360,7 +4318,11 @@ void Renderer::enableDeviceExtensionsPromotedTo12(const vk::ExtensionNameList &d
     }
 }
 
-// See comment above appendDeviceExtensionFeaturesPromotedTo13.
+// See comment above appendDeviceExtensionFeaturesPromotedTo13.  Additional extensions are enabled
+// here which don't have feature structs:
+//
+// - VK_KHR_format_feature_flags2
+//
 void Renderer::enableDeviceExtensionsPromotedTo13(const vk::ExtensionNameList &deviceExtensionNames)
 {
     if (mFeatures.supportsPipelineCreationFeedback.enabled)
@@ -4398,6 +4360,11 @@ void Renderer::enableDeviceExtensionsPromotedTo13(const vk::ExtensionNameList &d
         vk::AddToPNextChain(&mEnabledFeatures, &mMaintenance5Features);
     }
 
+    if (mFeatures.supportsFormatFeatureFlags2.enabled)
+    {
+        mEnabledDeviceExtensions.push_back(VK_KHR_FORMAT_FEATURE_FLAGS_2_EXTENSION_NAME);
+    }
+
     if (getFeatures().supportsTextureCompressionAstcHdr.enabled)
     {
         mEnabledDeviceExtensions.push_back(VK_EXT_TEXTURE_COMPRESSION_ASTC_HDR_EXTENSION_NAME);
@@ -4415,6 +4382,86 @@ void Renderer::enableDeviceExtensionsPromotedTo13(const vk::ExtensionNameList &d
         mEnabledDeviceExtensions.push_back(
             VK_EXT_SHADER_DEMOTE_TO_HELPER_INVOCATION_EXTENSION_NAME);
         vk::AddToPNextChain(&mEnabledFeatures, &mShaderDemoteToHelperInvocationFeatures);
+    }
+}
+
+// See comment above appendDeviceExtensionFeaturesPromotedTo14.  Additional extensions are enabled
+// here which don't have feature structs:
+//
+// - VK_KHR_load_store_op_none
+// - VK_EXT_load_store_op_none
+// - VK_QCOM_render_pass_store_ops
+//
+void Renderer::enableDeviceExtensionsPromotedTo14(const vk::ExtensionNameList &deviceExtensionNames)
+{
+    if (mFeatures.bresenhamLineRasterization.enabled)
+    {
+        const bool hasKHR =
+            ExtensionFound(VK_KHR_LINE_RASTERIZATION_EXTENSION_NAME, deviceExtensionNames);
+        mEnabledDeviceExtensions.push_back(hasKHR ? VK_KHR_LINE_RASTERIZATION_EXTENSION_NAME
+                                                  : VK_EXT_LINE_RASTERIZATION_EXTENSION_NAME);
+        vk::AddToPNextChain(&mEnabledFeatures, &mLineRasterizationFeatures);
+    }
+
+    if (mVertexAttributeDivisorFeatures.vertexAttributeInstanceRateDivisor)
+    {
+        const bool hasKHR =
+            ExtensionFound(VK_KHR_VERTEX_ATTRIBUTE_DIVISOR_EXTENSION_NAME, deviceExtensionNames);
+
+        mEnabledDeviceExtensions.push_back(hasKHR ? VK_KHR_VERTEX_ATTRIBUTE_DIVISOR_EXTENSION_NAME
+                                                  : VK_EXT_VERTEX_ATTRIBUTE_DIVISOR_EXTENSION_NAME);
+        vk::AddToPNextChain(&mEnabledFeatures, &mVertexAttributeDivisorFeatures);
+
+        // We only store 8 bit divisor in GraphicsPipelineDesc so capping value & we emulate if
+        // exceeded
+        mMaxVertexAttribDivisor =
+            std::min(mVertexAttributeDivisorProperties.maxVertexAttribDivisor,
+                     static_cast<uint32_t>(std::numeric_limits<uint8_t>::max()));
+    }
+
+    if (mFeatures.supportsIndexTypeUint8.enabled)
+    {
+        const bool hasKHR =
+            ExtensionFound(VK_KHR_INDEX_TYPE_UINT8_EXTENSION_NAME, deviceExtensionNames);
+        mEnabledDeviceExtensions.push_back(hasKHR ? VK_KHR_INDEX_TYPE_UINT8_EXTENSION_NAME
+                                                  : VK_EXT_INDEX_TYPE_UINT8_EXTENSION_NAME);
+        vk::AddToPNextChain(&mEnabledFeatures, &mIndexTypeUint8Features);
+    }
+
+    if (mFeatures.supportsGlobalPriority.enabled)
+    {
+        mEnabledDeviceExtensions.push_back(VK_KHR_GLOBAL_PRIORITY_EXTENSION_NAME);
+        vk::AddToPNextChain(&mEnabledFeatures, &mPhysicalDeviceGlobalPriorityQueryFeatures);
+    }
+
+    if (getFeatures().supportsDynamicRenderingLocalRead.enabled)
+    {
+        mEnabledDeviceExtensions.push_back(VK_KHR_DYNAMIC_RENDERING_LOCAL_READ_EXTENSION_NAME);
+        vk::AddToPNextChain(&mEnabledFeatures, &mDynamicRenderingLocalReadFeatures);
+    }
+
+    if (mFeatures.supportsHostImageCopy.enabled)
+    {
+        // VK_EXT_host_image_copy requires VK_KHR_copy_commands2 and VK_KHR_format_feature_flags2.
+        // VK_KHR_format_feature_flags2 is enabled separately.
+        ASSERT(ExtensionFound(VK_KHR_COPY_COMMANDS_2_EXTENSION_NAME, deviceExtensionNames));
+        ASSERT(ExtensionFound(VK_KHR_FORMAT_FEATURE_FLAGS_2_EXTENSION_NAME, deviceExtensionNames));
+        mEnabledDeviceExtensions.push_back(VK_KHR_COPY_COMMANDS_2_EXTENSION_NAME);
+
+        mEnabledDeviceExtensions.push_back(VK_EXT_HOST_IMAGE_COPY_EXTENSION_NAME);
+        vk::AddToPNextChain(&mEnabledFeatures, &mHostImageCopyFeatures);
+    }
+
+    if (mFeatures.supportsRenderPassLoadStoreOpNone.enabled)
+    {
+        const bool hasKHR =
+            ExtensionFound(VK_KHR_LOAD_STORE_OP_NONE_EXTENSION_NAME, deviceExtensionNames);
+        mEnabledDeviceExtensions.push_back(hasKHR ? VK_KHR_LOAD_STORE_OP_NONE_EXTENSION_NAME
+                                                  : VK_EXT_LOAD_STORE_OP_NONE_EXTENSION_NAME);
+    }
+    else if (mFeatures.supportsRenderPassStoreOpNone.enabled)
+    {
+        mEnabledDeviceExtensions.push_back(VK_QCOM_RENDER_PASS_STORE_OPS_EXTENSION_NAME);
     }
 }
 
@@ -4496,6 +4543,7 @@ angle::Result Renderer::enableDeviceExtensions(vk::ErrorContext *context,
     enableDeviceExtensionsPromotedTo11(deviceExtensionNames);
     enableDeviceExtensionsPromotedTo12(deviceExtensionNames);
     enableDeviceExtensionsPromotedTo13(deviceExtensionNames);
+    enableDeviceExtensionsPromotedTo14(deviceExtensionNames);
 
     std::sort(mEnabledDeviceExtensions.begin(), mEnabledDeviceExtensions.end(), StrLess);
     ANGLE_VK_TRY(context, VerifyExtensionsPresent(deviceExtensionNames, mEnabledDeviceExtensions));
@@ -4724,8 +4772,8 @@ angle::Result Renderer::createDeviceAndQueue(vk::ErrorContext *context,
     uint32_t queueCount = std::min(queueFamily.getDeviceQueueCount(),
                                    static_cast<uint32_t>(egl::ContextPriority::EnumCount));
 
-    // We use VK_QUEUE_GLOBAL_PRIORITY_REALTIME_EXT only if queueCount >=3
-    if (globalPriority == VK_QUEUE_GLOBAL_PRIORITY_REALTIME_EXT && queueCount < 3)
+    // We use VK_QUEUE_GLOBAL_PRIORITY_REALTIME only if queueCount >=3
+    if (globalPriority == VK_QUEUE_GLOBAL_PRIORITY_REALTIME && queueCount < 3)
     {
         globalPriority = VK_QUEUE_GLOBAL_PRIORITY_MEDIUM;
     }
@@ -4735,10 +4783,10 @@ angle::Result Renderer::createDeviceAndQueue(vk::ErrorContext *context,
     VkDeviceQueueGlobalPriorityCreateInfo queueGlobalPriorityCreateInfo[3] = {};
 
     // If global priority is supported, we split queueCreateInfo into three groups so that the
-    // middle group uses VK_QUEUE_GLOBAL_PRIORITY_REALTIME_EXT.
-    if (globalPriority == VK_QUEUE_GLOBAL_PRIORITY_REALTIME_EXT)
+    // middle group uses VK_QUEUE_GLOBAL_PRIORITY_REALTIME.
+    if (globalPriority == VK_QUEUE_GLOBAL_PRIORITY_REALTIME)
     {
-        ASSERT(mFeatures.supportsGlobalPriorityQuery.enabled);
+        ASSERT(mFeatures.supportsGlobalPriority.enabled);
         ASSERT(queueCount >= 3);
 
         // queueCreateInfo[0] is for Medium and High
@@ -4763,7 +4811,7 @@ angle::Result Renderer::createDeviceAndQueue(vk::ErrorContext *context,
         queueCreateInfo[1].pQueuePriorities = &vk::QueueFamily::kQueuePriorities[2];
         queueGlobalPriorityCreateInfo[1].sType =
             VK_STRUCTURE_TYPE_DEVICE_QUEUE_GLOBAL_PRIORITY_CREATE_INFO;
-        queueGlobalPriorityCreateInfo[1].globalPriority = VK_QUEUE_GLOBAL_PRIORITY_REALTIME_EXT;
+        queueGlobalPriorityCreateInfo[1].globalPriority = VK_QUEUE_GLOBAL_PRIORITY_REALTIME;
         vk::AddToPNextChain(&queueCreateInfo[1], &queueGlobalPriorityCreateInfo[1]);
         queueCreateInfoCount++;
 
@@ -5268,6 +5316,17 @@ gl::Version Renderer::getMaxSupportedESVersion() const
         maxVersion = LimitVersionTo(maxVersion, {2, 0});
     }*/
 
+    // Verify minimum requirements of ANGLE:
+    //
+    // - VK_KHR_index_type_uint8 or VK_EXT_index_type_uint8
+    //
+    if (!mFeatures.supportsIndexTypeUint8.enabled)
+    {
+        WARN() << "Vulkan device does not meet ANGLE's minimum requirements";
+        WARN() << "  Missing VK_EXT_index_type_uint8 or VK_KHR_index_type_uint8";
+        maxVersion = LimitVersionTo(maxVersion, {0, 0});
+    }
+
     return maxVersion;
 }
 
@@ -5760,15 +5819,16 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
 
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsRenderPassLoadStoreOpNone,
-        ExtensionFound(VK_EXT_LOAD_STORE_OP_NONE_EXTENSION_NAME, deviceExtensionNames));
-
-    ANGLE_FEATURE_CONDITION(&mFeatures, disallowMixedDepthStencilLoadOpNoneAndLoad,
-                            isARMProprietary && driverVersion < angle::VersionTriple(38, 1, 0));
+        ExtensionFound(VK_KHR_LOAD_STORE_OP_NONE_EXTENSION_NAME, deviceExtensionNames) ||
+            ExtensionFound(VK_EXT_LOAD_STORE_OP_NONE_EXTENSION_NAME, deviceExtensionNames));
 
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsRenderPassStoreOpNone,
         !mFeatures.supportsRenderPassLoadStoreOpNone.enabled &&
             ExtensionFound(VK_QCOM_RENDER_PASS_STORE_OPS_EXTENSION_NAME, deviceExtensionNames));
+
+    ANGLE_FEATURE_CONDITION(&mFeatures, disallowMixedDepthStencilLoadOpNoneAndLoad,
+                            isARMProprietary && driverVersion < angle::VersionTriple(38, 1, 0));
 
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsDepthClipControl,
                             mDepthClipControlFeatures.depthClipControl == VK_TRUE);
@@ -6923,17 +6983,11 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     ANGLE_FEATURE_CONDITION(&mFeatures, supportsUnifiedImageLayouts,
                             mUnifiedImageLayoutsFeatures.unifiedImageLayouts == VK_TRUE);
 
-    ANGLE_FEATURE_CONDITION(
-        &mFeatures, supportsGlobalPriority,
-        ExtensionFound(VK_EXT_GLOBAL_PRIORITY_EXTENSION_NAME, deviceExtensionNames));
-
     // REALTIME priority is not permitted on most operating systems.  This feature is limited to
     // Android for now.
     ANGLE_FEATURE_CONDITION(
-        &mFeatures, supportsGlobalPriorityQuery,
-        mFeatures.supportsGlobalPriority.enabled &&
-            mPhysicalDeviceGlobalPriorityQueryFeatures.globalPriorityQuery == VK_TRUE &&
-            IsAndroid());
+        &mFeatures, supportsGlobalPriority,
+        mPhysicalDeviceGlobalPriorityQueryFeatures.globalPriorityQuery == VK_TRUE && IsAndroid());
 
     // There are use cases where synchronization is not performed properly when texture is modified
     // between different contexts. To avoid rendering artifacts, force submit staged updates.
