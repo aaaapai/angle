@@ -19,7 +19,7 @@ static void* vulkan_load_from_pojavexec() {
     // 首先检查环境变量 VULKAN_PTR
     const char* vulkan_ptr_env = std::getenv("VULKAN_PTR");
     const char* turnipEnv = std::getenv("ANGLE_LOAD_TURNIP");
-    if (vulkan_ptr_env && turnipEnv) {
+    if (vulkan_ptr_env && (std::string(turnipEnv) == "true")) {
         printf("[ANGLE] Use VULKAN_PTR = %s\n", vulkan_ptr_env);
         return (void*)std::strtoul(vulkan_ptr_env, NULL, 0x10);
     }
