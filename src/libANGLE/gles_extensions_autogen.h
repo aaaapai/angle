@@ -109,7 +109,7 @@ struct Extensions
     bool clipControlEXT = false;
 
     // GL_EXT_clip_cull_distance
-    bool clipCullDistanceEXT = false;
+    bool clipCullDistanceEXT = true;
 
     // GL_APPLE_clip_distance
     bool clipDistanceAPPLE = false;
@@ -340,7 +340,7 @@ struct Extensions
     bool pixelBufferObjectNV = false;
 
     // GL_NV_polygon_mode
-    bool polygonModeNV = false;
+    bool polygonModeNV = true;
 
     // GL_EXT_polygon_offset_clamp
     bool polygonOffsetClampEXT = false;
