@@ -3494,7 +3494,11 @@ bool GetQueryParameterInfo(const State &glState,
         case GL_COLOR_LOGIC_OP:
         {
 
-            break;
+            if (clientVersion < ES_2_0)
+            {
+                // Handle logicOp in GLES1 through GLES1 state management.
+                break;
+            }
 
             if (!extensions.logicOpANGLE)
             {
@@ -3586,9 +3590,23 @@ bool GetQueryParameterInfo(const State &glState,
         case GL_CLIP_DISTANCE5_EXT:
         case GL_CLIP_DISTANCE6_EXT:
         case GL_CLIP_DISTANCE7_EXT:
+
+            if (clientVersion < ES_2_0)
+            {
+                break;
+            }
+
+            if (!extensions.clipDistanceAPPLE && !extensions.clipCullDistanceAny())
+            {
+                // NOTE(hqle): if client version is 1. GL_MAX_CLIP_DISTANCES_EXT is equal
+                // to GL_MAX_CLIP_PLANES which is a valid enum.
+                break;
+            }
+
             *type      = (pname == GL_MAX_CLIP_DISTANCES_EXT) ? GL_INT : GL_BOOL;
             *numParams = 1;
-            break;
+            return true;
+
         case GL_MAX_CULL_DISTANCES_EXT:
         case GL_MAX_COMBINED_CLIP_AND_CULL_DISTANCES_EXT:
             if (!extensions.clipCullDistanceAny())
