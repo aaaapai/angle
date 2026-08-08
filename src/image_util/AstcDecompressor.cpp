@@ -138,7 +138,7 @@ class AstcDecompressorContextCache
         }
     };
 
-    absl::flat_hash_map<Key, Value, KeyHash> mContexts;
+    std::unordered_map<Key, Value, KeyHash> mContexts;
 };
 
 struct DecompressTask : public Closure
