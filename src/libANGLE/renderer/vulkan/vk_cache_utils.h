@@ -2850,7 +2850,7 @@ class DescriptorSetLayoutCache final : angle::NonCopyable
 
   private:
     mutable angle::SimpleMutex mMutex;
-    absl::flat_hash_map<vk::DescriptorSetLayoutDesc, vk::DescriptorSetLayoutPtr> mPayload;
+    std::unordered_map<vk::DescriptorSetLayoutDesc, vk::DescriptorSetLayoutPtr> mPayload;
     CacheStats mCacheStats;
 };
 
@@ -2869,7 +2869,7 @@ class PipelineLayoutCache final : public HasCacheStats<VulkanCacheType::Pipeline
 
   private:
     mutable angle::SimpleMutex mMutex;
-    absl::flat_hash_map<vk::PipelineLayoutDesc, vk::PipelineLayoutPtr> mPayload;
+    std::unordered_map<vk::PipelineLayoutDesc, vk::PipelineLayoutPtr> mPayload;
 };
 
 class SamplerCache final : public HasCacheStats<VulkanCacheType::Sampler>
@@ -2885,7 +2885,7 @@ class SamplerCache final : public HasCacheStats<VulkanCacheType::Sampler>
                              vk::SharedSamplerPtr *samplerOut);
 
   private:
-   absl::flat_hash_map<vk::SamplerDesc, vk::SharedSamplerPtr> mPayload;
+   std::unordered_map<vk::SamplerDesc, vk::SharedSamplerPtr> mPayload;
 };
 
 // YuvConversion Cache
@@ -2904,7 +2904,7 @@ class SamplerYcbcrConversionCache final
 
   private:
     using SamplerYcbcrConversionMap =
-         absl::flat_hash_map<vk::YcbcrConversionDesc, vk::SamplerYcbcrConversion>;
+         std::unordered_map<vk::YcbcrConversionDesc, vk::SamplerYcbcrConversion>;
     SamplerYcbcrConversionMap mExternalFormatPayload;
     SamplerYcbcrConversionMap mVkFormatPayload;
 };
