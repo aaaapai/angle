@@ -227,7 +227,7 @@ class MemoryAllocationTracker : angle::NonCopyable
     // allocation ID and a record of all active allocations.
     uint64_t mMemoryAllocationID;
     using MemoryAllocInfoMap = angle::HashMap<vk::MemoryAllocInfoMapKey, vk::MemoryAllocationInfo>;
-    absl::flat_hash_map<angle::BacktraceInfo, MemoryAllocInfoMap> mMemoryAllocationRecord;
+    std::unordered_map<angle::BacktraceInfo, MemoryAllocInfoMap> mMemoryAllocationRecord;
 };
 }  // namespace rx
 
