@@ -1641,12 +1641,7 @@ void GenerateCaps(const FunctionsGL *functions,
     extensions->textureShadowLodEXT = functions->hasExtension("GL_EXT_texture_shadow_lod");
 
     extensions->multiDrawIndirectEXT = true;
-    extensions->instancedArraysANGLE = functions->isAtLeastGL(gl::Version(3, 1)) ||
-                                       (functions->hasGLExtension("GL_ARB_instanced_arrays") &&
-                                        (functions->hasGLExtension("GL_ARB_draw_instanced") ||
-                                         functions->hasGLExtension("GL_EXT_draw_instanced"))) ||
-                                       functions->isAtLeastGLES(gl::Version(3, 0)) ||
-                                       functions->hasGLESExtension("GL_EXT_instanced_arrays");
+    extensions->instancedArraysANGLE = nativegl::SupportsInstancing(functions);
     extensions->instancedArraysEXT = extensions->instancedArraysANGLE;
     extensions->unpackSubimageEXT  = nativegl::SupportsUnpackSubImage(functions);
     // Some drivers do not support this extension in ESSL 3.00, so ESSL 3.10 is required on ES.
@@ -1655,10 +1650,7 @@ void GenerateCaps(const FunctionsGL *functions,
         (functions->isAtLeastGLES(gl::Version(3, 1)) &&
          functions->hasGLESExtension("GL_NV_shader_noperspective_interpolation"));
     extensions->packSubimageNV       = nativegl::SupportsPackSubImage(functions);
-    extensions->vertexArrayObjectOES = functions->isAtLeastGL(gl::Version(3, 0)) ||
-                                       functions->hasGLExtension("GL_ARB_vertex_array_object") ||
-                                       functions->isAtLeastGLES(gl::Version(3, 0)) ||
-                                       functions->hasGLESExtension("GL_OES_vertex_array_object");
+    extensions->vertexArrayObjectOES = nativegl::SupportsVertexArrayObjects(functions);
     extensions->debugMarkerEXT = functions->isAtLeastGL(gl::Version(4, 3)) ||
                                  functions->hasGLExtension("GL_KHR_debug") ||
                                  functions->hasGLExtension("GL_EXT_debug_marker") ||
@@ -3100,6 +3092,16 @@ bool SupportsSampleMask(const FunctionsGL *functions)
 bool SupportsRasterizerDiscard(const FunctionsGL *functions)
 {
     return functions->isAtLeastGLES(gl::Version(3, 0)) || functions->isAtLeastGL(gl::Version(3, 0));
+}
+
+bool SupportsInstancing(const FunctionsGL *functions)
+{
+    return functions->isAtLeastGL(gl::Version(3, 1)) ||
+           (functions->hasGLExtension("GL_ARB_instanced_arrays") &&
+            (functions->hasGLExtension("GL_ARB_draw_instanced") ||
+             functions->hasGLExtension("GL_EXT_draw_instanced"))) ||
+           functions->isAtLeastGLES(gl::Version(3, 0)) ||
+           functions->hasGLESExtension("GL_EXT_instanced_arrays");
 }
 
 bool SupportsNativeRendering(const FunctionsGL *functions,
