@@ -1635,6 +1635,25 @@ angle::Result UtilsVk::ensureConvertIndexResourcesInitialized(ContextVk *context
                                       ArraySize(setSizes), sizeof(ConvertIndexShaderParams));
 }
 
+angle::Result UtilsVk::ensureConvertIndexIndirectResourcesInitialized(ContextVk *contextVk)
+{
+    if (mPipelineLayouts[Function::ConvertIndexIndirectBuffer])
+    {
+        return angle::Result::Continue;
+    }
+
+    VkDescriptorPoolSize setSizes[4] = {
+        {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1},  // dst index buffer
+        {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1},  // source index buffer
+        {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1},  // src indirect buffer
+        {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1},  // dst indirect buffer
+    };
+
+    return ensureResourcesInitialized(contextVk, Function::ConvertIndexIndirectBuffer, setSizes,
+                                      ArraySize(setSizes),
+                                      sizeof(ConvertIndexIndirectShaderParams));
+}
+
 angle::Result UtilsVk::ensureConvertIndexIndirectLineLoopResourcesInitialized(ContextVk *contextVk)
 {
     if (mPipelineLayouts[Function::ConvertIndexIndirectLineLoopBuffer])
