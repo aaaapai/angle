@@ -532,7 +532,7 @@ static GLenum GetNativeInternalFormat(const FunctionsGL *functions,
     else if (functions->isAtLeastGLES(gl::Version(3, 0)))
     {
 
-      if (!std::getenv("ANGLE_DISABLED_DESKTOPGL_FORMAT_UTIL")) {
+      if (std::getenv("ANGLE_ENABLED_DESKTOPGL_FORMAT_UTIL")) {
       result = internalFormat.sizedInternalFormat;
 
       if ((internalFormat.sizedInternalFormat == GL_BGRA_EXT ||
