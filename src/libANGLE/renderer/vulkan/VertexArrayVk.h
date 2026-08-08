@@ -225,6 +225,8 @@ class VertexArrayVk : public VertexArrayImpl
     vk::BufferHelperQueue mCachedStreamIndexBuffers;
 
     ConversionBuffer mStreamedIndexData;
+    ConversionBuffer mTranslatedByteIndexData;
+    ConversionBuffer mTranslatedByteIndirectData;
 
     LineLoopHelper mLineLoopHelper;
     Optional<GLint> mLineLoopBufferFirstIndex;
