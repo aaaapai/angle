@@ -525,9 +525,9 @@ static bool DetermineSRGBTextureSupport(const TextureCapsMap &textureCaps)
         GL_SRGB8_ALPHA8,
     };
 
-    /*return GetFormatSupport(textureCaps, requiredFilterFormats, true, true, false, false, false) &&
-           GetFormatSupport(textureCaps, requiredRenderFormats, true, false, true, true, false);*/
-    return true;
+    return GetFormatSupport(textureCaps, requiredFilterFormats, true, true, false, false, false) &&
+           GetFormatSupport(textureCaps, requiredRenderFormats, true, false, true, true, false);
+    //return true;
 }
 
 // Check for GL_EXT_texture_sRGB_R8 support
@@ -611,8 +611,8 @@ static bool DetermineColorBufferFloatRGBSupport(const TextureCapsMap &textureCap
         GL_RGB32F,
     };
 
-    //return GetFormatSupport(textureCaps, requiredFormats, true, false, true, false, false);
-    return true;
+    return GetFormatSupport(textureCaps, requiredFormats, true, false, true, false, false);
+    //return true;
 }
 
 // Check for GL_CHROMIUM_color_buffer_float_rgba support
@@ -622,8 +622,8 @@ static bool DetermineColorBufferFloatRGBASupport(const TextureCapsMap &textureCa
         GL_RGBA32F,
     };
 
-    //return GetFormatSupport(textureCaps, requiredFormats, true, false, true, true, false);
-    return true;
+    return GetFormatSupport(textureCaps, requiredFormats, true, false, true, true, false);
+    //return true;
 }
 
 // Check for GL_EXT_color_buffer_float support
@@ -642,9 +642,9 @@ static bool DetermineColorBufferFloatSupport(const TextureCapsMap &textureCaps)
         GL_R11F_G11F_B10F,
     };
 
-    /*return GetFormatSupport(textureCaps, nonBlendableFormats, true, false, true, true, false) &&
-           GetFormatSupport(textureCaps, blendableFormats, true, false, true, true, true);*/
-    return true;
+    return GetFormatSupport(textureCaps, nonBlendableFormats, true, false, true, true, false) &&
+           GetFormatSupport(textureCaps, blendableFormats, true, false, true, true, true);
+    //return true;
 }
 
 // Check for GL_EXT_float_blend support
@@ -656,8 +656,8 @@ static bool DetermineFloatBlendSupport(const TextureCapsMap &textureCaps)
         GL_RGBA32F,
     };
 
-    //return GetFormatSupport(textureCaps, requiredFormats, true, false, true, true, true);
-  return true;
+    return GetFormatSupport(textureCaps, requiredFormats, true, false, true, true, true);
+  //return true;
 }
 
 // Check for GL_EXT_texture_norm16 support
@@ -674,9 +674,9 @@ static bool DetermineTextureNorm16Support(const TextureCapsMap &textureCaps)
         GL_RGBA16_EXT,
     };
 
-    /*return GetFormatSupport(textureCaps, requiredFilterFormats, true, true, false, false, false) &&
-           GetFormatSupport(textureCaps, requiredRenderFormats, true, false, true, true, false);*/
-    return true;
+    return GetFormatSupport(textureCaps, requiredFilterFormats, true, true, false, false, false) &&
+           GetFormatSupport(textureCaps, requiredRenderFormats, true, false, true, true, false);
+    //return true;
 }
 
 // Check for EXT_texture_compression_rgtc support
@@ -742,8 +742,8 @@ static bool DetermineStencilIndex8Support(const TextureCapsMap &textureCaps)
         GL_STENCIL_INDEX8,
     };
 
-    //return GetFormatSupport(textureCaps, requiredFormats, true, false, true, false, false);
-    return true;
+    return GetFormatSupport(textureCaps, requiredFormats, true, false, true, false, false);
+    //return true;
 }
 
 // Checks for GL_QCOM_render_shared_exponent support
@@ -753,8 +753,8 @@ static bool DetermineRenderSharedExponentSupport(const TextureCapsMap &textureCa
         GL_RGB9_E5,
     };
 
-    //return GetFormatSupport(textureCaps, requiredFormats, false, false, true, true, true);
-    return true;
+    return GetFormatSupport(textureCaps, requiredFormats, false, false, true, true, true);
+    //return true;
 }
 
 // Check for GL_EXT_render_snorm support
@@ -772,8 +772,7 @@ bool DetermineRenderSnormSupport(const TextureCapsMap &textureCaps, bool texture
         GL_RGBA16_SNORM_EXT,
     };
 
-    return true;
-    /*if (textureNorm16EXT &&
+    if (textureNorm16EXT &&
         !GetFormatSupport(textureCaps, requiredSnorm16Formats, false, false, true, true, true))
     {
         return false;
