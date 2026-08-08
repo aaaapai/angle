@@ -1478,7 +1478,7 @@ void PrivateState::setEnableFeature(GLenum feature, bool enabled)
             return;
         case GL_COLOR_LOGIC_OP:
             setLogicOpEnabled(enabled);
-            return;
+            break;
         case GL_PRIMITIVE_RESTART_FIXED_INDEX:
             setPrimitiveRestart(enabled);
             return;
@@ -1644,6 +1644,11 @@ bool PrivateState::getEnableFeature(GLenum feature) const
         case GL_DITHER:
             return isDitherEnabled();
         case GL_COLOR_LOGIC_OP:
+            if (mClientVersion < ES_2_0)
+            {
+                // Handle logicOp in GLES1 through the GLES1 state management and emulation.
+                break;
+            }
             return isLogicOpEnabled();
         case GL_PRIMITIVE_RESTART_FIXED_INDEX:
             return isPrimitiveRestartEnabled();
@@ -1820,8 +1825,15 @@ void PrivateState::getBooleanv(GLenum pname, GLboolean *params) const
             *params = mRasterizer.dither;
             break;
         case GL_COLOR_LOGIC_OP:
-            // Handle logicOp in GLES1 through the GLES1 state management.
-            *params = getEnableFeature(pname);
+            if (mClientVersion < ES_2_0)
+            {
+                // Handle logicOp in GLES1 through the GLES1 state management.
+                *params = getEnableFeature(pname);
+            }
+            else
+            {
+                *params = mLogicOpEnabled;
+            }
             break;
         case GL_PRIMITIVE_RESTART_FIXED_INDEX:
             *params = mPrimitiveRestart;
