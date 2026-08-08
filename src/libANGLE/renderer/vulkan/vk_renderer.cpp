@@ -5241,6 +5241,7 @@ gl::Version Renderer::getMaxSupportedESVersion() const
     {
         return maxVersion;
     }
+
     /*if (!CanSupportGLES32(mNativeExtensions))
     {
         maxVersion = LimitVersionTo(maxVersion, {3, 1});
@@ -5335,12 +5336,12 @@ gl::Version Renderer::getMaxSupportedESVersion() const
     //
     // - VK_KHR_index_type_uint8 or VK_EXT_index_type_uint8
     //
-    if (!mFeatures.supportsIndexTypeUint8.enabled)
+    /*if (!mFeatures.supportsIndexTypeUint8.enabled)
     {
         WARN() << "Vulkan device does not meet ANGLE's minimum requirements";
         WARN() << "  Missing VK_EXT_index_type_uint8 or VK_KHR_index_type_uint8";
         maxVersion = LimitVersionTo(maxVersion, {0, 0});
-    }
+    }*/
 
     return maxVersion;
 }
