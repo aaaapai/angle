@@ -477,7 +477,7 @@ class MetaDescriptorPool final : angle::NonCopyable
     }
 
   private:
-    absl::flat_hash_map<DescriptorSetLayoutDesc, DynamicDescriptorPoolPointer> mPayload;
+    std::unordered_map<DescriptorSetLayoutDesc, DynamicDescriptorPoolPointer> mPayload;
 };
 
 template <typename Pool>
