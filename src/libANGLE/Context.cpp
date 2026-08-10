@@ -7153,7 +7153,37 @@ void Context::multiDrawElementsBaseVertex(PrimitiveMode mode,
                                           GLsizei drawcount,
                                           const GLint *basevertex)
 {
-    UNIMPLEMENTED();
+    if (ANGLE_UNLIKELY(drawcount == 0))
+    {
+        return;
+    }
+
+    ANGLE_CONTEXT_TRY(prepareForDraw(mode));
+
+    Program *programObject = mState.getProgram();
+    const bool hasDrawID   = programObject && programObject->hasDrawIDUniform();
+    const bool hasBaseVertex = programObject && programObject->hasBaseVertexUniform();
+
+    for (GLsizei drawID = 0; drawID < drawcount; ++drawID)
+    {
+        if (ANGLE_UNLIKELY(noopDraw(mode, count[drawID])))
+        {
+            continue;
+        }
+
+        if (hasDrawID)
+        {
+            programObject->setDrawIDUniform(drawID);
+        }
+        if (hasBaseVertex)
+        {
+            programObject->setBaseVertexUniform(basevertex[drawID]);
+        }
+
+        ANGLE_CONTEXT_TRY(
+            mImplementation->drawElementsBaseVertex(this, mode, count[drawID], type,
+                                                    indices[drawID], basevertex[drawID]));
+    }
 }
 
 void Context::multiDrawElementsInstancedBaseVertexBaseInstance(PrimitiveMode mode,
