@@ -62,6 +62,7 @@
 #include "libANGLE/renderer/Format.h"
 #include "libANGLE/trace.h"
 #include "libANGLE/validationES.h"
+#include "libANGLE/ProgramExecutable.h"
 
 #if defined(ANGLE_PLATFORM_APPLE)
 #    include <dispatch/dispatch.h>
@@ -7161,8 +7162,8 @@ void Context::multiDrawElementsBaseVertex(PrimitiveMode mode,
     ANGLE_CONTEXT_TRY(prepareForDraw(mode));
 
     ProgramExecutable *executable = mState.getProgramExecutable();
-    const bool hasDrawID = executable && executable->hasDrawID();
-    const bool hasBaseVertex = executable && executable->hasBaseVertex();
+    const bool hasDrawID = executable && executable->hasDrawIDUniform();
+    const bool hasBaseVertex = executable && executable->hasBaseVertexUniform();
 
     for (GLsizei drawID = 0; drawID < drawcount; ++drawID)
     {
@@ -7173,11 +7174,11 @@ void Context::multiDrawElementsBaseVertex(PrimitiveMode mode,
 
         if (hasDrawID)
         {
-            executable->setDrawID(drawID);
+            executable->setDrawIDUniform(drawID);
         }
         if (hasBaseVertex)
         {
-            executable->setBaseVertex(basevertex[drawID]);
+            executable->setBaseVertexUniform(basevertex[drawID]);
         }
 
         ANGLE_CONTEXT_TRY(
