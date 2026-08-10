@@ -7160,9 +7160,9 @@ void Context::multiDrawElementsBaseVertex(PrimitiveMode mode,
 
     ANGLE_CONTEXT_TRY(prepareForDraw(mode));
 
-    Program *programObject = mState.getProgram();
-    const bool hasDrawID   = programObject && programObject->hasDrawIDUniform();
-    const bool hasBaseVertex = programObject && programObject->hasBaseVertexUniform();
+    ProgramExecutable *executable = mState.getProgramExecutable();
+    const bool hasDrawID = executable && executable->hasDrawID();
+    const bool hasBaseVertex = executable && executable->hasBaseVertex();
 
     for (GLsizei drawID = 0; drawID < drawcount; ++drawID)
     {
@@ -7173,11 +7173,11 @@ void Context::multiDrawElementsBaseVertex(PrimitiveMode mode,
 
         if (hasDrawID)
         {
-            programObject->setDrawIDUniform(drawID);
+            executable->setDrawID(drawID);
         }
         if (hasBaseVertex)
         {
-            programObject->setBaseVertexUniform(basevertex[drawID]);
+            executable->setBaseVertex(basevertex[drawID]);
         }
 
         ANGLE_CONTEXT_TRY(
