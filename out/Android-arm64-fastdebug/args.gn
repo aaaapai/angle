@@ -95,7 +95,7 @@ c_wrapper="ccache"
 cc_wrapper="ccache"
 
 enable_unused_resource_stripping = true
-exclude_unwind_tables = true
+exclude_unwind_tables = false
 use_clang_coverage = false
 angle_force_context_check_every_call = true
 use_lld = true
