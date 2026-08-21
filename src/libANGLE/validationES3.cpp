@@ -676,8 +676,7 @@ bool ValidateES3TexImageParametersBase(const Context *context,
     Buffer *pixelUnpackBuffer = context->getState().getTargetBuffer(BufferBinding::PixelUnpack);
     if (pixelUnpackBuffer != nullptr)
     {
-        if ((context->isWebGL() || context->isHardenedContext()) &&
-            pixelUnpackBuffer->hasTFBBindingConflict())
+        if (context->isHardenedContext() && pixelUnpackBuffer->hasTFBBindingConflict())
         {
             ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION,
                                    kPixelUnpackBufferBoundForTransformFeedback);
@@ -706,7 +705,7 @@ bool ValidateES3TexImageParametersBase(const Context *context,
         }
     }
 
-    if (context->isWebGL() || context->isHardenedContext())
+    if (context->isHardenedContext())
     {
         // Define:
         //   DataStoreWidth  = (GL_UNPACK_ROW_LENGTH ? GL_UNPACK_ROW_LENGTH : width)
@@ -2944,7 +2943,7 @@ bool ValidateCopyBufferSubData(const Context *context,
         return false;
     }
 
-    if ((context->isWebGL() || context->isHardenedContext()) &&
+    if (context->isHardenedContext() &&
         (readBuffer->hasTFBBindingConflict() || writeBuffer->hasTFBBindingConflict()))
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kBufferBoundForTransformFeedback);

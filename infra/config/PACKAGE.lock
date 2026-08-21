@@ -1,5 +1,5 @@
 {
-	"lucicfg": "1.46.4",
+	"lucicfg": "1.46.6",
 	"packages": [
 		{
 			"name": "@angle-project",
@@ -16,7 +16,7 @@
 			"name": "@chromium-luci",
 			"source": {
 				"repo": "https://chromium.googlesource.com/infra/chromium/+/refs/heads/main",
-				"revision": "d381c78e626229ce32debabaf2af7666b3e85a4a",
+				"revision": "2d8e824a5ef7c1df354264bf260586809b155c73",
 				"path": "starlark-libs/chromium-luci"
 			},
 			"lucicfg": "1.46.1"
@@ -25,7 +25,7 @@
 			"name": "@chromium-targets",
 			"source": {
 				"repo": "https://chromium.googlesource.com/chromium/src/+/refs/heads/main",
-				"revision": "aa9b74792a2117bf5a8301a035ce786e85e060dc",
+				"revision": "0aec806e563405d9f82b6670252beeca40c932ab",
 				"path": "infra/config/targets"
 			},
 			"deps": [

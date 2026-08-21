@@ -143,6 +143,7 @@ class VertexArrayVk : public VertexArrayImpl
     angle::Result convertIndexBufferGPU(ContextVk *contextVk,
                                         BufferVk *bufferVk,
                                         const void *indices);
+
     angle::Result convertIndexBufferIndirectGPU(ContextVk *contextVk,
                                                 vk::BufferHelper *srcIndirectBuf,
                                                 VkDeviceSize srcIndirectBufOffset,

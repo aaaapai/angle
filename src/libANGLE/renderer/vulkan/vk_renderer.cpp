@@ -5332,17 +5332,6 @@ gl::Version Renderer::getMaxSupportedESVersion() const
         maxVersion = LimitVersionTo(maxVersion, {2, 0});
     }*/
 
-    // Verify minimum requirements of ANGLE:
-    //
-    // - VK_KHR_index_type_uint8 or VK_EXT_index_type_uint8
-    //
-    /*if (!mFeatures.supportsIndexTypeUint8.enabled)
-    {
-        WARN() << "Vulkan device does not meet ANGLE's minimum requirements";
-        WARN() << "  Missing VK_EXT_index_type_uint8 or VK_KHR_index_type_uint8";
-        maxVersion = LimitVersionTo(maxVersion, {0, 0});
-    }*/
-
     return maxVersion;
 }
 
@@ -6222,9 +6211,12 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
 
     // ANI crashes on NVIDIA/Wayland on a swapchain with deferred memory allocation.
     // http://anglebug.com/499347835
+    // Keyed on the window system this display resolved to, so it covers the
+    // Wayland WSI exactly and leaves XWayland's xcb swapchains alone.
     ANGLE_FEATURE_CONDITION(
         &mFeatures, swapchainDeferredMemoryAllocation,
-        mFeatures.supportsSwapchainMaintenance1.enabled && !(IsWayland() && isNvidia));
+        mFeatures.supportsSwapchainMaintenance1.enabled &&
+            !(nativeWindowSystem == angle::NativeWindowSystem::Wayland && isNvidia));
 
     // The VK_EXT_legacy_dithering extension enables dithering support without emulation
     // Disable the usage of VK_EXT_legacy_dithering on ARM until the driver bug

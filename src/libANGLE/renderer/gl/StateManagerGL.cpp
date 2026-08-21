@@ -82,52 +82,50 @@ inline void SetVertexAttribArrayEnabled(const FunctionsGL *functions, GLuint ind
 }
 
 #if defined(ANGLE_ENABLE_ASSERTS)
-#    define ANGLE_GL_CHECK_GET_HELPER(functions, getter, name, value)                            \
-        do                                                                                       \
-        {                                                                                        \
-            ANGLE_GL_CLEAR_ERRORS(functions);                                                    \
-            functions->getter(name, value);                                                      \
-            GLenum error = functions->getError();                                                \
-            (error == GL_NO_ERROR) ? static_cast<void>(0)                                        \
-                                   : FATAL()                                                     \
-                                         << "Querying " << gl::FmtHex(name) << " using "         \
-                                         << #getter << " generated error " << gl::FmtHex(error); \
+#    define ANGLE_GL_CHECK_GET_HELPER(functions, getter, name, value)                              \
+        do                                                                                         \
+        {                                                                                          \
+            ANGLE_GL_CLEAR_ERRORS(functions);                                                      \
+            functions->getter(name, value);                                                        \
+            GLenum error = functions->getError();                                                  \
+            (error == GL_NO_ERROR) ? static_cast<void>(0)                                          \
+                                   : ERR() << "Querying " << gl::FmtHex(name) << " using "         \
+                                           << #getter << " generated error " << gl::FmtHex(error); \
         } while (0)
 
-#    define ANGLE_GL_CHECK_GET_INDEXED_HELPER(functions, getter, name, index, value)            \
-        do                                                                                      \
-        {                                                                                       \
-            ANGLE_GL_CLEAR_ERRORS(functions);                                                   \
-            functions->getter(name, index, value);                                              \
-            GLenum error = functions->getError();                                               \
-            (error == GL_NO_ERROR) ? static_cast<void>(0)                                       \
-                                   : FATAL() << "Querying " << gl::FmtHex(name) << " at index " \
-                                             << index << " using " << #getter                   \
-                                             << " generated error " << gl::FmtHex(error);       \
+#    define ANGLE_GL_CHECK_GET_INDEXED_HELPER(functions, getter, name, index, value)               \
+        do                                                                                         \
+        {                                                                                          \
+            ANGLE_GL_CLEAR_ERRORS(functions);                                                      \
+            functions->getter(name, index, value);                                                 \
+            GLenum error = functions->getError();                                                  \
+            (error == GL_NO_ERROR) ? static_cast<void>(0)                                          \
+                                   : ERR() << "Querying " << gl::FmtHex(name) << " at index "      \
+                                           << index << " using " << #getter << " generated error " \
+                                           << gl::FmtHex(error);                                   \
         } while (0)
 
-#    define ANGLE_GL_CHECK_GET_ENABLED_HELPER(functions, getter, name, value)                    \
-        do                                                                                       \
-        {                                                                                        \
-            ANGLE_GL_CLEAR_ERRORS(functions);                                                    \
-            *value       = functions->getter(name);                                              \
-            GLenum error = functions->getError();                                                \
-            (error == GL_NO_ERROR) ? static_cast<void>(0)                                        \
-                                   : FATAL()                                                     \
-                                         << "Querying " << gl::FmtHex(name) << " using "         \
-                                         << #getter << " generated error " << gl::FmtHex(error); \
+#    define ANGLE_GL_CHECK_GET_ENABLED_HELPER(functions, getter, name, value)                      \
+        do                                                                                         \
+        {                                                                                          \
+            ANGLE_GL_CLEAR_ERRORS(functions);                                                      \
+            *value       = functions->getter(name);                                                \
+            GLenum error = functions->getError();                                                  \
+            (error == GL_NO_ERROR) ? static_cast<void>(0)                                          \
+                                   : ERR() << "Querying " << gl::FmtHex(name) << " using "         \
+                                           << #getter << " generated error " << gl::FmtHex(error); \
         } while (0)
 
-#    define ANGLE_GL_CHECK_GET_INDEXED_ENABLED_HELPER(functions, getter, name, index, value)    \
-        do                                                                                      \
-        {                                                                                       \
-            ANGLE_GL_CLEAR_ERRORS(functions);                                                   \
-            *value       = functions->getter(name, index);                                      \
-            GLenum error = functions->getError();                                               \
-            (error == GL_NO_ERROR) ? static_cast<void>(0)                                       \
-                                   : FATAL() << "Querying " << gl::FmtHex(name) << " at index " \
-                                             << index << " using " << #getter                   \
-                                             << " generated error " << gl::FmtHex(error);       \
+#    define ANGLE_GL_CHECK_GET_INDEXED_ENABLED_HELPER(functions, getter, name, index, value)       \
+        do                                                                                         \
+        {                                                                                          \
+            ANGLE_GL_CLEAR_ERRORS(functions);                                                      \
+            *value       = functions->getter(name, index);                                         \
+            GLenum error = functions->getError();                                                  \
+            (error == GL_NO_ERROR) ? static_cast<void>(0)                                          \
+                                   : ERR() << "Querying " << gl::FmtHex(name) << " at index "      \
+                                           << index << " using " << #getter << " generated error " \
+                                           << gl::FmtHex(error);                                   \
         } while (0)
 
 #    define ANGLE_GL_CHECK_GET_VERTEX_HELPER(functions, getter, index, name, value)                \
@@ -137,9 +135,9 @@ inline void SetVertexAttribArrayEnabled(const FunctionsGL *functions, GLuint ind
             functions->getter(index, name, value);                                                 \
             GLenum error = functions->getError();                                                  \
             (error == GL_NO_ERROR) ? static_cast<void>(0)                                          \
-                                   : FATAL() << "Querying " << gl::FmtHex(name)                    \
-                                             << " for attribute " << index << " using " << #getter \
-                                             << " generated error " << gl::FmtHex(error);          \
+                                   : ERR() << "Querying " << gl::FmtHex(name) << " for attribute " \
+                                           << index << " using " << #getter << " generated error " \
+                                           << gl::FmtHex(error);                                   \
         } while (0)
 #else
 #    define ANGLE_GL_CHECK_GET_HELPER(functions, getter, name, value) functions->getter(name, value)
@@ -727,17 +725,14 @@ void QueryContextStateGL(const FunctionsGL *functions,
     GetHelper(functions, GL_FRONT_FACE, &state->frontFace);
     if (nativegl::SupportsPolygonMode(functions))
     {
-        // Some drivers return two values for polygon mode.
+        // GL Core and ES contexts return one value. GL Compatibility contexts return two values.
         std::array<gl::PolygonMode, 2> polygonMode = {state->polygonMode, state->polygonMode};
         GetHelper(functions, GL_POLYGON_MODE, &polygonMode);
         // Check that either the two values are equal or the second one is unwritten.
         ASSERT(polygonMode[0] == polygonMode[1] || polygonMode[1] == state->polygonMode);
         state->polygonMode = polygonMode[0];
 
-        if (nativegl::SupportsPolygonModeNV(functions))
-        {
-            GetEnabledHelper(functions, GL_POLYGON_OFFSET_POINT, &state->polygonOffsetPointEnabled);
-        }
+        GetEnabledHelper(functions, GL_POLYGON_OFFSET_POINT, &state->polygonOffsetPointEnabled);
         GetEnabledHelper(functions, GL_POLYGON_OFFSET_LINE, &state->polygonOffsetLineEnabled);
     }
     GetEnabledHelper(functions, GL_POLYGON_OFFSET_FILL, &state->polygonOffsetFillEnabled);
@@ -1335,11 +1330,14 @@ void QueryVertexArrayStateGL(const FunctionsGL *functions, VertexArrayStateGL *s
         }
         else
         {
+            const VertexAttributeGL &attrib = state->attributes[i];
+
             GetVertexHelper(functions, i, GL_VERTEX_ATTRIB_ARRAY_STRIDE, &binding.stride);
             if (supportsInstancing)
             {
                 GetVertexHelper(functions, i, GL_VERTEX_ATTRIB_ARRAY_DIVISOR, &binding.divisor);
             }
+            binding.offset = reinterpret_cast<GLintptr>(attrib.pointer);
             GetVertexHelper(functions, i, GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING, &binding.buffer);
         }
 
@@ -1882,6 +1880,15 @@ void StateManagerGL::bindBuffer(gl::BufferBinding target, GLuint buffer)
         mState.buffers[target] = buffer;
         mFunctions->bindBuffer(gl::ToGLenum(target), buffer);
         setBufferBindingDirty(target);
+
+        if (target == gl::BufferBinding::ElementArray)
+        {
+            VertexArrayStateGL *vaoState = getCurrentVAOState();
+            if (vaoState)
+            {
+                vaoState->elementArrayBuffer = buffer;
+            }
+        }
     }
 }
 
@@ -2942,7 +2949,7 @@ void StateManagerGL::setBlendEquations(const gl::BlendStateExt &blendState)
     mState.blendState.setEquationColorBits(blendState.getEquationColorBits(),
                                            blendState.getUsesAdvancedBlendEquationMask());
     mState.blendState.setEquationAlphaBits(blendState.getEquationAlphaBits());
-    mLocalDirtyBits.set(gl::state::DIRTY_BIT_COLOR_MASK);
+    mLocalDirtyBits.set(gl::state::DIRTY_BIT_BLEND_EQUATIONS);
 }
 
 void StateManagerGL::setColorMask(bool red, bool green, bool blue, bool alpha)
@@ -4202,7 +4209,7 @@ void StateManagerGL::setDefaultVAOState(const VertexArrayStateGL &state)
             VertexBindingGL &curBinding = mState.defaultVAOState.bindings[curAttrib.bindingIndex];
             const VertexBindingGL &newBinding = state.bindings[newAttrib.bindingIndex];
 
-            ASSERT(newAttrib.bindingIndex != curAttrib.bindingIndex);
+            ASSERT(newAttrib.bindingIndex == curAttrib.bindingIndex);
 
             if (curAttrib.format != newAttrib.format || curAttrib.pointer != newAttrib.pointer ||
                 curBinding.buffer != newBinding.buffer || curBinding.stride != newBinding.stride)
@@ -4221,8 +4228,9 @@ void StateManagerGL::setDefaultVAOState(const VertexArrayStateGL &state)
                 curBinding.stride = newBinding.stride;
             }
 
-            if (supportsInstancing && curBinding.divisor != newBinding.divisor)
+            if (curBinding.divisor != newBinding.divisor)
             {
+                ASSERT(supportsInstancing);
                 mFunctions->vertexAttribDivisor(i, newBinding.divisor);
                 curBinding.divisor = newBinding.divisor;
             }
@@ -4254,7 +4262,19 @@ void StateManagerGL::setDefaultVAOState(const VertexArrayStateGL &state)
         }
     }
 
-    ASSERT(mState.defaultVAOState == state);
+#if defined(ANGLE_EANBLE_ASSERTS)
+    if (mState.defaultVAOState != state)
+    {
+        std::ostringstream msg;
+        msg << "VAO state note equal after applying!" << std::endl;
+        msg << "mState.defaultVAOState:" << std::endl
+            << mState.defaultVAOState << std::endl
+            << std::endl;
+        msg << "state:" << std::endl << state << std::endl;
+        FATAL() << msg.str();
+    }
+#endif
+
     mLocalDirtyBits.set(gl::state::DIRTY_BIT_VERTEX_ARRAY_BINDING);
 }
 

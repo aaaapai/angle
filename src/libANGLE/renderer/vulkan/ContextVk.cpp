@@ -1795,10 +1795,10 @@ angle::Result ContextVk::setupIndexedDraw(const gl::Context *context,
             mLastIndexBufferOffset = indices;
         }
 
-        // When you draw with LineLoop mode, we may allocate its own element buffer and modify
-        // mCurrentElementArrayBuffer. When we switch out of that draw mode, we must reset
-        // mCurrentElementArrayBuffer back to the vertexArray's element buffer.  Since in either
-        // case we set DIRTY_BIT_INDEX_BUFFER dirty bit, we use this bit to re-sync
+        // When you draw with LineLoop mode or GL_UNSIGNED_BYTE type, we may allocate its own
+        // element buffer and modify mCurrentElementArrayBuffer. When we switch out of that draw
+        // mode, we must reset mCurrentElementArrayBuffer back to the vertexArray's element buffer.
+        // Since in either case we set DIRTY_BIT_INDEX_BUFFER dirty bit, we use this bit to re-sync
         // mCurrentElementArrayBuffer.
         if (mGraphicsDirtyBits[DIRTY_BIT_INDEX_BUFFER])
         {
@@ -4304,7 +4304,7 @@ angle::Result ContextVk::multiDrawElementsIndirectHelper(const gl::Context *cont
         ANGLE_TRY(vertexArrayVk->convertIndexBufferIndirectGPU(
             this, currentIndirectBuf, currentIndirectBufOffset, &currentIndirectBuf));
         currentIndirectBufOffset = 0;
-     }
+    }
 
     // If the line-loop handling function modifies the element array buffer in the vertex array,
     // there is a possibility that the modified version is used as a source for the next line-loop
@@ -5579,7 +5579,6 @@ angle::Result ContextVk::syncState(const gl::Context *context,
                     mGraphicsPipelineDesc->updatePrimitiveRestartEnabled(
                         &mGraphicsPipelineTransition, glState.isPrimitiveRestartEnabled());
                 }
-
                 // Additionally set the index buffer dirty if conversion from uint8 might have been
                 // necessary.  Otherwise if primitive restart is enabled and the index buffer is
                 // translated to uint16_t with a value of 0xFFFF, it cannot be reused when primitive

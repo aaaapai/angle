@@ -717,6 +717,7 @@ class UtilsVk : angle::NonCopyable
     std::unordered_map<vk::SamplerDesc, vk::PipelineLayoutPtr> mImageCopyWithSamplerPipelineLayouts;
     std::unordered_map<vk::SamplerDesc, vk::DynamicDescriptorPool>
         mImageCopyWithSamplerDescriptorPools;
+
     ComputeShaderProgramAndPipelines
         mConvertIndex[vk::InternalShader::ConvertIndex_comp::kArrayLen];
     ComputeShaderProgramAndPipelines mConvertIndexIndirectLineLoop

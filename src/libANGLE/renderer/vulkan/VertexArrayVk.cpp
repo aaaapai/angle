@@ -552,7 +552,7 @@ angle::Result VertexArrayVk::convertIndexBufferGPU(ContextVk *contextVk,
                                                    const void *indices)
 {
     uintptr_t offsetIntoSrcData = reinterpret_cast<uintptr_t>(indices);
-    size_t srcDataSize         = static_cast<size_t>(bufferVk->getSize()) - offsetIntoSrcData;
+    size_t srcDataSize          = static_cast<size_t>(bufferVk->getSize()) - offsetIntoSrcData;
 
     // Allocate buffer for results
     ANGLE_TRY(contextVk->initBufferForVertexConversion(&mTranslatedByteIndexData,
