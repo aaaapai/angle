@@ -23,6 +23,9 @@
 #include "libANGLE/renderer/vulkan/vk_resource.h"
 #include "libANGLE/renderer/vulkan/vk_utils.h"
 
+#include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
+
 namespace gl
 {
 class ProgramExecutable;
@@ -2758,7 +2761,7 @@ class ComputePipelineCache final : HasCacheStats<rx::VulkanCacheType::ComputePip
                                  const vk::ComputePipelineDesc &desc,
                                  vk::PipelineHelper **pipelineOut);
 
-    std::unordered_map<vk::ComputePipelineDesc,
+        std::unordered_map<vk::ComputePipelineDesc,
                        vk::PipelineHelper,
                        ComputePipelineDescHash,
                        ComputePipelineDescKeyEqual>
@@ -2882,7 +2885,7 @@ class SamplerCache final : public HasCacheStats<VulkanCacheType::Sampler>
                              vk::SharedSamplerPtr *samplerOut);
 
   private:
-    std::unordered_map<vk::SamplerDesc, vk::SharedSamplerPtr> mPayload;
+   std::unordered_map<vk::SamplerDesc, vk::SharedSamplerPtr> mPayload;
 };
 
 // YuvConversion Cache
@@ -2901,7 +2904,7 @@ class SamplerYcbcrConversionCache final
 
   private:
     using SamplerYcbcrConversionMap =
-        std::unordered_map<vk::YcbcrConversionDesc, vk::SamplerYcbcrConversion>;
+         std::unordered_map<vk::YcbcrConversionDesc, vk::SamplerYcbcrConversion>;
     SamplerYcbcrConversionMap mExternalFormatPayload;
     SamplerYcbcrConversionMap mVkFormatPayload;
 };
