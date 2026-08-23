@@ -12,8 +12,7 @@
 #include "common/system_utils.h"
 
 #include <cstdlib>
-#include <dlfcn.h>
-
+#include <dlfcn.h>
 
 static void* vulkan_load_from_pojavexec() {
     // 首先检查环境变量 VULKAN_PTR
