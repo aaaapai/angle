@@ -37,8 +37,14 @@ use_lto = true
 angle_build_tests = false
 
 cflags_c = [
-  "-Wno-unused-variable",
   "-Wno-error=unused-variable",
+  "-Wno-unused-variable",
+  "-Wno-error=extra-semi-stmt",
+  "-Wno-extra-semi-stmt",
+  "-Wno-error=unsafe-buffer-usage",
+  "-Wno-unsafe-buffer-usage",
+  "-Wno-unused-function",
+  "-Wno-unused-but-set-variable",
   "-Wno-error",
   "-g",
   "-O2",
@@ -53,8 +59,14 @@ cflags_c = [
 
 cflags_cc = [
   "-g",
-  "-Wno-unused-variable",
   "-Wno-error=unused-variable",
+  "-Wno-unused-variable",
+  "-Wno-error=extra-semi-stmt",
+  "-Wno-extra-semi-stmt",
+  "-Wno-error=unsafe-buffer-usage",
+  "-Wno-unsafe-buffer-usage",
+  "-Wno-unused-function",
+  "-Wno-unused-but-set-variable",
   "-Wno-error",
   "-O2",
   "-march=armv8-a+simd",
