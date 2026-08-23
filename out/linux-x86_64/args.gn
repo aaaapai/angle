@@ -20,8 +20,14 @@ c_wrapper = "ccache"
 cc_wrapper = "ccache"
 
 cflags_c = [
-  "-Wno-unused-variable",
   "-Wno-error=unused-variable",
+  "-Wno-unused-variable",
+  "-Wno-error=extra-semi-stmt",
+  "-Wno-extra-semi-stmt",
+  "-Wno-error=unsafe-buffer-usage",
+  "-Wno-unsafe-buffer-usage",
+  "-Wno-unused-function",
+  "-Wno-unused-but-set-variable",
   "-Wno-error",
   "-O3",
   "-mllvm",
@@ -59,8 +65,14 @@ cflags_c = [
 ]
 
 cflags_cc = [
-  "-Wno-unused-variable",
   "-Wno-error=unused-variable",
+  "-Wno-unused-variable",
+  "-Wno-error=extra-semi-stmt",
+  "-Wno-extra-semi-stmt",
+  "-Wno-error=unsafe-buffer-usage",
+  "-Wno-unsafe-buffer-usage",
+  "-Wno-unused-function",
+  "-Wno-unused-but-set-variable",
   "-Wno-error",
   "-O3",
   "-mllvm",
