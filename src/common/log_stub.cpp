@@ -5,6 +5,7 @@
 #include <string_view>
 #include <array>
 #include <algorithm>
+#include <cstring>
 
 extern "C" {
 
@@ -60,32 +61,30 @@ int __android_log_print(int prio, const char* tag, const char* fmt, ...) noexcep
     va_list args;
     va_start(args, fmt);
     
-    va_list args_copy;
-    va_copy(args_copy, args);
+    std::lock_guard lock(g_log_mutex);
     
-    int len = vsnprintf(nullptr, 0, fmt, args_copy);
-    va_end(args_copy);
-    
-    if (len < 0) {
-        safe_write(prio, tag, "(format error)");
-        va_end(args);
-        return -1;
+    // Write prefix: [prio] tag: 
+    fwrite("[", 1, 1, stdout);
+    fprintf(stdout, "%d", prio);
+    fwrite("] ", 1, 2, stdout);
+    if (tag) {
+        fwrite(tag, 1, std::strlen(tag), stdout);
+    } else {
+        fwrite("(null-tag)", 1, 10, stdout);
     }
+    fwrite(": ", 1, 2, stdout);
     
-    std::string msg;
-    msg.resize(static_cast<size_t>(len) + 1);
-    int written = vsnprintf(msg.data(), msg.size(), fmt, args);
+    // Write formatted message directly
+    vfprintf(stdout, fmt, args);
+    
+    // Write newline and flush
+    fwrite("\n", 1, 1, stdout);
+    fflush(stdout);
+    
     va_end(args);
     
-    if (written < 0) {
-        safe_write(prio, tag, "(format error after allocation)");
-        return -1;
-    }
-    
-    msg.resize(static_cast<size_t>(written));
-    
-    safe_write(prio, tag, msg.c_str());
-    return written;
+    // Return 0 to indicate success (no length counted)
+    return 0;
 }
 
 } // extern "C"
