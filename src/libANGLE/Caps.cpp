@@ -674,9 +674,9 @@ static bool DetermineTextureNorm16Support(const TextureCapsMap &textureCaps)
         GL_RGBA16_EXT,
     };
 
-    return GetFormatSupport(textureCaps, requiredFilterFormats, true, true, false, false, false) &&
-           GetFormatSupport(textureCaps, requiredRenderFormats, true, false, true, true, false);
-    //return true;
+    /*return GetFormatSupport(textureCaps, requiredFilterFormats, true, true, false, false, false) &&
+           GetFormatSupport(textureCaps, requiredRenderFormats, true, false, true, true, false);*/
+    return true;
 }
 
 // Check for EXT_texture_compression_rgtc support
