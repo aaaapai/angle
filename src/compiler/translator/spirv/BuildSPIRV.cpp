@@ -690,6 +690,9 @@ SPIRVBuilder::SPIRVBuilder(TCompiler *compiler,
         addCapability(spv::CapabilityTessellation);
     }
 
+    // Always enable StorageImageWriteWithoutFormat to support writeonly image3D without explicit format.
+    addCapability(spv::CapabilityStorageImageWriteWithoutFormat);
+
     predefineCommonTypes();
 }
 
