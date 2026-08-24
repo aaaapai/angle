@@ -287,6 +287,9 @@ void GL_APIENTRY GL_BindRenderbuffer(GLenum target, GLuint renderbuffer)
 
 void GL_APIENTRY GL_BindTexture(GLenum target, GLuint texture)
 {
+
+    if (target == 10) target = GL_TEXTURE_2D;
+
     ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     ANGLE_UNSAFE_TODO(EVENT(context, GLBindTexture, "context = %d, target = %s, texture = %u",
@@ -2079,6 +2082,8 @@ void GL_APIENTRY GL_FramebufferTexture2D(GLenum target,
                                          GLuint texture,
                                          GLint level)
 {
+
+    if (textarget == 10) textarget = GL_TEXTURE_2D;
     ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     ANGLE_UNSAFE_TODO(EVENT(
@@ -5015,6 +5020,9 @@ void GL_APIENTRY GL_TexImage2D(GLenum target,
 
 void GL_APIENTRY GL_TexParameterf(GLenum target, GLenum pname, GLfloat param)
 {
+
+    if (target == 10) target = GL_TEXTURE_2D;
+
     ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     ANGLE_UNSAFE_TODO(EVENT(context, GLTexParameterf,
@@ -5056,6 +5064,7 @@ void GL_APIENTRY GL_TexParameterf(GLenum target, GLenum pname, GLfloat param)
 
 void GL_APIENTRY GL_TexParameterfv(GLenum target, GLenum pname, const GLfloat *params)
 {
+    if (target == 10) target = GL_TEXTURE_2D;
     ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     ANGLE_UNSAFE_TODO(EVENT(context, GLTexParameterfv,
@@ -5098,6 +5107,9 @@ void GL_APIENTRY GL_TexParameterfv(GLenum target, GLenum pname, const GLfloat *p
 
 void GL_APIENTRY GL_TexParameteri(GLenum target, GLenum pname, GLint param)
 {
+
+    if (target == 10) target = GL_TEXTURE_2D;
+
     ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     ANGLE_UNSAFE_TODO(EVENT(context, GLTexParameteri,
