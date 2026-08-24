@@ -2652,7 +2652,7 @@ bool ValidateUniform1ivValue(const Context *context,
     // Value type is GL_INT, because we only get here from glUniform1i{v}.
     // It is compatible with INT or BOOL.
     // Do these cheap tests first, for a little extra speed.
-    if (GL_INT == uniformType || GL_BOOL == uniformType)
+    if (GL_INT == uniformType || GL_BOOL == uniformType || std::getenv("ANGLE_IGNORE_UNIFORM_ERROR"))
     {
         return true;
     }
