@@ -35,6 +35,7 @@
 #include "libANGLE/Uniform.h"
 #include "libANGLE/VertexAttribute.h"
 #include "libANGLE/queryconversions.h"
+#include "libANGLE/renderer/gl/functionsgl_enums.h"
 
 namespace gl
 {
@@ -3500,10 +3501,10 @@ bool GetQueryParameterInfo(const State &glState,
                 break;
             }
 
-            if (!extensions.logicOpANGLE)
+            /*if (!extensions.logicOpANGLE)
             {
                 return false;
-            }
+            }*/
             *type      = GL_BOOL;
             *numParams = 1;
             return true;
@@ -3518,6 +3519,7 @@ bool GetQueryParameterInfo(const State &glState,
         case GL_POLYGON_OFFSET_UNITS:
         case GL_SAMPLE_COVERAGE_VALUE:
         case GL_DEPTH_CLEAR_VALUE:
+        case GL_LINE_WIDTH_GRANULARITY:
         case GL_MULTISAMPLE_LINE_WIDTH_GRANULARITY:
         case GL_LINE_WIDTH:
         {
@@ -4273,6 +4275,7 @@ bool GetQueryParameterInfo(const State &glState,
         case GL_MAX_COMBINED_SHADER_STORAGE_BLOCKS:
         case GL_SHADER_STORAGE_BUFFER_BINDING:
         case GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT:
+        case GL_MAX_FRAMEBUFFER_LAYERS_EXT:
         case GL_PROGRAM_PIPELINE_BINDING:
             *type      = GL_INT;
             *numParams = 1;
@@ -4291,11 +4294,10 @@ bool GetQueryParameterInfo(const State &glState,
             return true;
     }
 
-    if (extensions.geometryShaderAny())
-    {
+    //if (extensions.geometryShaderAny())
+    //{
         switch (pname)
         {
-            case GL_MAX_FRAMEBUFFER_LAYERS_EXT:
             case GL_LAYER_PROVOKING_VERTEX_EXT:
             case GL_MAX_GEOMETRY_UNIFORM_COMPONENTS_EXT:
             case GL_MAX_GEOMETRY_UNIFORM_BLOCKS_EXT:
@@ -4309,15 +4311,17 @@ bool GetQueryParameterInfo(const State &glState,
             case GL_MAX_GEOMETRY_ATOMIC_COUNTER_BUFFERS_EXT:
             case GL_MAX_GEOMETRY_ATOMIC_COUNTERS_EXT:
             case GL_MAX_GEOMETRY_IMAGE_UNIFORMS_EXT:
+            case GL_MAX_PATCH_VERTICES_EXT:
+            case GL_MAX_TESS_GEN_LEVEL_EXT:
             case GL_MAX_GEOMETRY_SHADER_STORAGE_BLOCKS_EXT:
                 *type      = GL_INT;
                 *numParams = 1;
                 return true;
         }
-    }
+    //}
 
-    if (extensions.tessellationShaderAny())
-    {
+    /*if (extensions.tessellationShaderAny())
+    {*/
         switch (pname)
         {
             case GL_PRIMITIVE_RESTART_FOR_PATCHES_SUPPORTED:
@@ -4325,8 +4329,6 @@ bool GetQueryParameterInfo(const State &glState,
                 *numParams = 1;
                 return true;
             case GL_PATCH_VERTICES:
-            case GL_MAX_PATCH_VERTICES_EXT:
-            case GL_MAX_TESS_GEN_LEVEL_EXT:
             case GL_MAX_TESS_CONTROL_UNIFORM_COMPONENTS_EXT:
             case GL_MAX_TESS_EVALUATION_UNIFORM_COMPONENTS_EXT:
             case GL_MAX_TESS_CONTROL_TEXTURE_IMAGE_UNITS_EXT:
@@ -4353,7 +4355,7 @@ bool GetQueryParameterInfo(const State &glState,
                 *numParams = 1;
                 return true;
         }
-    }
+    //}
 
     return false;
 }
