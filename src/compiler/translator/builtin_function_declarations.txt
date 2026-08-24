@@ -743,6 +743,7 @@ GROUP BEGIN Image {"queryFunction": true}
 
       DEFAULT METADATA {"essl_level": "ESSL3_2_BUILTINS", "hasSideEffects": true}
         void imageStore(gimageBuffer, int, gvec4);
+        void imageStore(writeonly IMAGE_PARAMS, gvec4);
       DEFAULT METADATA {"essl_level": "ESSL3_1_BUILTINS", "hasSideEffects": true, "essl_extension": "OES_texture_buffer, EXT_texture_buffer", "suffix": "Ext"}
         void imageStore(gimageBuffer, int, gvec4);
     GROUP END Store
@@ -755,6 +756,7 @@ GROUP BEGIN Image {"queryFunction": true}
 
       DEFAULT METADATA {"essl_level": "ESSL3_2_BUILTINS"}
         gvec4 imageLoad(gimageCubeArray, ivec3);
+        gvec4 imageLoad(readonly IMAGE_PARAMS);
       DEFAULT METADATA {"essl_level": "ESSL3_1_BUILTINS", "essl_extension": "OES_texture_cube_map_array, EXT_texture_cube_map_array", "suffix": "Ext"}
         gvec4 imageLoad(gimageCubeArray, ivec3);
 
