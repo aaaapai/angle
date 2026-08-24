@@ -691,7 +691,10 @@ SPIRVBuilder::SPIRVBuilder(TCompiler *compiler,
     }
 
     // Always enable StorageImageWriteWithoutFormat to support writeonly image3D without explicit format.
-    addCapability(spv::CapabilityStorageImageWriteWithoutFormat);
+    if (!(std::getenv("ANGLE_DISABLED_STORAGEIMAGE_EXTENDEDCAP")) {
+      addCapability(spv::CapabilityStorageImageWriteWithoutFormat);
+      addCapability(spv::CapabilityStorageImageExtendedFormats);
+    }
 
     predefineCommonTypes();
 }
