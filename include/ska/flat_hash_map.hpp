@@ -14,6 +14,7 @@
 #include <type_traits>
 #include <bit>          // C++20 for std::bit_ceil, std::bit_width
 #include <memory>       // for std::construct_at, std::destroy_at (optional)
+#include <cassert>      // added for assert in at()
 
 #ifdef _MSC_VER
 #define SKA_NOINLINE(...) __declspec(noinline) __VA_ARGS__
@@ -624,9 +625,10 @@ public:
         deallocate_data(new_buckets, num_buckets, old_max_lookups);
     }
 
-    void reserve(size_t num_elements)
+    // Fixed shadow warning: renamed parameter
+    void reserve(size_t num_elements_)
     {
-        size_t required_buckets = num_buckets_for_reserve(num_elements);
+        size_t required_buckets = num_buckets_for_reserve(num_elements_);
         if (required_buckets > bucket_count())
             rehash(required_buckets);
     }
@@ -768,9 +770,10 @@ private:
         return std::max(detailv3::min_lookups, desired);
     }
 
-    size_t num_buckets_for_reserve(size_t num_elements) const
+    // Fixed shadow warning: renamed parameter
+    size_t num_buckets_for_reserve(size_t num_elements_) const
     {
-        return static_cast<size_t>(std::ceil(num_elements / std::min(0.5, static_cast<double>(_max_load_factor))));
+        return static_cast<size_t>(std::ceil(num_elements_ / std::min(0.5, static_cast<double>(_max_load_factor))));
     }
     void rehash_for_other_container(const sherwood_v3_table & other)
     {
@@ -839,11 +842,12 @@ private:
         rehash(std::max(size_t(4), 2 * bucket_count()));
     }
 
-    void deallocate_data(EntryPointer begin, size_t num_slots_minus_one, int8_t max_lookups)
+    // Fixed shadow warning: renamed parameters
+    void deallocate_data(EntryPointer begin, size_t num_slots_minus_one_, int8_t max_lookups_)
     {
         if (begin != Entry::empty_default_table())
         {
-            AllocatorTraits::deallocate(*this, begin, num_slots_minus_one + max_lookups + 1);
+            AllocatorTraits::deallocate(*this, begin, num_slots_minus_one_ + max_lookups_ + 1);
         }
     }
 
@@ -1261,9 +1265,10 @@ struct fibonacci_hash_policy
         // shift = 64 - floor(log2(size))
         return static_cast<int8_t>(64 - (std::bit_width(size) - 1));
     }
-    void commit(int8_t shift)
+    // Fixed shadow warning: renamed parameter
+    void commit(int8_t shift_)
     {
-        this->shift = shift;
+        this->shift = shift_;
     }
     void reset()
     {
@@ -1317,18 +1322,17 @@ public:
     {
         return emplace(std::move(key), convertible_to_value()).first->second;
     }
+    // Replaced throw with assert (exceptions disabled)
     V & at(const K & key)
     {
         auto found = this->find(key);
-        if (found == this->end())
-            throw std::out_of_range("Argument passed to at() was not in the map.");
+        assert(found != this->end());
         return found->second;
     }
     const V & at(const K & key) const
     {
         auto found = this->find(key);
-        if (found == this->end())
-            throw std::out_of_range("Argument passed to at() was not in the map.");
+        assert(found != this->end());
         return found->second;
     }
 
