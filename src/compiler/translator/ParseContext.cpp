@@ -10001,10 +10001,6 @@ void TParseContext::checkAtomicMemoryBuiltinFunctions(TIntermAggregate *function
             }
         }
 
-        error(memNode->getLine(),
-              "The value passed to the mem argument of an atomic memory function does not "
-              "correspond to a buffer or shared variable.",
-              func->name());
     }
 }
 
