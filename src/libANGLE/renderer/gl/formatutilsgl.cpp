@@ -573,6 +573,11 @@ static GLenum GetNativeInternalFormat(const FunctionsGL *functions,
           result = EmulateLUMA(internalFormat).sizedInternalFormat;
       }
       }
+      
+      if (result == 0x2A10)
+      {
+        return GL_RGB8; // wait...what?
+      }
 
         if (internalFormat.componentType == GL_FLOAT)
         {
