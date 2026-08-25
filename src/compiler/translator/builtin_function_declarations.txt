@@ -727,6 +727,19 @@ GROUP BEGIN AtomicMemory {"queryFunction": true}
     uint atomicCompSwap(atomic_uint, uint, uint);
 GROUP END AtomicMemory
 
+GROUP BEGIN AtomicCounterOps {"queryFunction": true}
+  DEFAULT METADATA {"essl_level": "ESSL3_2_BUILTINS", "hasSideEffects": true}
+    uint atomicCounterAdd(atomic_uint, uint);
+    uint atomicCounterSubtract(atomic_uint, uint);
+    uint atomicCounterMin(atomic_uint, uint);
+    uint atomicCounterMax(atomic_uint, uint);
+    uint atomicCounterAnd(atomic_uint, uint);
+    uint atomicCounterOr(atomic_uint, uint);
+    uint atomicCounterXor(atomic_uint, uint);
+    uint atomicCounterExchange(atomic_uint, uint);
+    uint atomicCounterCompSwap(atomic_uint, uint, uint);
+GROUP END AtomicCounterOps
+
 GROUP BEGIN Image {"queryFunction": true}
     GROUP BEGIN Store {"queryFunction": true}
       DEFAULT METADATA {"essl_level": "ESSL3_1_BUILTINS", "hasSideEffects": true}

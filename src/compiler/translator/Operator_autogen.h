@@ -370,6 +370,17 @@ enum TOperator : uint16_t
     EOpAtomicExchange,
     EOpAtomicCompSwap,
 
+    // Group AtomicCounterOps
+    EOpAtomicCounterAdd,
+    EOpAtomicCounterSubtract,
+    EOpAtomicCounterMin,
+    EOpAtomicCounterMax,
+    EOpAtomicCounterAnd,
+    EOpAtomicCounterOr,
+    EOpAtomicCounterXor,
+    EOpAtomicCounterExchange,
+    EOpAtomicCounterCompSwap,
+
     // Group Image
     EOpImageSize,
 
@@ -527,6 +538,10 @@ static inline bool IsAtomicCounter(TOperator op)
 static inline bool IsAtomicMemory(TOperator op)
 {
     return op >= EOpAtomicAdd && op <= EOpAtomicCompSwap;
+}
+static inline bool IsAtomicCounterOps(TOperator op)
+{
+    return op >= EOpAtomicCounterAdd && op <= EOpAtomicCounterCompSwap;
 }
 static inline bool IsImageStore(TOperator op)
 {
