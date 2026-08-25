@@ -83,11 +83,6 @@ cflags_c = [
   "-D_FILE_OFFSET_BITS=64",
   "-D__USE_BSD",
   "-D_ALLBSD_SOURCE",
-  "-mllvm",
-  "-inlinehint-threshold=100000",
-  "-U__USE_GNU",
-  "-U_GNU_SOURCE",
-  "-DANGLE_USE_ANDROID_TLS_SLOT",
   "-DUNSAFE_BUFFERS_BUILD"
 ]
 
@@ -134,11 +129,6 @@ cflags_cc = [
   "-D_FILE_OFFSET_BITS=64",
   "-D__USE_BSD",
   "-D_ALLBSD_SOURCE",
-  "-mllvm",
-  "-inlinehint-threshold=100000",
-  "-U__USE_GNU",
-  "-U_GNU_SOURCE",
-  "-DANGLE_USE_ANDROID_TLS_SLOT",
   "-DUNSAFE_BUFFERS_BUILD"
 ]
 
@@ -176,8 +166,6 @@ exclude_unwind_tables = true
 use_clang_coverage = false
 angle_force_context_check_every_call = false
 use_lld = true
-
-angle_use_android_tls_slot = true
 
 use_custom_libcxx_for_host = false
 optimize_for_fuzzing = false
