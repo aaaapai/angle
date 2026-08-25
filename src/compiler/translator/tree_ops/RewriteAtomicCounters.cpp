@@ -259,6 +259,46 @@ class RewriteAtomicCountersTraverser : public TIntermTraverser
             return true;
         }
 
+        if (BuiltInGroup::IsAtomicMemory(op) &&
+        (*node->getSequence())[0]->getAsTyped()->getType().isAtomicCounter())
+    {
+        const char *funcName = nullptr;
+        switch (op)
+        {
+            case EOpAtomicAdd:        funcName = "atomicAdd"; break;
+            case EOpAtomicMin:        funcName = "atomicMin"; break;
+            case EOpAtomicMax:        funcName = "atomicMax"; break;
+            case EOpAtomicAnd:        funcName = "atomicAnd"; break;
+            case EOpAtomicOr:         funcName = "atomicOr"; break;
+            case EOpAtomicXor:        funcName = "atomicXor"; break;
+            case EOpAtomicExchange:   funcName = "atomicExchange"; break;
+            case EOpAtomicCompSwap:   funcName = "atomicCompSwap"; break;
+            default: UNREACHABLE(); return false;
+        }
+
+        TIntermTyped *param = (*node->getSequence())[0]->getAsTyped();
+        TIntermSequence args;
+        args.push_back(CreateAtomicCounterRef(param, mAtomicCounters, mAcbBufferOffsets));
+
+        if (op == EOpAtomicCompSwap)
+        {
+            TIntermTyped *compare = (*node->getSequence())[1]->getAsTyped();
+            TIntermTyped *value   = (*node->getSequence())[2]->getAsTyped();
+            args.push_back(compare->deepCopy());
+            args.push_back(value->deepCopy());
+        }
+        else
+        {
+            TIntermTyped *value = (*node->getSequence())[1]->getAsTyped();
+            args.push_back(value->deepCopy());
+        }
+
+        TIntermTyped *substitute =
+            CreateBuiltInFunctionCallNode(funcName, &args, *mSymbolTable, 310);
+        queueReplacement(substitute, OriginalNode::IS_DROPPED);
+        return true;
+    }
+
         // 判断是否为原子计数器函数（包括新增的）
         if (!node->getFunction()->isAtomicCounterFunction() &&
             op != EOpAtomicCounterAdd &&
