@@ -2035,8 +2035,16 @@ void PrivateState::getFloatv(GLenum pname, GLfloat *params) const
             *params = mCaps.fragmentShaderFramebufferFetchMRT ? 1.0f : 0.0f;
             break;
         default:
-            UNREACHABLE();
+        {
+            // Fallback to integer query for pnames not handled as float.
+            GLint intValues[4] = {};
+            getIntegerv(pname, intValues);
+            params[0] = static_cast<GLfloat>(intValues[0]);
+            params[1] = static_cast<GLfloat>(intValues[1]);
+            params[2] = static_cast<GLfloat>(intValues[2]);
+            params[3] = static_cast<GLfloat>(intValues[3]);
             break;
+        }
     }
 }
 
@@ -2268,8 +2276,15 @@ void PrivateState::getIntegerv(GLenum pname, GLint *params) const
             break;
 
         default:
-            UNREACHABLE();
+        {
+            // Unknown pname, return 0 to avoid crash.
+            WARN() << "Unhandled pname in getIntegerv: 0x" << std::hex << pname;
+            params[0] = 0;
+            params[1] = 0;
+            params[2] = 0;
+            params[3] = 0;
             break;
+        }
     }
 }
 
