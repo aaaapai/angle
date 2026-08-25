@@ -12,6 +12,7 @@
 #if defined(ANGLE_USE_ABSEIL)
 #    include "absl/container/flat_hash_map.h"
 #    include "absl/container/flat_hash_set.h"
+#    include <ska/flat_hash_map.hpp>
 #else
 #    include <unordered_map>
 #    include <unordered_set>
