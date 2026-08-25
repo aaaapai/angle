@@ -12,7 +12,6 @@
 #if defined(ANGLE_USE_ABSEIL)
 #    include "absl/container/flat_hash_map.h"
 #    include "absl/container/flat_hash_set.h"
-#    include <ska/flat_hash_map.hpp>
 #else
 #    include <unordered_map>
 #    include <unordered_set>
@@ -25,9 +24,9 @@ namespace angle
 #if defined(ANGLE_USE_ABSEIL)
 template <typename Key,
           typename T,
-          class Hash = std::hash<Key>,
-          class Eq   = std::equal_to<Key>>
-using HashMap = ska::flat_hash_map<Key, T, Hash, Eq>;
+          class Hash = absl::container_internal::hash_default_hash<Key>,
+          class Eq   = absl::container_internal::hash_default_eq<Key>>
+using HashMap = absl::flat_hash_map<Key, T, Hash, Eq>;
 template <typename Key,
           class Hash = absl::container_internal::hash_default_hash<Key>,
           class Eq   = absl::container_internal::hash_default_eq<Key>>
