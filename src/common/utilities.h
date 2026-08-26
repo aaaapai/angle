@@ -33,31 +33,30 @@ struct ShaderVariable;
 namespace gl
 {
 
-// 这些轻量级查询函数现在声明为 inline 并在头文件中定义，以允许内联优化。
-inline int VariableComponentCount(GLenum type);
-inline GLenum VariableComponentType(GLenum type);
-inline size_t VariableComponentSize(GLenum type);
-inline size_t VariableInternalSize(GLenum type);
-inline size_t VariableExternalSize(GLenum type);
-inline int VariableRowCount(GLenum type);
-inline int VariableColumnCount(GLenum type);
-inline bool IsSamplerType(GLenum type);
-inline bool IsSamplerCubeType(GLenum type);
-inline bool IsSamplerYUVType(GLenum type);
-inline bool IsImageType(GLenum type);
-inline bool IsImage2DType(GLenum type);
-inline bool IsAtomicCounterType(GLenum type);
-inline bool IsOpaqueType(GLenum type);
-inline bool IsMatrixType(GLenum type);
-inline bool IsFloatScalarAndVectorType(GLenum type);
-inline bool IsFloatVectorType(GLenum type);
-inline GLenum TransposeMatrixType(GLenum type);
-inline int VariableRegisterCount(GLenum type);
-inline int MatrixRegisterCount(GLenum type, bool isRowMajorMatrix);
-inline int MatrixComponentCount(GLenum type, bool isRowMajorMatrix);
-inline int VariableSortOrder(GLenum type);
-inline GLenum VariableBoolVectorType(GLenum type);
-inline std::string GetGLSLTypeString(GLenum type);
+int VariableComponentCount(GLenum type);
+GLenum VariableComponentType(GLenum type);
+size_t VariableComponentSize(GLenum type);
+size_t VariableInternalSize(GLenum type);
+size_t VariableExternalSize(GLenum type);
+int VariableRowCount(GLenum type);
+int VariableColumnCount(GLenum type);
+bool IsSamplerType(GLenum type);
+bool IsSamplerCubeType(GLenum type);
+bool IsSamplerYUVType(GLenum type);
+bool IsImageType(GLenum type);
+bool IsImage2DType(GLenum type);
+bool IsAtomicCounterType(GLenum type);
+bool IsOpaqueType(GLenum type);
+bool IsMatrixType(GLenum type);
+bool IsFloatScalarAndVectorType(GLenum type);
+bool IsFloatVectorType(GLenum type);
+GLenum TransposeMatrixType(GLenum type);
+int VariableRegisterCount(GLenum type);
+int MatrixRegisterCount(GLenum type, bool isRowMajorMatrix);
+int MatrixComponentCount(GLenum type, bool isRowMajorMatrix);
+int VariableSortOrder(GLenum type);
+GLenum VariableBoolVectorType(GLenum type);
+std::string GetGLSLTypeString(GLenum type);
 
 int AllocateFirstFreeBits(unsigned int *bits, unsigned int allocationSize, unsigned int bitsSize);
 
@@ -68,8 +67,11 @@ int AllocateFirstFreeBits(unsigned int *bits, unsigned int allocationSize, unsig
 // outSubscripts.
 std::string ParseResourceName(const std::string &name, std::vector<unsigned int> *outSubscripts);
 
-inline bool IsBuiltInName(const char *name);
-inline bool IsBuiltInName(const std::string &name);
+bool IsBuiltInName(const char *name);
+ANGLE_INLINE bool IsBuiltInName(const std::string &name)
+{
+    return IsBuiltInName(name.c_str());
+}
 
 // Strips only the last array index from a resource name.
 std::string StripLastArrayIndex(const std::string &name);
@@ -84,7 +86,7 @@ IndexRange ComputeIndexRange(DrawElementsType indexType,
                              bool primitiveRestartEnabled);
 
 // Get the primitive restart index value for the given index type.
-inline GLuint GetPrimitiveRestartIndex(DrawElementsType indexType);
+GLuint GetPrimitiveRestartIndex(DrawElementsType indexType);
 
 // Get the primitive restart index value with the given C++ type.
 template <typename T>
@@ -100,26 +102,29 @@ static_assert(GetPrimitiveRestartIndexFromType<uint16_t>() == 0xFFFF,
 static_assert(GetPrimitiveRestartIndexFromType<uint32_t>() == 0xFFFFFFFF,
               "verify restart index for uint8_t values");
 
-inline bool IsTriangleMode(PrimitiveMode drawMode);
-inline bool IsPolygonMode(PrimitiveMode mode);
+bool IsTriangleMode(PrimitiveMode drawMode);
+bool IsPolygonMode(PrimitiveMode mode);
 
 namespace priv
 {
 extern const angle::PackedEnumMap<PrimitiveMode, bool> gLineModes;
 }  // namespace priv
 
-inline bool IsLineMode(PrimitiveMode primitiveMode);
+ANGLE_INLINE bool IsLineMode(PrimitiveMode primitiveMode)
+{
+    return priv::gLineModes[primitiveMode];
+}
 
-inline bool IsIntegerFormat(GLenum unsizedFormat);
+bool IsIntegerFormat(GLenum unsizedFormat);
 
 // Returns the product of the sizes in the vector, or 1 if the vector is empty. Doesn't currently
 // perform overflow checks.
-inline unsigned int ArraySizeProduct(const std::vector<unsigned int> &arraySizes);
+unsigned int ArraySizeProduct(const std::vector<unsigned int> &arraySizes);
 // Returns the product of the sizes in the vector except for the outermost dimension, or 1 if the
 // vector is empty.
-inline unsigned int InnerArraySizeProduct(const std::vector<unsigned int> &arraySizes);
+unsigned int InnerArraySizeProduct(const std::vector<unsigned int> &arraySizes);
 // Returns the outermost array dimension, or 1 if the vector is empty.
-inline unsigned int OutermostArraySize(const std::vector<unsigned int> &arraySizes);
+unsigned int OutermostArraySize(const std::vector<unsigned int> &arraySizes);
 
 // Return the array index at the end of name, and write the length of name before the final array
 // index into nameLengthWithoutArrayIndexOut. In case name doesn't include an array index, return
@@ -213,12 +218,12 @@ UniformTypeIndex GetUniformTypeIndex(GLenum uniformType);
 
 const char *GetGenericErrorMessage(GLenum error);
 
-inline unsigned int ElementTypeSize(GLenum elementType);
+unsigned int ElementTypeSize(GLenum elementType);
 
-inline bool IsMipmapFiltered(GLenum minFilterMode);
+bool IsMipmapFiltered(GLenum minFilterMode);
 
 template <typename T>
-inline T GetClampedVertexCount(size_t vertexCount)
+T GetClampedVertexCount(size_t vertexCount)
 {
     static constexpr size_t kMax = static_cast<size_t>(std::numeric_limits<T>::max());
     return static_cast<T>(vertexCount > kMax ? kMax : vertexCount);
@@ -230,7 +235,7 @@ enum class PipelineType
     ComputePipeline  = 1,
 };
 
-inline PipelineType GetPipelineType(ShaderType shaderType);
+PipelineType GetPipelineType(ShaderType shaderType);
 
 // For use with KHR_debug.
 const char *GetDebugMessageSourceString(GLenum source);
@@ -282,929 +287,12 @@ enum class YuvSamplingMode
     Y2Y     = 1
 };
 
-inline ShaderType GetShaderTypeFromBitfield(size_t singleShaderType);
-inline GLbitfield GetBitfieldFromShaderType(ShaderType shaderType);
-inline bool ShaderTypeSupportsTransformFeedback(ShaderType shaderType);
-inline ShaderType GetLastPreFragmentStage(ShaderBitSet shaderTypes);
-
-// ---------- 内联函数实现 ----------
-
-inline int VariableComponentCount(GLenum type)
-{
-    return VariableRowCount(type) * VariableColumnCount(type);
-}
-
-inline GLenum VariableComponentType(GLenum type)
-{
-    switch (type)
-    {
-        case GL_BOOL:
-        case GL_BOOL_VEC2:
-        case GL_BOOL_VEC3:
-        case GL_BOOL_VEC4:
-            return GL_BOOL;
-        case GL_FLOAT:
-        case GL_FLOAT_VEC2:
-        case GL_FLOAT_VEC3:
-        case GL_FLOAT_VEC4:
-        case GL_FLOAT_MAT2:
-        case GL_FLOAT_MAT3:
-        case GL_FLOAT_MAT4:
-        case GL_FLOAT_MAT2x3:
-        case GL_FLOAT_MAT3x2:
-        case GL_FLOAT_MAT2x4:
-        case GL_FLOAT_MAT4x2:
-        case GL_FLOAT_MAT3x4:
-        case GL_FLOAT_MAT4x3:
-            return GL_FLOAT;
-        case GL_INT:
-        case GL_SAMPLER_2D:
-        case GL_SAMPLER_2D_RECT_ANGLE:
-        case GL_SAMPLER_3D:
-        case GL_SAMPLER_CUBE:
-        case GL_SAMPLER_CUBE_MAP_ARRAY:
-        case GL_SAMPLER_2D_ARRAY:
-        case GL_SAMPLER_EXTERNAL_OES:
-        case GL_SAMPLER_2D_MULTISAMPLE:
-        case GL_SAMPLER_2D_MULTISAMPLE_ARRAY:
-        case GL_INT_SAMPLER_BUFFER:
-        case GL_INT_SAMPLER_2D:
-        case GL_INT_SAMPLER_3D:
-        case GL_INT_SAMPLER_CUBE:
-        case GL_INT_SAMPLER_CUBE_MAP_ARRAY:
-        case GL_INT_SAMPLER_2D_ARRAY:
-        case GL_INT_SAMPLER_2D_MULTISAMPLE:
-        case GL_INT_SAMPLER_2D_MULTISAMPLE_ARRAY:
-        case GL_UNSIGNED_INT_SAMPLER_2D:
-        case GL_UNSIGNED_INT_SAMPLER_3D:
-        case GL_UNSIGNED_INT_SAMPLER_CUBE:
-        case GL_UNSIGNED_INT_SAMPLER_CUBE_MAP_ARRAY:
-        case GL_UNSIGNED_INT_SAMPLER_2D_ARRAY:
-        case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE:
-        case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE_ARRAY:
-        case GL_SAMPLER_2D_SHADOW:
-        case GL_SAMPLER_BUFFER:
-        case GL_SAMPLER_CUBE_SHADOW:
-        case GL_SAMPLER_2D_ARRAY_SHADOW:
-        case GL_INT_VEC2:
-        case GL_INT_VEC3:
-        case GL_INT_VEC4:
-        case GL_IMAGE_2D:
-        case GL_INT_IMAGE_2D:
-        case GL_UNSIGNED_INT_IMAGE_2D:
-        case GL_IMAGE_3D:
-        case GL_INT_IMAGE_3D:
-        case GL_UNSIGNED_INT_IMAGE_3D:
-        case GL_IMAGE_2D_ARRAY:
-        case GL_INT_IMAGE_2D_ARRAY:
-        case GL_UNSIGNED_INT_IMAGE_2D_ARRAY:
-        case GL_IMAGE_CUBE:
-        case GL_INT_IMAGE_CUBE:
-        case GL_UNSIGNED_INT_IMAGE_CUBE:
-        case GL_IMAGE_CUBE_MAP_ARRAY:
-        case GL_INT_IMAGE_CUBE_MAP_ARRAY:
-        case GL_UNSIGNED_INT_IMAGE_CUBE_MAP_ARRAY:
-        case GL_IMAGE_BUFFER:
-        case GL_INT_IMAGE_BUFFER:
-        case GL_UNSIGNED_INT_SAMPLER_BUFFER:
-        case GL_UNSIGNED_INT_IMAGE_BUFFER:
-        case GL_UNSIGNED_INT_ATOMIC_COUNTER:
-        case GL_SAMPLER_EXTERNAL_2D_Y2Y_EXT:
-            return GL_INT;
-        case GL_UNSIGNED_INT:
-        case GL_UNSIGNED_INT_VEC2:
-        case GL_UNSIGNED_INT_VEC3:
-        case GL_UNSIGNED_INT_VEC4:
-            return GL_UNSIGNED_INT;
-        default:
-            UNREACHABLE();
-    }
-
-    return GL_NONE;
-}
-
-inline size_t VariableComponentSize(GLenum type)
-{
-    switch (type)
-    {
-        case GL_BOOL:
-            return sizeof(GLint);
-        case GL_FLOAT:
-            return sizeof(GLfloat);
-        case GL_INT:
-            return sizeof(GLint);
-        case GL_UNSIGNED_INT:
-            return sizeof(GLuint);
-        default:
-            UNREACHABLE();
-    }
-
-    return 0;
-}
-
-inline size_t VariableInternalSize(GLenum type)
-{
-    // Expanded to 4-element vectors
-    return VariableComponentSize(VariableComponentType(type)) * VariableRowCount(type) * 4;
-}
-
-inline size_t VariableExternalSize(GLenum type)
-{
-    return VariableComponentSize(VariableComponentType(type)) * VariableComponentCount(type);
-}
-
-inline std::string GetGLSLTypeString(GLenum type)
-{
-    switch (type)
-    {
-        case GL_BOOL:
-            return "bool";
-        case GL_INT:
-            return "int";
-        case GL_UNSIGNED_INT:
-            return "uint";
-        case GL_FLOAT:
-            return "float";
-        case GL_BOOL_VEC2:
-            return "bvec2";
-        case GL_BOOL_VEC3:
-            return "bvec3";
-        case GL_BOOL_VEC4:
-            return "bvec4";
-        case GL_INT_VEC2:
-            return "ivec2";
-        case GL_INT_VEC3:
-            return "ivec3";
-        case GL_INT_VEC4:
-            return "ivec4";
-        case GL_FLOAT_VEC2:
-            return "vec2";
-        case GL_FLOAT_VEC3:
-            return "vec3";
-        case GL_FLOAT_VEC4:
-            return "vec4";
-        case GL_UNSIGNED_INT_VEC2:
-            return "uvec2";
-        case GL_UNSIGNED_INT_VEC3:
-            return "uvec3";
-        case GL_UNSIGNED_INT_VEC4:
-            return "uvec4";
-        case GL_FLOAT_MAT2:
-            return "mat2";
-        case GL_FLOAT_MAT3:
-            return "mat3";
-        case GL_FLOAT_MAT4:
-            return "mat4";
-        default:
-            UNREACHABLE();
-            return "";
-    }
-}
-
-inline GLenum VariableBoolVectorType(GLenum type)
-{
-    switch (type)
-    {
-        case GL_FLOAT:
-        case GL_INT:
-        case GL_UNSIGNED_INT:
-            return GL_BOOL;
-        case GL_FLOAT_VEC2:
-        case GL_INT_VEC2:
-        case GL_UNSIGNED_INT_VEC2:
-            return GL_BOOL_VEC2;
-        case GL_FLOAT_VEC3:
-        case GL_INT_VEC3:
-        case GL_UNSIGNED_INT_VEC3:
-            return GL_BOOL_VEC3;
-        case GL_FLOAT_VEC4:
-        case GL_INT_VEC4:
-        case GL_UNSIGNED_INT_VEC4:
-            return GL_BOOL_VEC4;
-
-        default:
-            UNREACHABLE();
-            return GL_NONE;
-    }
-}
-
-inline int VariableRowCount(GLenum type)
-{
-    switch (type)
-    {
-        case GL_NONE:
-            return 0;
-        case GL_BOOL:
-        case GL_FLOAT:
-        case GL_INT:
-        case GL_UNSIGNED_INT:
-        case GL_BOOL_VEC2:
-        case GL_FLOAT_VEC2:
-        case GL_INT_VEC2:
-        case GL_UNSIGNED_INT_VEC2:
-        case GL_BOOL_VEC3:
-        case GL_FLOAT_VEC3:
-        case GL_INT_VEC3:
-        case GL_UNSIGNED_INT_VEC3:
-        case GL_BOOL_VEC4:
-        case GL_FLOAT_VEC4:
-        case GL_INT_VEC4:
-        case GL_UNSIGNED_INT_VEC4:
-        case GL_SAMPLER_2D:
-        case GL_SAMPLER_3D:
-        case GL_SAMPLER_CUBE:
-        case GL_SAMPLER_2D_ARRAY:
-        case GL_SAMPLER_EXTERNAL_OES:
-        case GL_SAMPLER_2D_RECT_ANGLE:
-        case GL_SAMPLER_2D_MULTISAMPLE:
-        case GL_SAMPLER_2D_MULTISAMPLE_ARRAY:
-        case GL_SAMPLER_CUBE_MAP_ARRAY:
-        case GL_SAMPLER_BUFFER:
-        case GL_INT_SAMPLER_2D:
-        case GL_INT_SAMPLER_3D:
-        case GL_INT_SAMPLER_CUBE:
-        case GL_INT_SAMPLER_2D_ARRAY:
-        case GL_INT_SAMPLER_2D_MULTISAMPLE:
-        case GL_INT_SAMPLER_2D_MULTISAMPLE_ARRAY:
-        case GL_INT_SAMPLER_CUBE_MAP_ARRAY:
-        case GL_INT_SAMPLER_BUFFER:
-        case GL_UNSIGNED_INT_SAMPLER_2D:
-        case GL_UNSIGNED_INT_SAMPLER_3D:
-        case GL_UNSIGNED_INT_SAMPLER_CUBE:
-        case GL_UNSIGNED_INT_SAMPLER_2D_ARRAY:
-        case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE:
-        case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE_ARRAY:
-        case GL_UNSIGNED_INT_SAMPLER_CUBE_MAP_ARRAY:
-        case GL_UNSIGNED_INT_SAMPLER_BUFFER:
-        case GL_SAMPLER_2D_SHADOW:
-        case GL_SAMPLER_CUBE_SHADOW:
-        case GL_SAMPLER_2D_ARRAY_SHADOW:
-        case GL_SAMPLER_CUBE_MAP_ARRAY_SHADOW:
-        case GL_IMAGE_2D:
-        case GL_INT_IMAGE_2D:
-        case GL_UNSIGNED_INT_IMAGE_2D:
-        case GL_IMAGE_2D_ARRAY:
-        case GL_INT_IMAGE_2D_ARRAY:
-        case GL_UNSIGNED_INT_IMAGE_2D_ARRAY:
-        case GL_IMAGE_3D:
-        case GL_INT_IMAGE_3D:
-        case GL_UNSIGNED_INT_IMAGE_3D:
-        case GL_IMAGE_CUBE:
-        case GL_INT_IMAGE_CUBE:
-        case GL_UNSIGNED_INT_IMAGE_CUBE:
-        case GL_UNSIGNED_INT_ATOMIC_COUNTER:
-        case GL_IMAGE_CUBE_MAP_ARRAY:
-        case GL_INT_IMAGE_CUBE_MAP_ARRAY:
-        case GL_UNSIGNED_INT_IMAGE_CUBE_MAP_ARRAY:
-        case GL_IMAGE_BUFFER:
-        case GL_INT_IMAGE_BUFFER:
-        case GL_UNSIGNED_INT_IMAGE_BUFFER:
-        case GL_SAMPLER_EXTERNAL_2D_Y2Y_EXT:
-            return 1;
-        case GL_FLOAT_MAT2:
-        case GL_FLOAT_MAT3x2:
-        case GL_FLOAT_MAT4x2:
-            return 2;
-        case GL_FLOAT_MAT3:
-        case GL_FLOAT_MAT2x3:
-        case GL_FLOAT_MAT4x3:
-            return 3;
-        case GL_FLOAT_MAT4:
-        case GL_FLOAT_MAT2x4:
-        case GL_FLOAT_MAT3x4:
-            return 4;
-        default:
-            UNREACHABLE();
-    }
-
-    return 0;
-}
-
-inline int VariableColumnCount(GLenum type)
-{
-    switch (type)
-    {
-        case GL_NONE:
-            return 0;
-        case GL_BOOL:
-        case GL_FLOAT:
-        case GL_INT:
-        case GL_UNSIGNED_INT:
-        case GL_SAMPLER_2D:
-        case GL_SAMPLER_3D:
-        case GL_SAMPLER_CUBE:
-        case GL_SAMPLER_2D_ARRAY:
-        case GL_SAMPLER_2D_MULTISAMPLE:
-        case GL_SAMPLER_2D_MULTISAMPLE_ARRAY:
-        case GL_SAMPLER_CUBE_MAP_ARRAY:
-        case GL_SAMPLER_BUFFER:
-        case GL_INT_SAMPLER_2D:
-        case GL_INT_SAMPLER_3D:
-        case GL_INT_SAMPLER_CUBE:
-        case GL_INT_SAMPLER_2D_ARRAY:
-        case GL_INT_SAMPLER_2D_MULTISAMPLE:
-        case GL_INT_SAMPLER_2D_MULTISAMPLE_ARRAY:
-        case GL_INT_SAMPLER_CUBE_MAP_ARRAY:
-        case GL_INT_SAMPLER_BUFFER:
-        case GL_SAMPLER_EXTERNAL_OES:
-        case GL_SAMPLER_2D_RECT_ANGLE:
-        case GL_UNSIGNED_INT_SAMPLER_2D:
-        case GL_UNSIGNED_INT_SAMPLER_3D:
-        case GL_UNSIGNED_INT_SAMPLER_CUBE:
-        case GL_UNSIGNED_INT_SAMPLER_2D_ARRAY:
-        case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE:
-        case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE_ARRAY:
-        case GL_UNSIGNED_INT_SAMPLER_CUBE_MAP_ARRAY:
-        case GL_UNSIGNED_INT_SAMPLER_BUFFER:
-        case GL_SAMPLER_2D_SHADOW:
-        case GL_SAMPLER_CUBE_SHADOW:
-        case GL_SAMPLER_2D_ARRAY_SHADOW:
-        case GL_SAMPLER_CUBE_MAP_ARRAY_SHADOW:
-        case GL_IMAGE_2D:
-        case GL_INT_IMAGE_2D:
-        case GL_UNSIGNED_INT_IMAGE_2D:
-        case GL_IMAGE_3D:
-        case GL_INT_IMAGE_3D:
-        case GL_UNSIGNED_INT_IMAGE_3D:
-        case GL_IMAGE_2D_ARRAY:
-        case GL_INT_IMAGE_2D_ARRAY:
-        case GL_UNSIGNED_INT_IMAGE_2D_ARRAY:
-        case GL_IMAGE_CUBE_MAP_ARRAY:
-        case GL_INT_IMAGE_CUBE_MAP_ARRAY:
-        case GL_UNSIGNED_INT_IMAGE_CUBE_MAP_ARRAY:
-        case GL_IMAGE_BUFFER:
-        case GL_INT_IMAGE_BUFFER:
-        case GL_UNSIGNED_INT_IMAGE_BUFFER:
-        case GL_IMAGE_CUBE:
-        case GL_INT_IMAGE_CUBE:
-        case GL_UNSIGNED_INT_IMAGE_CUBE:
-        case GL_UNSIGNED_INT_ATOMIC_COUNTER:
-        case GL_SAMPLER_EXTERNAL_2D_Y2Y_EXT:
-            return 1;
-        case GL_BOOL_VEC2:
-        case GL_FLOAT_VEC2:
-        case GL_INT_VEC2:
-        case GL_UNSIGNED_INT_VEC2:
-        case GL_FLOAT_MAT2:
-        case GL_FLOAT_MAT2x3:
-        case GL_FLOAT_MAT2x4:
-            return 2;
-        case GL_BOOL_VEC3:
-        case GL_FLOAT_VEC3:
-        case GL_INT_VEC3:
-        case GL_UNSIGNED_INT_VEC3:
-        case GL_FLOAT_MAT3:
-        case GL_FLOAT_MAT3x2:
-        case GL_FLOAT_MAT3x4:
-            return 3;
-        case GL_BOOL_VEC4:
-        case GL_FLOAT_VEC4:
-        case GL_INT_VEC4:
-        case GL_UNSIGNED_INT_VEC4:
-        case GL_FLOAT_MAT4:
-        case GL_FLOAT_MAT4x2:
-        case GL_FLOAT_MAT4x3:
-            return 4;
-        default:
-            UNREACHABLE();
-    }
-
-    return 0;
-}
-
-inline bool IsSamplerType(GLenum type)
-{
-    switch (type)
-    {
-        case GL_SAMPLER_2D:
-        case GL_SAMPLER_3D:
-        case GL_SAMPLER_CUBE:
-        case GL_SAMPLER_2D_ARRAY:
-        case GL_SAMPLER_EXTERNAL_OES:
-        case GL_SAMPLER_2D_MULTISAMPLE:
-        case GL_SAMPLER_2D_MULTISAMPLE_ARRAY:
-        case GL_SAMPLER_CUBE_MAP_ARRAY:
-        case GL_SAMPLER_BUFFER:
-        case GL_SAMPLER_2D_RECT_ANGLE:
-        case GL_INT_SAMPLER_2D:
-        case GL_INT_SAMPLER_3D:
-        case GL_INT_SAMPLER_CUBE:
-        case GL_INT_SAMPLER_2D_ARRAY:
-        case GL_INT_SAMPLER_2D_MULTISAMPLE:
-        case GL_INT_SAMPLER_2D_MULTISAMPLE_ARRAY:
-        case GL_INT_SAMPLER_CUBE_MAP_ARRAY:
-        case GL_INT_SAMPLER_BUFFER:
-        case GL_UNSIGNED_INT_SAMPLER_2D:
-        case GL_UNSIGNED_INT_SAMPLER_3D:
-        case GL_UNSIGNED_INT_SAMPLER_CUBE:
-        case GL_UNSIGNED_INT_SAMPLER_2D_ARRAY:
-        case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE:
-        case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE_ARRAY:
-        case GL_UNSIGNED_INT_SAMPLER_CUBE_MAP_ARRAY:
-        case GL_UNSIGNED_INT_SAMPLER_BUFFER:
-        case GL_SAMPLER_2D_SHADOW:
-        case GL_SAMPLER_CUBE_SHADOW:
-        case GL_SAMPLER_2D_ARRAY_SHADOW:
-        case GL_SAMPLER_CUBE_MAP_ARRAY_SHADOW:
-        case GL_SAMPLER_EXTERNAL_2D_Y2Y_EXT:
-            return true;
-    }
-
-    return false;
-}
-
-inline bool IsSamplerCubeType(GLenum type)
-{
-    switch (type)
-    {
-        case GL_SAMPLER_CUBE:
-        case GL_INT_SAMPLER_CUBE:
-        case GL_UNSIGNED_INT_SAMPLER_CUBE:
-        case GL_SAMPLER_CUBE_SHADOW:
-            return true;
-    }
-
-    return false;
-}
-
-inline bool IsSamplerYUVType(GLenum type)
-{
-    switch (type)
-    {
-        case GL_SAMPLER_EXTERNAL_2D_Y2Y_EXT:
-            return true;
-
-        default:
-            return false;
-    }
-}
-
-inline bool IsImageType(GLenum type)
-{
-    switch (type)
-    {
-        case GL_IMAGE_2D:
-        case GL_INT_IMAGE_2D:
-        case GL_UNSIGNED_INT_IMAGE_2D:
-        case GL_IMAGE_3D:
-        case GL_INT_IMAGE_3D:
-        case GL_UNSIGNED_INT_IMAGE_3D:
-        case GL_IMAGE_2D_ARRAY:
-        case GL_INT_IMAGE_2D_ARRAY:
-        case GL_UNSIGNED_INT_IMAGE_2D_ARRAY:
-        case GL_IMAGE_CUBE_MAP_ARRAY:
-        case GL_INT_IMAGE_CUBE_MAP_ARRAY:
-        case GL_UNSIGNED_INT_IMAGE_CUBE_MAP_ARRAY:
-        case GL_IMAGE_BUFFER:
-        case GL_INT_IMAGE_BUFFER:
-        case GL_UNSIGNED_INT_IMAGE_BUFFER:
-        case GL_IMAGE_CUBE:
-        case GL_INT_IMAGE_CUBE:
-        case GL_UNSIGNED_INT_IMAGE_CUBE:
-            return true;
-    }
-    return false;
-}
-
-inline bool IsImage2DType(GLenum type)
-{
-    switch (type)
-    {
-        case GL_IMAGE_2D:
-        case GL_INT_IMAGE_2D:
-        case GL_UNSIGNED_INT_IMAGE_2D:
-            return true;
-        case GL_IMAGE_3D:
-        case GL_INT_IMAGE_3D:
-        case GL_UNSIGNED_INT_IMAGE_3D:
-        case GL_IMAGE_2D_ARRAY:
-        case GL_INT_IMAGE_2D_ARRAY:
-        case GL_UNSIGNED_INT_IMAGE_2D_ARRAY:
-        case GL_IMAGE_CUBE_MAP_ARRAY:
-        case GL_INT_IMAGE_CUBE_MAP_ARRAY:
-        case GL_UNSIGNED_INT_IMAGE_CUBE_MAP_ARRAY:
-        case GL_IMAGE_CUBE:
-        case GL_INT_IMAGE_CUBE:
-        case GL_UNSIGNED_INT_IMAGE_CUBE:
-        case GL_IMAGE_BUFFER:
-        case GL_INT_IMAGE_BUFFER:
-        case GL_UNSIGNED_INT_IMAGE_BUFFER:
-            return false;
-        default:
-            UNREACHABLE();
-            return false;
-    }
-}
-
-inline bool IsAtomicCounterType(GLenum type)
-{
-    return type == GL_UNSIGNED_INT_ATOMIC_COUNTER;
-}
-
-inline bool IsOpaqueType(GLenum type)
-{
-    // ESSL 3.10 section 4.1.7 defines opaque types as: samplers, images and atomic counters.
-    return IsImageType(type) || IsSamplerType(type) || IsAtomicCounterType(type);
-}
-
-inline bool IsMatrixType(GLenum type)
-{
-    return VariableRowCount(type) > 1;
-}
-
-inline bool IsFloatScalarAndVectorType(GLenum type)
-{
-    switch (type)
-    {
-        case GL_FLOAT:
-        case GL_FLOAT_VEC2:
-        case GL_FLOAT_VEC3:
-        case GL_FLOAT_VEC4:
-            return true;
-        default:
-            return false;
-    }
-}
-
-inline bool IsFloatVectorType(GLenum type)
-{
-    switch (type)
-    {
-        case GL_FLOAT_VEC2:
-        case GL_FLOAT_VEC3:
-        case GL_FLOAT_VEC4:
-            return true;
-        default:
-            return false;
-    }
-}
-
-inline GLenum TransposeMatrixType(GLenum type)
-{
-    if (!IsMatrixType(type))
-    {
-        return type;
-    }
-
-    switch (type)
-    {
-        case GL_FLOAT_MAT2:
-            return GL_FLOAT_MAT2;
-        case GL_FLOAT_MAT3:
-            return GL_FLOAT_MAT3;
-        case GL_FLOAT_MAT4:
-            return GL_FLOAT_MAT4;
-        case GL_FLOAT_MAT2x3:
-            return GL_FLOAT_MAT3x2;
-        case GL_FLOAT_MAT3x2:
-            return GL_FLOAT_MAT2x3;
-        case GL_FLOAT_MAT2x4:
-            return GL_FLOAT_MAT4x2;
-        case GL_FLOAT_MAT4x2:
-            return GL_FLOAT_MAT2x4;
-        case GL_FLOAT_MAT3x4:
-            return GL_FLOAT_MAT4x3;
-        case GL_FLOAT_MAT4x3:
-            return GL_FLOAT_MAT3x4;
-        default:
-            UNREACHABLE();
-            return GL_NONE;
-    }
-}
-
-inline int MatrixRegisterCount(GLenum type, bool isRowMajorMatrix)
-{
-    ASSERT(IsMatrixType(type));
-    return isRowMajorMatrix ? VariableRowCount(type) : VariableColumnCount(type);
-}
-
-inline int MatrixComponentCount(GLenum type, bool isRowMajorMatrix)
-{
-    ASSERT(IsMatrixType(type));
-    return isRowMajorMatrix ? VariableColumnCount(type) : VariableRowCount(type);
-}
-
-inline int VariableRegisterCount(GLenum type)
-{
-    return IsMatrixType(type) ? VariableColumnCount(type) : 1;
-}
-
-inline int VariableSortOrder(GLenum type)
-{
-    switch (type)
-    {
-        // 1. Arrays of mat4 and mat4
-        // Non-square matrices of type matCxR consume the same space as a square
-        // matrix of type matN where N is the greater of C and R
-        case GL_FLOAT_MAT4:
-        case GL_FLOAT_MAT2x4:
-        case GL_FLOAT_MAT3x4:
-        case GL_FLOAT_MAT4x2:
-        case GL_FLOAT_MAT4x3:
-            return 0;
-
-        // 2. Arrays of mat2 and mat2 (since they occupy full rows)
-        case GL_FLOAT_MAT2:
-            return 1;
-
-        // 3. Arrays of vec4 and vec4
-        case GL_FLOAT_VEC4:
-        case GL_INT_VEC4:
-        case GL_BOOL_VEC4:
-        case GL_UNSIGNED_INT_VEC4:
-            return 2;
-
-        // 4. Arrays of mat3 and mat3
-        case GL_FLOAT_MAT3:
-        case GL_FLOAT_MAT2x3:
-        case GL_FLOAT_MAT3x2:
-            return 3;
-
-        // 5. Arrays of vec3 and vec3
-        case GL_FLOAT_VEC3:
-        case GL_INT_VEC3:
-        case GL_BOOL_VEC3:
-        case GL_UNSIGNED_INT_VEC3:
-            return 4;
-
-        // 6. Arrays of vec2 and vec2
-        case GL_FLOAT_VEC2:
-        case GL_INT_VEC2:
-        case GL_BOOL_VEC2:
-        case GL_UNSIGNED_INT_VEC2:
-            return 5;
-
-        // 7. Single component types
-        case GL_FLOAT:
-        case GL_INT:
-        case GL_BOOL:
-        case GL_UNSIGNED_INT:
-        case GL_SAMPLER_2D:
-        case GL_SAMPLER_CUBE:
-        case GL_SAMPLER_EXTERNAL_OES:
-        case GL_SAMPLER_2D_RECT_ANGLE:
-        case GL_SAMPLER_2D_ARRAY:
-        case GL_SAMPLER_2D_MULTISAMPLE:
-        case GL_SAMPLER_2D_MULTISAMPLE_ARRAY:
-        case GL_SAMPLER_3D:
-        case GL_INT_SAMPLER_2D:
-        case GL_INT_SAMPLER_3D:
-        case GL_INT_SAMPLER_CUBE:
-        case GL_INT_SAMPLER_2D_ARRAY:
-        case GL_INT_SAMPLER_2D_MULTISAMPLE:
-        case GL_INT_SAMPLER_2D_MULTISAMPLE_ARRAY:
-        case GL_UNSIGNED_INT_SAMPLER_2D:
-        case GL_UNSIGNED_INT_SAMPLER_3D:
-        case GL_UNSIGNED_INT_SAMPLER_CUBE:
-        case GL_UNSIGNED_INT_SAMPLER_2D_ARRAY:
-        case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE:
-        case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE_ARRAY:
-        case GL_SAMPLER_2D_SHADOW:
-        case GL_SAMPLER_2D_ARRAY_SHADOW:
-        case GL_SAMPLER_CUBE_SHADOW:
-        case GL_IMAGE_2D:
-        case GL_INT_IMAGE_2D:
-        case GL_UNSIGNED_INT_IMAGE_2D:
-        case GL_IMAGE_3D:
-        case GL_INT_IMAGE_3D:
-        case GL_UNSIGNED_INT_IMAGE_3D:
-        case GL_IMAGE_2D_ARRAY:
-        case GL_INT_IMAGE_2D_ARRAY:
-        case GL_UNSIGNED_INT_IMAGE_2D_ARRAY:
-        case GL_IMAGE_CUBE:
-        case GL_INT_IMAGE_CUBE:
-        case GL_UNSIGNED_INT_IMAGE_CUBE:
-        case GL_UNSIGNED_INT_ATOMIC_COUNTER:
-        case GL_SAMPLER_EXTERNAL_2D_Y2Y_EXT:
-            return 6;
-
-        default:
-            UNREACHABLE();
-            return 0;
-    }
-}
-
-inline bool IsBuiltInName(const char *name)
-{
-    return angle::BeginsWith(name, "gl_");
-}
-
-inline bool IsBuiltInName(const std::string &name)
-{
-    return IsBuiltInName(name.c_str());
-}
-
-inline GLuint GetPrimitiveRestartIndex(DrawElementsType indexType)
-{
-    switch (indexType)
-    {
-        case DrawElementsType::UnsignedByte:
-            return 0xFF;
-        case DrawElementsType::UnsignedShort:
-            return 0xFFFF;
-        case DrawElementsType::UnsignedInt:
-            return 0xFFFFFFFF;
-        default:
-            UNREACHABLE();
-            return 0;
-    }
-}
-
-inline bool IsTriangleMode(PrimitiveMode drawMode)
-{
-    switch (drawMode)
-    {
-        case PrimitiveMode::Triangles:
-        case PrimitiveMode::TriangleFan:
-        case PrimitiveMode::TriangleStrip:
-            return true;
-        case PrimitiveMode::Points:
-        case PrimitiveMode::Lines:
-        case PrimitiveMode::LineLoop:
-        case PrimitiveMode::LineStrip:
-            return false;
-        default:
-            UNREACHABLE();
-    }
-
-    return false;
-}
-
-inline bool IsPolygonMode(PrimitiveMode mode)
-{
-    switch (mode)
-    {
-        case PrimitiveMode::Points:
-        case PrimitiveMode::Lines:
-        case PrimitiveMode::LineStrip:
-        case PrimitiveMode::LineLoop:
-        case PrimitiveMode::LinesAdjacency:
-        case PrimitiveMode::LineStripAdjacency:
-            return false;
-        default:
-            break;
-    }
-
-    return true;
-}
-
-inline bool IsLineMode(PrimitiveMode primitiveMode)
-{
-    return priv::gLineModes[primitiveMode];
-}
-
-inline bool IsIntegerFormat(GLenum unsizedFormat)
-{
-    switch (unsizedFormat)
-    {
-        case GL_RGBA_INTEGER:
-        case GL_RGB_INTEGER:
-        case GL_RG_INTEGER:
-        case GL_RED_INTEGER:
-            return true;
-
-        default:
-            return false;
-    }
-}
-
-inline unsigned int ArraySizeProduct(const std::vector<unsigned int> &arraySizes)
-{
-    unsigned int arraySizeProduct = 1u;
-    for (unsigned int arraySize : arraySizes)
-    {
-        arraySizeProduct *= arraySize;
-    }
-    return arraySizeProduct;
-}
-
-inline unsigned int InnerArraySizeProduct(const std::vector<unsigned int> &arraySizes)
-{
-    unsigned int arraySizeProduct = 1u;
-    for (size_t index = 0; index + 1 < arraySizes.size(); ++index)
-    {
-        arraySizeProduct *= arraySizes[index];
-    }
-    return arraySizeProduct;
-}
-
-inline unsigned int OutermostArraySize(const std::vector<unsigned int> &arraySizes)
-{
-    return arraySizes.empty() || arraySizes.back() == 0 ? 1 : arraySizes.back();
-}
-
-inline unsigned int ElementTypeSize(GLenum elementType)
-{
-    switch (elementType)
-    {
-        case GL_UNSIGNED_BYTE:
-            return sizeof(GLubyte);
-        case GL_UNSIGNED_SHORT:
-            return sizeof(GLushort);
-        case GL_UNSIGNED_INT:
-            return sizeof(GLuint);
-        default:
-            UNREACHABLE();
-            return 0;
-    }
-}
-
-inline bool IsMipmapFiltered(GLenum minFilterMode)
-{
-    switch (minFilterMode)
-    {
-        case GL_NEAREST:
-        case GL_LINEAR:
-            return false;
-        case GL_NEAREST_MIPMAP_NEAREST:
-        case GL_LINEAR_MIPMAP_NEAREST:
-        case GL_NEAREST_MIPMAP_LINEAR:
-        case GL_LINEAR_MIPMAP_LINEAR:
-            return true;
-        default:
-            UNREACHABLE();
-            return false;
-    }
-}
-
-inline PipelineType GetPipelineType(ShaderType type)
-{
-    switch (type)
-    {
-        case ShaderType::Vertex:
-        case ShaderType::Fragment:
-        case ShaderType::Geometry:
-            return PipelineType::GraphicsPipeline;
-        case ShaderType::Compute:
-            return PipelineType::ComputePipeline;
-        default:
-            UNREACHABLE();
-            return PipelineType::GraphicsPipeline;
-    }
-}
-
-inline ShaderType GetShaderTypeFromBitfield(size_t singleShaderType)
-{
-    switch (singleShaderType)
-    {
-        case GL_VERTEX_SHADER_BIT:
-            return ShaderType::Vertex;
-        case GL_FRAGMENT_SHADER_BIT:
-            return ShaderType::Fragment;
-        case GL_COMPUTE_SHADER_BIT:
-            return ShaderType::Compute;
-        case GL_GEOMETRY_SHADER_BIT:
-            return ShaderType::Geometry;
-        case GL_TESS_CONTROL_SHADER_BIT:
-            return ShaderType::TessControl;
-        case GL_TESS_EVALUATION_SHADER_BIT:
-            return ShaderType::TessEvaluation;
-        default:
-            return ShaderType::InvalidEnum;
-    }
-}
-
-inline GLbitfield GetBitfieldFromShaderType(ShaderType shaderType)
-{
-    switch (shaderType)
-    {
-        case ShaderType::Vertex:
-            return GL_VERTEX_SHADER_BIT;
-        case ShaderType::Fragment:
-            return GL_FRAGMENT_SHADER_BIT;
-        case ShaderType::Compute:
-            return GL_COMPUTE_SHADER_BIT;
-        case ShaderType::Geometry:
-            return GL_GEOMETRY_SHADER_BIT;
-        case ShaderType::TessControl:
-            return GL_TESS_CONTROL_SHADER_BIT;
-        case ShaderType::TessEvaluation:
-            return GL_TESS_EVALUATION_SHADER_BIT;
-        default:
-            UNREACHABLE();
-            return GL_ZERO;
-    }
-}
-
-inline bool ShaderTypeSupportsTransformFeedback(ShaderType shaderType)
-{
-    switch (shaderType)
-    {
-        case ShaderType::Vertex:
-        case ShaderType::Geometry:
-        case ShaderType::TessEvaluation:
-            return true;
-        default:
-            return false;
-    }
-}
-
-inline ShaderType GetLastPreFragmentStage(ShaderBitSet shaderTypes)
-{
-    shaderTypes.reset(ShaderType::Fragment);
-    shaderTypes.reset(ShaderType::Compute);
-    return shaderTypes.any() ? shaderTypes.last() : ShaderType::InvalidEnum;
-}
+ShaderType GetShaderTypeFromBitfield(size_t singleShaderType);
+GLbitfield GetBitfieldFromShaderType(ShaderType shaderType);
+bool ShaderTypeSupportsTransformFeedback(ShaderType shaderType);
+// Given a set of shader stages, returns the last vertex processing stage.  This is the stage that
+// interfaces the fragment shader.
+ShaderType GetLastPreFragmentStage(ShaderBitSet shaderTypes);
 
 }  // namespace gl
 
