@@ -13407,12 +13407,9 @@ angle::Result BufferViewHelper::getView(ErrorContext *context,
     const VkDeviceSize maxRangeBytes = maxTexelBufferElements * pixelBytes;
 
     if (size > maxRangeBytes) {
-        ANGLE_VK_PERF_WARNING(context, GL_DEBUG_SEVERITY_HIGH,
-                              "BufferView range (%llu) exceeds maxTexelBufferElements (%llu), "
-                              "truncating to %llu bytes",
-                              static_cast<unsigned long long>(size),
-                              static_cast<unsigned long long>(maxRangeBytes),
-                              static_cast<unsigned long long>(maxRangeBytes));
+        WARN() << "BufferView range (" << size << ") exceeds maxTexelBufferElements ("
+                 << maxRangeBytes << "), truncating to " << (maxRangeBytes - maxRangeBytes % pixelBytes)
+                 << " bytes";
         size = maxRangeBytes - (maxRangeBytes % pixelBytes);
     }
 
