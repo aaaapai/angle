@@ -4972,6 +4972,10 @@ void GL_APIENTRY GL_TexImage2D(GLenum target,
         WARN() << "GL_TexImage2D: target is 0, which is not a valid texture target. Set to GL_TEXTURE_2D by default.";
         target = GL_TEXTURE_2D;
     }
+    
+    if (internalFormat == 0x2A10) {
+        internalformat = GL_RGB8;
+    }
 
     ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
@@ -5065,6 +5069,7 @@ void GL_APIENTRY GL_TexParameterf(GLenum target, GLenum pname, GLfloat param)
 void GL_APIENTRY GL_TexParameterfv(GLenum target, GLenum pname, const GLfloat *params)
 {
     if (target == 10) target = GL_TEXTURE_2D;
+    
     ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     ANGLE_UNSAFE_TODO(EVENT(context, GLTexParameterfv,

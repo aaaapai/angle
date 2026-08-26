@@ -29,6 +29,7 @@
 #include "libANGLE/queryutils.h"
 #include "libANGLE/renderer/ContextImpl.h"
 #include "libANGLE/renderer/TextureImpl.h"
+#include "libANGLE/renderer/gl/functionsgl_enums.h"
 
 namespace gl
 {
@@ -2026,6 +2027,9 @@ void PrivateState::getFloatv(GLenum pname, GLfloat *params) const
         case GL_MIN_SAMPLE_SHADING_VALUE:
             *params = mMinSampleShading;
             break;
+        case GL_LINE_WIDTH_GRANULARITY:
+            *params = mCaps.lineWidthGranularity;
+            break;
         // GL_ARM_shader_framebuffer_fetch
         case GL_FETCH_PER_SAMPLE_ARM:
             *params = mFetchPerSample ? 1.0f : 0.0f;
@@ -2273,6 +2277,10 @@ void PrivateState::getIntegerv(GLenum pname, GLint *params) const
         // GL_KHR_blend_equation_advanced_coherent
         case GL_BLEND_ADVANCED_COHERENT_KHR:
             *params = mBlendAdvancedCoherent ? 1 : 0;
+            break;
+
+        case GL_LINE_WIDTH_GRANULARITY:
+            *params = static_cast<GLint>(mCaps.lineWidthGranularity + 0.5f);
             break;
 
         default:

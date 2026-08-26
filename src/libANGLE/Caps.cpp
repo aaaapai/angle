@@ -1125,9 +1125,9 @@ Caps GenerateMinimumCaps(const Version &clientVersion, const Extensions &extensi
         caps.maxShaderTextureImageUnits[ShaderType::TessControl]    = 16;
         caps.maxShaderUniformComponents[ShaderType::TessControl]    = 1024;
         caps.maxTessControlTotalOutputComponents                    = 2048;
-        caps.maxShaderImageUniforms[ShaderType::TessControl]        = 0;
-        caps.maxShaderAtomicCounters[ShaderType::TessControl]       = 0;
-        caps.maxShaderAtomicCounterBuffers[ShaderType::TessControl] = 0;
+        caps.maxShaderImageUniforms[ShaderType::TessControl]        = 4;
+        caps.maxShaderAtomicCounters[ShaderType::TessControl]       = 4;
+        caps.maxShaderAtomicCounterBuffers[ShaderType::TessControl] = 4;
 
         caps.maxTessPatchComponents = 120;
         caps.maxPatchVertices       = 32;
@@ -1137,9 +1137,9 @@ Caps GenerateMinimumCaps(const Version &clientVersion, const Extensions &extensi
         caps.maxTessEvaluationOutputComponents                         = 64;
         caps.maxShaderTextureImageUnits[ShaderType::TessEvaluation]    = 16;
         caps.maxShaderUniformComponents[ShaderType::TessEvaluation]    = 1024;
-        caps.maxShaderImageUniforms[ShaderType::TessEvaluation]        = 0;
-        caps.maxShaderAtomicCounters[ShaderType::TessEvaluation]       = 0;
-        caps.maxShaderAtomicCounterBuffers[ShaderType::TessEvaluation] = 0;
+        caps.maxShaderImageUniforms[ShaderType::TessEvaluation]        = 4;
+        caps.maxShaderAtomicCounters[ShaderType::TessEvaluation]       = 4;
+        caps.maxShaderAtomicCounterBuffers[ShaderType::TessEvaluation] = 4;
 
         // Table 20.46 "Implementation Dependent Aggregate Shader Limits"
         caps.maxUniformBufferBindings     = 72;

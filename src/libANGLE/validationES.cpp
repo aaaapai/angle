@@ -6675,6 +6675,14 @@ bool ValidateGetTexParameterBase(const Context *context,
             }
             break;
 
+        case GL_TEXTURE_LOD_BIAS:
+            if (!context->getExtensions().textureLodBiasEXT)
+            {
+                 ANGLE_VALIDATION_ERRORF(GL_INVALID_ENUM, kEnumNotSupported, pname);
+                 return false;
+            }
+            break;
+
         case GL_TEXTURE_LOD_BIAS_QCOM:
             if (!context->getExtensions().textureLodBiasQCOM)
             {
@@ -7178,6 +7186,14 @@ bool ValidateTexParameterBase(const Context *context,
             }
             break;
 
+        case GL_TEXTURE_LOD_BIAS:
+           if (!context->getExtensions().textureLodBiasEXT)
+           {
+               ANGLE_VALIDATION_ERRORF(GL_INVALID_ENUM, kEnumNotSupported, pname);
+               return false;
+           }
+           break;
+
         case GL_TEXTURE_LOD_BIAS_QCOM:
             if (!context->getExtensions().textureLodBiasQCOM)
             {
@@ -7281,6 +7297,7 @@ bool ValidateTexParameterBase(const Context *context,
         }
         break;
 
+        case GL_TEXTURE_LOD_BIAS:
         case GL_TEXTURE_LOD_BIAS_QCOM:
         case GL_TEXTURE_MIN_LOD:
         case GL_TEXTURE_MAX_LOD:
