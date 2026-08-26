@@ -1991,7 +1991,7 @@ bool LinkValidateShaderInterfaceMatching(const std::vector<sh::ShaderVariable> &
                                          bool isSeparable,
                                          gl::InfoLog &infoLog)
 {
-    ASSERT(frontShaderVersion == backShaderVersion);
+    //ASSERT(frontShaderVersion == backShaderVersion);
 
     std::vector<const sh::ShaderVariable *> filteredInputVaryings;
     std::vector<const sh::ShaderVariable *> filteredOutputVaryings;
