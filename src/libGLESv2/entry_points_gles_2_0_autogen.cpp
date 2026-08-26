@@ -4973,7 +4973,7 @@ void GL_APIENTRY GL_TexImage2D(GLenum target,
         target = GL_TEXTURE_2D;
     }
     
-    if (internalFormat == 0x2A10) {
+    if (internalformat == 0x2A10) {
         internalformat = GL_RGB8;
     }
 
