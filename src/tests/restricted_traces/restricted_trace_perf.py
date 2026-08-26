@@ -244,7 +244,7 @@ def run_from_dir(dir):
         os.chdir(cwd)
 
 
-def run_trace(trace, args, screenshot_device_dir):
+def run_trace(trace, args, screenshot_device_dir, extra_args):
     mode = get_mode(args)
 
     # Kick off a subprocess that collects peak gpu memory periodically
@@ -265,27 +265,17 @@ def run_trace(trace, args, screenshot_device_dir):
         flags.append('--' + mode)
     if args.maxsteps != '':
         flags += ['--max-steps-performed', args.maxsteps]
-    if args.run_to_key_frame:
-        flags.append('--run-to-key-frame')
     if args.fixedtime != '':
         flags += ['--fixed-test-time-with-warmup', args.fixedtime]
     if args.minimizegpuwork:
         flags.append('--minimize-gpu-work')
-    if args.skip_blit_in_offscreen:
-        flags.append('--skip-blit-in-offscreen')
     if screenshot_device_dir != None:
         flags += ['--screenshot-dir', screenshot_device_dir]
     if args.screenshot_frame != '':
         flags += ['--screenshot-frame', args.screenshot_frame]
-    if args.fps_limit != '':
-        flags += ['--fps-limit', args.fps_limit]
-    if args.fps_limit_uses_busy_wait:
-        flags.append('--fps-limit-uses-busy-wait')
     if args.gpu_time:
         # Keep internal argument name the same for compatibility with the C++ executable
         flags.append('--track-gpu-time')
-    if args.add_swap_into_gpu_time:
-        flags.append('--add-swap-into-gpu-time')
     if args.frame_wall_time:
         flags.append('--track-frame-wall-time')
     if args.add_swap_into_frame_wall_time:
@@ -299,6 +289,9 @@ def run_trace(trace, args, screenshot_device_dir):
             flags.append('--track-vulkan-api-wall-time 1')
         else:
             print("WARNING: '--vulkan-api-wall-time' requires `--frame-wall-time`. Ignoring...\n")
+
+    # Pass through any unrecognized args directly to the test executable
+    flags += extra_args
 
     # Build a command that can be run directly over ADB, for example:
     r'''
@@ -941,7 +934,8 @@ def get_raw_data_name(args):
     else:
         return ''
 
-def run_traces(args):
+
+def run_traces(args, extra_args):
     # Load trace names
     test_json = os.path.join(args.build_dir, 'gen/trace_list.json')
     with open(os.path.join(DEFAULT_TEST_DIR, test_json)) as f:
@@ -1217,7 +1211,7 @@ def run_traces(args):
                         screenshot_device_dir = temp_dir
 
                     logging.debug('Running %s' % test)
-                    test_time = run_trace(test, args, screenshot_device_dir)
+                    test_time = run_trace(test, args, screenshot_device_dir, extra_args)
 
                     if screenshot_device_dir:
                         pull_screenshot(args, screenshot_device_dir, renderer)
@@ -1976,17 +1970,10 @@ def main():
         action='store_true',
         default=False)
     parser.add_argument('--maxsteps', help='Run for fixed set of frames', default='')
-    parser.add_argument(
-        '--run-to-key-frame', help='Run to key-frame', action='store_true', default=False)
     parser.add_argument('--fixedtime', help='Run for fixed set of time', default='')
     parser.add_argument(
         '--minimizegpuwork',
         help='Whether to run with minimized GPU work',
-        action='store_true',
-        default=False)
-    parser.add_argument(
-        '--skip-blit-in-offscreen',
-        help='skip blit operation in offscreen mode',
         action='store_true',
         default=False)
     parser.add_argument('--output-tag', help='Tag for output files.')
@@ -2030,8 +2017,6 @@ def main():
         '--screenshot-frame',
         help='Specify a specific frame to screenshot. Uses --screenshot-dir if provied.',
         default='')
-    parser.add_argument(
-        '--fps-limit', help='Limit replay framerate to specified value', default='')
 
     group = parser.add_mutually_exclusive_group()
     group.add_argument(
@@ -2045,17 +2030,7 @@ def main():
         action='store_true',
         default=False)
     parser.add_argument(
-        '--fps-limit-uses-busy-wait',
-        help='Use busy wait instead of sleep to limit the framerate.',
-        action='store_true',
-        default=False)
-    parser.add_argument(
         '--gpu-time', help='Enables GPU time tracking', action='store_true', default=False)
-    parser.add_argument(
-        '--add-swap-into-gpu-time',
-        help='Adds swap/offscreen blit into the gpu_time tracking',
-        action='store_true',
-        default=False)
     parser.add_argument(
         '--frame-wall-time',
         help='Enables frame_wall_time tracking',
@@ -2078,7 +2053,7 @@ def main():
         help='Generates summary from raw_data CSV. Takes exactly two arguments - raw_data filename followed by summary filename.'
     )
 
-    args = parser.parse_args()
+    args, extra_args = parser.parse_known_args()
 
     angle_test_util.SetupLogging(args.log.upper())
 
@@ -2107,7 +2082,7 @@ def main():
         try:
             if args.custom_throttling_temp:
                 set_vendor_thermal_control(disabled=1)
-            run_traces(args)
+            run_traces(args, extra_args)
             if args.output_tag:
                 generate_summary(get_raw_data_name(args), get_summary_name(args))
         finally:
