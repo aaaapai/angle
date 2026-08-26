@@ -13402,6 +13402,20 @@ angle::Result BufferViewHelper::getView(ErrorContext *context,
     const GLuint pixelBytes           = bufferFormat.pixelBytes;
     VkDeviceSize size                 = mSize - mSize % pixelBytes;
 
+    const VkPhysicalDeviceLimits &limits = renderer->getPhysicalDeviceProperties().limits;
+    const VkDeviceSize maxTexelBufferElements = limits.maxTexelBufferElements;
+    const VkDeviceSize maxRangeBytes = maxTexelBufferElements * pixelBytes;
+
+    if (size > maxRangeBytes) {
+        ANGLE_VK_PERF_WARNING(context, GL_DEBUG_SEVERITY_HIGH,
+                              "BufferView range (%llu) exceeds maxTexelBufferElements (%llu), "
+                              "truncating to %llu bytes",
+                              static_cast<unsigned long long>(size),
+                              static_cast<unsigned long long>(maxRangeBytes),
+                              static_cast<unsigned long long>(maxRangeBytes));
+        size = maxRangeBytes - (maxRangeBytes % pixelBytes);
+    }
+
     VkBufferViewCreateInfo viewCreateInfo = {};
     viewCreateInfo.sType                  = VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO;
     viewCreateInfo.buffer                 = buffer.getBuffer().getHandle();

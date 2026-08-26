@@ -134,12 +134,17 @@ VkMemoryPropertyFlags GetStorageMemoryType(vk::Renderer *renderer,
     return hasMapAccess ? kHostCachedFlags : kDeviceLocalFlags;
 }
 
+// Performance tuning constants for buffer update strategies
+constexpr size_t kCpuCopyBufferSizeThreshold = 32 * 1024;
+constexpr size_t kPreferDuplicateOverRenderPassBreakMaxBufferSize = 4 * 1024;  // Increased from 1KB
+constexpr VkDeviceSize kMaxBufferSizeForGhosting = 64 * 1024;
+
 bool ShouldAllocateNewMemoryForUpdate(ContextVk *contextVk, size_t subDataSize, size_t bufferSize)
 {
-    // A sub-data update with size > 50% of buffer size meets the threshold to acquire a new
-    // BufferHelper from the pool.
-    size_t halfBufferSize = bufferSize / 2;
-    if (subDataSize > halfBufferSize)
+    // A sub-data update with size > 75% of buffer size meets the threshold to acquire a new
+    // BufferHelper from the pool. Reduced frequency to avoid unnecessary allocations.
+    size_t thresholdSize = bufferSize * 3 / 4;  // was bufferSize / 2
+    if (subDataSize > thresholdSize)
     {
         return true;
     }
@@ -152,7 +157,6 @@ bool ShouldAllocateNewMemoryForUpdate(ContextVk *contextVk, size_t subDataSize, 
         // If the buffer is small enough, the cost of barrier associated with the GPU copy likely
         // exceeds the overhead with the CPU copy. Duplicating the buffer allows the CPU to write to
         // the buffer immediately, thus avoiding the barrier that prevents parallel operation.
-        constexpr size_t kCpuCopyBufferSizeThreshold = 32 * 1024;
         if (bufferSize < kCpuCopyBufferSizeThreshold)
         {
             return true;
@@ -160,9 +164,9 @@ bool ShouldAllocateNewMemoryForUpdate(ContextVk *contextVk, size_t subDataSize, 
 
         // To use CPU for the sub-data update in larger buffers, the update should be sizable enough
         // compared to the whole buffer size. The threshold is chosen based on perf data collected
-        // from Pixel devices. At 1/8 of buffer size, the CPU overhead associated with extra data
-        // copy weighs less than serialization caused by barriers.
-        size_t subDataThreshold = bufferSize / 8;
+        // from Pixel devices. At 1/4 of buffer size (was 1/8), the CPU overhead associated with
+        // extra data copy weighs less than serialization caused by barriers.
+        size_t subDataThreshold = bufferSize / 4;  // was bufferSize / 8
         if (subDataSize > subDataThreshold)
         {
             return true;
@@ -214,9 +218,8 @@ bool ShouldAvoidRenderPassBreakOnUpdate(ContextVk *contextVk,
                                         size_t bufferSize)
 {
     // Only avoid breaking the render pass if the buffer is not so big such that duplicating it
-    // would outweight the cost of breaking the render pass.  A value of 1KB is temporary chosen as
-    // a heuristic, and can be adjusted when such a situation is encountered.
-    constexpr size_t kPreferDuplicateOverRenderPassBreakMaxBufferSize = 1024;
+    // would outweight the cost of breaking the render pass. The threshold is increased to reduce
+    // allocations.
     if (!contextVk->getFeatures().preferCPUForBufferSubData.enabled ||
         bufferSize > kPreferDuplicateOverRenderPassBreakMaxBufferSize)
     {
@@ -884,6 +887,14 @@ angle::Result BufferVk::mapRangeImpl(ContextVk *contextVk,
 
     if (renderer->hasResourceUseFinished(mBuffer.getWriteResourceUse()))
     {
+        // If the buffer is small, waiting may be cheaper than allocating a new buffer.
+        if (static_cast<VkDeviceSize>(mState.getSize()) <= kMaxBufferSizeForGhosting)
+        {
+            ANGLE_TRY(mBuffer.waitForIdle(contextVk,
+                                          "GPU stall due to mapping small buffer in use by the GPU",
+                                          QueueSubmitReason::BufferInUseWhenSynchronizedMap));
+            return mapHostVisibleBuffer(contextVk, offset, access, mapPtrBytes);
+        }
         // This will keep the new buffer mapped and update mapPtr, so return immediately.
         return ghostMappedBuffer(contextVk, offset, length, access, mapPtr, feedback);
     }
