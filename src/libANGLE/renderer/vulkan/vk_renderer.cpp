@@ -6166,9 +6166,19 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
 
     // The number of minimum write commands in the command buffer to trigger one submission of
     // pending commands at draw call time
-    if (isARMProprietary)
+    if (isARMProprietary && !std::getenv("ANGLE_NOT_EARLYSUBMIT"))
     {
-        mMinRPWriteCommandCountToEarlySubmit = 128;
+        mMinRPWriteCommandCountToEarlySubmit = 96;
+    }
+    
+    const char *forceEarlySubmitEnv = std::getenv("ANGLE_FORCE_MINEARLYSUBMIT");
+    if (forceEarlySubmitEnv)
+    {
+        int val = std::atoi(forceEarlySubmitEnv);
+        if (val > 0)
+        {
+            mMinRPWriteCommandCountToEarlySubmit = static_cast<uint32_t>(val);
+        }
     }
 
     // In order to support immutable samplers tied to external formats, we need to overallocate

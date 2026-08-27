@@ -924,8 +924,7 @@ inline float Ldexp(float x, int exp)
     {
         return 0.0f;
     }
-    double result = static_cast<double>(x) * std::pow(2.0, static_cast<double>(exp));
-    return static_cast<float>(result);
+    return std::ldexp(x, exp);
 }
 
 // First, both normalized floating-point values are converted into 16-bit integer values.

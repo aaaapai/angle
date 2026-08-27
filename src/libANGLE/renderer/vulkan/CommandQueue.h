@@ -30,8 +30,9 @@ namespace vk
 class ExternalFence;
 using SharedExternalFence = std::shared_ptr<ExternalFence>;
 
-constexpr size_t kInFlightCommandsLimit    = 50u;
-constexpr size_t kMaxFinishedCommandsLimit = 64u;
+// Optimize: Increase limits to reduce blocking under heavy load.
+constexpr size_t kInFlightCommandsLimit    = 100u;   // was 50
+constexpr size_t kMaxFinishedCommandsLimit = 128u;   // was 64
 static_assert(kInFlightCommandsLimit <= kMaxFinishedCommandsLimit);
 
 struct CommandQueuePerfCounters
@@ -657,4 +658,4 @@ class [[nodiscard]] ScopedPrimaryCommandBuffer final
 
 }  // namespace rx
 
-#endif  // LIBANGLE_RENDERER_VULKAN_COMMAND_QUEUE_H_
+#endif  // LIBANGLE_RENDERER_VULKAN_COMMAND_Queue_H_
