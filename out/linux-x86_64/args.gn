@@ -136,7 +136,8 @@ angle_enable_essl = true
 angle_enable_d3d9 = false
 angle_enable_d3d11 = false
 angle_enable_null = false
-angle_enable_wgpu = true
+angle_enable_wgpu = false
+angle_enable_cl = false
 angle_enable_swiftshader = false
 angle_enable_metal = false
 
