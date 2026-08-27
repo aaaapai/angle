@@ -327,6 +327,15 @@
             "issue": "https://crbug.com/528131119"
         },
         {
+            "name": "reset_TexStorage2D_base_level",
+            "category": "Workarounds",
+            "description": [
+                "Reset texture base level before calling glTexStorage2D to ",
+                "work around PowerVR driver bug."
+            ],
+            "issue": "https://crbug.com/551573368"
+        },
+        {
             "name": "use_temp_for_non_zero_base_level_GenMipmap_using_CopyImageSubData",
             "category": "Workarounds",
             "description": [
@@ -961,6 +970,14 @@
                 "Disable the EXT_clear_texture extension due to driver bugs."
             ],
             "issue": "http://crbug.com/475877320"
+        },
+        {
+            "name": "flush_before_generate_mipmap",
+            "category": "Workarounds",
+            "description": [
+                "Force a flush before calling generateMipmap to work around driver bugs."
+            ],
+            "issue": "http://crbug.com/549350408"
         },
         {
             "name": "split_level_0_pbo_full_sub_image_2D",

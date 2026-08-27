@@ -266,6 +266,12 @@ struct FeaturesGL : FeatureSetBase
         &members,
     };
 
+    FeatureInfo resetTexStorage2DBaseLevel = {
+        "resetTexStorage2DBaseLevel",
+        FeatureCategory::OpenGLWorkarounds,
+        &members,
+    };
+
     FeatureInfo useTempForNonZeroBaseLevelGenMipmapUsingCopyImageSubData = {
         "useTempForNonZeroBaseLevelGenMipmapUsingCopyImageSubData",
         FeatureCategory::OpenGLWorkarounds,
@@ -730,6 +736,12 @@ struct FeaturesGL : FeatureSetBase
 
     FeatureInfo disableClearTexture = {
         "disableClearTexture",
+        FeatureCategory::OpenGLWorkarounds,
+        &members,
+    };
+
+    FeatureInfo flushBeforeGenerateMipmap = {
+        "flushBeforeGenerateMipmap",
         FeatureCategory::OpenGLWorkarounds,
         &members,
     };
