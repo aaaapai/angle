@@ -2574,11 +2574,9 @@ void SPIRVBuilder::writeInterpolationDecoration(TQualifier qualifier,
         case EvqNoPerspective:
         case EvqNoPerspectiveOut:
         case EvqNoPerspectiveIn: {
-            if(std::getenv("ANGLE_NOPERSPECTIVE_SUPPORT")) {
-            // Mali G57 MC4 doesn't support it.
+            // It may lead to crash on some Mali GPU, but you can try iris shaders mod for Minecraft 26.2+ .....
             WriteInterpolationDecoration(spv::DecorationNoPerspective, id, fieldIndex,
                                       &mSpirvDecorations);
-            }
             return;
         }
         

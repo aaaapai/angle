@@ -6166,9 +6166,9 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
 
     // The number of minimum write commands in the command buffer to trigger one submission of
     // pending commands at draw call time
-    if (isARMProprietary && !std::getenv("ANGLE_NOT_EARLYSUBMIT"))
+    if (!std::getenv("ANGLE_NOT_EARLYSUBMIT"))
     {
-        mMinRPWriteCommandCountToEarlySubmit = 96;
+        mMinRPWriteCommandCountToEarlySubmit = 32;
     }
     
     const char *forceEarlySubmitEnv = std::getenv("ANGLE_FORCE_MINEARLYSUBMIT");
