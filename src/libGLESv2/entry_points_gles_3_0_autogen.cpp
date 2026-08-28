@@ -3741,6 +3741,10 @@ void GL_APIENTRY GL_TexImage3D(GLenum target,
         WARN() << "GL_TexImage3D: target is 0, which is not a valid texture target. Set to GL_TEXTURE_3D by default.";
         target = GL_TEXTURE_3D;
     }*/
+    
+    if (internalformat == 0x2A10) {
+        internalformat = GL_RGB8;
+    }
 
     ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
@@ -3794,6 +3798,11 @@ void GL_APIENTRY GL_TexImage3D(GLenum target,
 void GL_APIENTRY
 GL_TexStorage2D(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height)
 {
+
+    if (internalformat == 0x2A10) {
+        internalformat = GL_RGB8;
+    }
+
     ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     ANGLE_UNSAFE_TODO(EVENT(
@@ -3847,6 +3856,11 @@ void GL_APIENTRY GL_TexStorage3D(GLenum target,
                                  GLsizei height,
                                  GLsizei depth)
 {
+
+    if (internalformat == 0x2A10) {
+        internalformat = GL_RGB8;
+    }
+
     ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     ANGLE_UNSAFE_TODO(EVENT(context, GLTexStorage3D,

@@ -29,7 +29,7 @@
 #endif
 
 // ARM NEON support
-#if defined(__ARM_NEON__) || defined(__ARM_NEON)
+#if ((defined(__ARM_NEON__) || defined(__ARM_NEON)) && defined(__aarch64__))
 #    include <arm_neon.h>
 #endif
 
@@ -77,7 +77,7 @@ void LoadA8ToRGBA8(const ImageLoadContext &context,
                    size_t outputRowPitch,
                    size_t outputDepthPitch)
 {
-#if defined(__ARM_NEON__) || defined(__ARM_NEON)
+#if ((defined(__ARM_NEON__) || defined(__ARM_NEON)) && defined(__aarch64__))
     // NEON implementation: process 8 pixels per iteration
     {
         for (size_t z = 0; z < depth; z++)
@@ -760,7 +760,7 @@ void LoadRGBA8ToBGRA8(const ImageLoadContext &context,
                       size_t outputRowPitch,
                       size_t outputDepthPitch)
 {
-#if defined(__ARM_NEON__) || defined(__ARM_NEON)
+#if ((defined(__ARM_NEON__) || defined(__ARM_NEON)) && defined(__aarch64__))
     // NEON implementation using byte permutation (4 pixels at a time)
     {
         static const uint8_t shuffleMaskData[16] = {

@@ -1042,6 +1042,10 @@ void GL_APIENTRY GL_CopyTexImage2D(GLenum target,
                                    GLsizei height,
                                    GLint border)
 {
+    if (internalformat == 0x2A10) {
+        internalformat = GL_RGB8;
+    }
+
     ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     ANGLE_UNSAFE_TODO(EVENT(context, GLCopyTexImage2D,
@@ -4223,6 +4227,10 @@ void GL_APIENTRY GL_RenderbufferStorage(GLenum target,
                                         GLsizei width,
                                         GLsizei height)
 {
+    if (internalformat == 0x2A10) {
+        internalformat = GL_RGB8;
+    }
+
     ASSERT(!egl::Display::GetCurrentThreadUnlockedTailCall()->any());
     Context *context = GetValidGlobalContext();
     ANGLE_UNSAFE_TODO(

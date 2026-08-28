@@ -9,7 +9,7 @@
 #include "image_util/copyimage.h"
 #include "common/unsafe_buffers.h"
 
-#if defined(__ARM_NEON__) || defined(__ARM_NEON)
+#if ((defined(__ARM_NEON__) || defined(__ARM_NEON)) && defined(__aarch64__))
 #    include <arm_neon.h>
 #endif
 
@@ -32,7 +32,7 @@ void CopyBGRA8ToRGBA8Fast(const uint8_t *source,
                           int destWidth,
                           int destHeight)
 {
-#if defined(__ARM_NEON__) || defined(__ARM_NEON)
+#if ((defined(__ARM_NEON__) || defined(__ARM_NEON)) && defined(__aarch64__))
     // NEON can process 4 pixels per iteration using a lookup table.
     // For correctness on little-endian, the mask bytes are arranged as {B,G,R,A} -> {R,G,B,A}.
     static const uint8_t shuffleMaskData[16] = {
