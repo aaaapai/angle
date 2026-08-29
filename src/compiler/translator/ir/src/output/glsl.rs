@@ -1227,6 +1227,15 @@ impl ast::Target for Generator {
             BuiltInOpCode::BeginFragmentShaderOrderingINTEL => "beginFragmentShaderOrderingINTEL",
             BuiltInOpCode::BeginInvocationInterlockARB => "beginInvocationInterlockARB",
             BuiltInOpCode::EndInvocationInterlockARB => "endInvocationInterlockARB",
+            BuiltInOpCode::AtomicCounterAdd => "atomicCounterAdd",
+BuiltInOpCode::AtomicCounterSubtract => "atomicCounterSubtract",
+BuiltInOpCode::AtomicCounterMin => "atomicCounterMin",
+BuiltInOpCode::AtomicCounterMax => "atomicCounterMax",
+BuiltInOpCode::AtomicCounterAnd => "atomicCounterAnd",
+BuiltInOpCode::AtomicCounterOr => "atomicCounterOr",
+BuiltInOpCode::AtomicCounterXor => "atomicCounterXor",
+BuiltInOpCode::AtomicCounterExchange => "atomicCounterExchange",
+BuiltInOpCode::AtomicCounterCompSwap => "atomicCounterCompSwap",
             BuiltInOpCode::PixelLocalStoreANGLE
             | BuiltInOpCode::SubpassLoad
             | BuiltInOpCode::NumSamples

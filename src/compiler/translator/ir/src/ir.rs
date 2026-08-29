@@ -578,6 +578,15 @@ impl BuiltInOpCode {
             | BuiltInOpCode::TexelFetch
             | BuiltInOpCode::TexelFetchOffset
             | BuiltInOpCode::AtomicCompSwap
+            | BuiltInOpCode::AtomicCounterAdd
+            | BuiltInOpCode::AtomicCounterSubtract
+            | BuiltInOpCode::AtomicCounterMin
+            | BuiltInOpCode::AtomicCounterMax
+            | BuiltInOpCode::AtomicCounterAnd
+            | BuiltInOpCode::AtomicCounterOr
+            | BuiltInOpCode::AtomicCounterXor
+            | BuiltInOpCode::AtomicCounterExchange
+            | BuiltInOpCode::AtomicCounterCompSwap
             | BuiltInOpCode::ImageStore
             | BuiltInOpCode::ImageLoad
             | BuiltInOpCode::ImageAtomicAdd

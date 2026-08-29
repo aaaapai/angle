@@ -468,7 +468,10 @@ void PrivateState::initialize(Context *context)
     mNoUnclampedBlendColor = context->getLimitations().noUnclampedBlendColor;
 
     // GLES1 emulation: Initialize state for GLES1 if version applies
-    mGLES1State.initialize(context, this);
+    if (context->getClientVersion() < Version(2, 0))
+    {
+        mGLES1State.initialize(context, this);
+    }
 }
 
 void PrivateState::initializeForCapture(const Context *context)
@@ -1479,7 +1482,7 @@ void PrivateState::setEnableFeature(GLenum feature, bool enabled)
             return;
         case GL_COLOR_LOGIC_OP:
             setLogicOpEnabled(enabled);
-            break;
+            return;
         case GL_PRIMITIVE_RESTART_FIXED_INDEX:
             setPrimitiveRestart(enabled);
             return;

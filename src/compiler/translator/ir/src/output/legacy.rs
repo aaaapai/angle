@@ -2913,6 +2913,34 @@ impl ast::Target for Generator<'_> {
                 BuiltInOpCode::Saturate => {
                     (Some(ffi::built_in_saturate(self.legacy_compiler, &args)), None)
                 }
+                BuiltInOpCode::AtomicCounterAdd => {
+    (Some(ffi::built_in_atomiccounteradd(self.legacy_compiler, &args)), None)
+}
+BuiltInOpCode::AtomicCounterSubtract => {
+    (Some(ffi::built_in_atomiccountersubtract(self.legacy_compiler, &args)), None)
+}
+BuiltInOpCode::AtomicCounterMin => {
+    (Some(ffi::built_in_atomiccountermin(self.legacy_compiler, &args)), None)
+}
+BuiltInOpCode::AtomicCounterMax => {
+    (Some(ffi::built_in_atomiccountermax(self.legacy_compiler, &args)), None)
+}
+BuiltInOpCode::AtomicCounterAnd => {
+    (Some(ffi::built_in_atomiccounterand(self.legacy_compiler, &args)), None)
+}
+BuiltInOpCode::AtomicCounterOr => {
+    (Some(ffi::built_in_atomiccounteror(self.legacy_compiler, &args)), None)
+}
+BuiltInOpCode::AtomicCounterXor => {
+    (Some(ffi::built_in_atomiccounterxor(self.legacy_compiler, &args)), None)
+}
+BuiltInOpCode::AtomicCounterExchange => {
+    (Some(ffi::built_in_atomiccounterexchange(self.legacy_compiler, &args)), None)
+}
+BuiltInOpCode::AtomicCounterCompSwap => {
+    (Some(ffi::built_in_atomiccountercompswap(self.legacy_compiler, &args)), None)
+}
+
             }
         };
         if let Some(result) = result {

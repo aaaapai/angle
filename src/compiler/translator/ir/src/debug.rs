@@ -704,6 +704,16 @@ fn built_in_opcode_str(op: BuiltInOpCode) -> &'static str {
         BuiltInOpCode::InterpolateAtCenter => "InterpolateAtCenter",
         BuiltInOpCode::Saturate => "Saturate",
         BuiltInOpCode::LoopForwardProgress => "LoopForwardProgress",
+        BuiltInOpCode::AtomicCounterAdd => "AtomicCounterAdd",
+BuiltInOpCode::AtomicCounterSubtract => "AtomicCounterSubtract",
+BuiltInOpCode::AtomicCounterMin => "AtomicCounterMin",
+BuiltInOpCode::AtomicCounterMax => "AtomicCounterMax",
+BuiltInOpCode::AtomicCounterAnd => "AtomicCounterAnd",
+BuiltInOpCode::AtomicCounterOr => "AtomicCounterOr",
+BuiltInOpCode::AtomicCounterXor => "AtomicCounterXor",
+BuiltInOpCode::AtomicCounterExchange => "AtomicCounterExchange",
+BuiltInOpCode::AtomicCounterCompSwap => "AtomicCounterCompSwap",
+
     }
 }
 
