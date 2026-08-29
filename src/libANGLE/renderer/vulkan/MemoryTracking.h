@@ -49,7 +49,7 @@ enum class MemoryAllocationType
     EnumCount   = InvalidEnum,
 };
 
-constexpr const char *kMemoryAllocationTypeMessage[] = {
+constexpr std::array<const char *, 14> kMemoryAllocationTypeMessage = {
     "Unspecified",
     "ImageExternal",
     "OffscreenSurfaceAttachmentImage",
