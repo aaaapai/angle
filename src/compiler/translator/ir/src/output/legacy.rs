@@ -1045,6 +1045,43 @@ pub mod ffi {
             is_offset_array: bool,
         ) -> *mut TIntermTyped;
 
+        unsafe fn built_in_atomiccounteradd(
+    compiler: *mut TCompiler,
+    args: &[Expression],
+) -> *mut TIntermTyped;
+unsafe fn built_in_atomiccountersubtract(
+    compiler: *mut TCompiler,
+    args: &[Expression],
+) -> *mut TIntermTyped;
+unsafe fn built_in_atomiccountermin(
+    compiler: *mut TCompiler,
+    args: &[Expression],
+) -> *mut TIntermTyped;
+unsafe fn built_in_atomiccountermax(
+    compiler: *mut TCompiler,
+    args: &[Expression],
+) -> *mut TIntermTyped;
+unsafe fn built_in_atomiccounterand(
+    compiler: *mut TCompiler,
+    args: &[Expression],
+) -> *mut TIntermTyped;
+unsafe fn built_in_atomiccounteror(
+    compiler: *mut TCompiler,
+    args: &[Expression],
+) -> *mut TIntermTyped;
+unsafe fn built_in_atomiccounterxor(
+    compiler: *mut TCompiler,
+    args: &[Expression],
+) -> *mut TIntermTyped;
+unsafe fn built_in_atomiccounterexchange(
+    compiler: *mut TCompiler,
+    args: &[Expression],
+) -> *mut TIntermTyped;
+unsafe fn built_in_atomiccountercompswap(
+    compiler: *mut TCompiler,
+    args: &[Expression],
+) -> *mut TIntermTyped;
+
         // SAFETY: Pointers must be obtained from C++ and passed back to it.
         unsafe fn branch_discard(block: *mut TIntermBlock);
         // SAFETY: Pointers must be obtained from C++ and passed back to it.

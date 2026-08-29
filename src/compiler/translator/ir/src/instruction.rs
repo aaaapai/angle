@@ -2971,11 +2971,18 @@ mod const_fold {
             | BuiltInOpCode::SamplePosition
             | BuiltInOpCode::InterpolateAtCenter
             | BuiltInOpCode::LoopForwardProgress
-            | BuiltInOpCode::Saturate => {
+            | BuiltInOpCode::Saturate 
+            | BuiltInOpCode::AtomicCounterAdd
+            | BuiltInOpCode::AtomicCounterSubtract
+            | BuiltInOpCode::AtomicCounterMin
+            | BuiltInOpCode::AtomicCounterMax
+            | BuiltInOpCode::AtomicCounterAnd
+            | BuiltInOpCode::AtomicCounterOr
+            | BuiltInOpCode::AtomicCounterXor
+            | BuiltInOpCode::AtomicCounterExchange
+            | BuiltInOpCode::AtomicCounterCompSwap => {
                 panic!("Internal error: Unexpected built-ins to constant-fold")
-            }
-            
-            _ => None,
+            }      
         };
 
         fold(ir_meta, &operands, result_type_id)

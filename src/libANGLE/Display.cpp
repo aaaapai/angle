@@ -192,6 +192,11 @@ TLSData *GetDisplayTLS()
 }
 #endif
 
+// ---------- ADDED: Per-thread scratch buffer pools (no locking) ----------
+thread_local std::vector<angle::ScratchBuffer> tScratchBuffers;
+thread_local std::vector<angle::ScratchBuffer> tZeroFilledBuffers;
+// -------------------------------------------------------------------------
+
 constexpr angle::SubjectIndex kGPUSwitchedSubjectIndex = 0;
 
 static constexpr size_t kWindowSurfaceMapSize = 32;
@@ -1903,16 +1908,13 @@ Error Display::makeCurrent(Thread *thread,
         }
     }
 
-    // Tick all the scratch buffers to make sure they get cleaned up eventually if they stop being
-    // used.
+    // Tick the per-thread scratch buffers to clean up old ones (no locks needed)
     {
-        std::lock_guard<angle::SimpleMutex> lock(mScratchBufferMutex);
-
-        for (angle::ScratchBuffer &scatchBuffer : mScratchBuffers)
+        for (angle::ScratchBuffer &scratchBuffer : tScratchBuffers)
         {
-            scatchBuffer.tick();
+            scratchBuffer.tick();
         }
-        for (angle::ScratchBuffer &zeroFilledBuffer : mZeroFilledBuffers)
+        for (angle::ScratchBuffer &zeroFilledBuffer : tZeroFilledBuffers)
         {
             zeroFilledBuffer.tick();
         }
@@ -2721,46 +2723,39 @@ EGLAttrib Display::queryAttrib(const EGLint attribute)
     return value;
 }
 
+// ---------- Thread-local scratch buffer implementations ----------
 angle::ScratchBuffer Display::requestScratchBuffer()
 {
-    return requestScratchBufferImpl(&mScratchBuffers);
+    if (!tScratchBuffers.empty())
+    {
+        angle::ScratchBuffer buffer = std::move(tScratchBuffers.back());
+        tScratchBuffers.pop_back();
+        return buffer;
+    }
+    return angle::ScratchBuffer(kScratchBufferLifetime);
 }
 
 void Display::returnScratchBuffer(angle::ScratchBuffer scratchBuffer)
 {
-    returnScratchBufferImpl(std::move(scratchBuffer), &mScratchBuffers);
+    tScratchBuffers.push_back(std::move(scratchBuffer));
 }
 
 angle::ScratchBuffer Display::requestZeroFilledBuffer()
 {
-    return requestScratchBufferImpl(&mZeroFilledBuffers);
+    if (!tZeroFilledBuffers.empty())
+    {
+        angle::ScratchBuffer buffer = std::move(tZeroFilledBuffers.back());
+        tZeroFilledBuffers.pop_back();
+        return buffer;
+    }
+    return angle::ScratchBuffer(kScratchBufferLifetime);
 }
 
 void Display::returnZeroFilledBuffer(angle::ScratchBuffer zeroFilledBuffer)
 {
-    returnScratchBufferImpl(std::move(zeroFilledBuffer), &mZeroFilledBuffers);
+    tZeroFilledBuffers.push_back(std::move(zeroFilledBuffer));
 }
-
-angle::ScratchBuffer Display::requestScratchBufferImpl(
-    std::vector<angle::ScratchBuffer> *bufferVector)
-{
-    std::lock_guard<angle::SimpleMutex> lock(mScratchBufferMutex);
-    if (!bufferVector->empty())
-    {
-        angle::ScratchBuffer buffer = std::move(bufferVector->back());
-        bufferVector->pop_back();
-        return buffer;
-    }
-
-    return angle::ScratchBuffer(kScratchBufferLifetime);
-}
-
-void Display::returnScratchBufferImpl(angle::ScratchBuffer scratchBuffer,
-                                      std::vector<angle::ScratchBuffer> *bufferVector)
-{
-    std::lock_guard<angle::SimpleMutex> lock(mScratchBufferMutex);
-    bufferVector->push_back(std::move(scratchBuffer));
-}
+// ----------------------------------------------------------------
 
 Error Display::handleGPUSwitch()
 {
