@@ -2974,6 +2974,8 @@ mod const_fold {
             | BuiltInOpCode::Saturate => {
                 panic!("Internal error: Unexpected built-ins to constant-fold")
             }
+            
+            _ => None,
         };
 
         fold(ir_meta, &operands, result_type_id)
@@ -4036,7 +4038,16 @@ pub mod precision {
                     BuiltInOpCode::ImageAtomicCompSwap |
                     BuiltInOpCode::SamplePosition |
                     BuiltInOpCode::InterpolateAtCenter |
-                    BuiltInOpCode::Saturate => {
+                    BuiltInOpCode::Saturate | 
+                    BuiltInOpCode::AtomicCounterAdd |
+                    BuiltInOpCode::AtomicCounterSubtract |
+                    BuiltInOpCode::AtomicCounterMin |
+                    BuiltInOpCode::AtomicCounterMax |
+                    BuiltInOpCode::AtomicCounterAnd |
+                    BuiltInOpCode::AtomicCounterOr |
+                    BuiltInOpCode::AtomicCounterXor |
+                    BuiltInOpCode::AtomicCounterExchange |
+                    BuiltInOpCode::AtomicCounterCompSwap => {
                         propagate_to_ids(&mut params.iter_mut(), precision, to_propagate);
                     },
                     BuiltInOpCode::TextureSize => {

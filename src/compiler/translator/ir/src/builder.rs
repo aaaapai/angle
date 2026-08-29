@@ -2794,35 +2794,57 @@ impl Builder {
     
 // Atomic counter operations
 pub fn built_in_atomiccounteradd(&mut self) {
-    self.built_in_binary_instruction_from_stack_with_pointer_lhs(BinaryOpCode::AtomicCounterAdd);
+    self.built_in_instruction_from_stack_with_pointer_args(
+        BuiltInOpCode::AtomicCounterAdd,
+        1, 1, 0,
+    );
 }
 pub fn built_in_atomiccountersubtract(&mut self) {
-    self.built_in_binary_instruction_from_stack_with_pointer_lhs(BinaryOpCode::AtomicCounterSubtract);
+    self.built_in_instruction_from_stack_with_pointer_args(
+        BuiltInOpCode::AtomicCounterSubtract,
+        1, 1, 0,
+    );
 }
 pub fn built_in_atomiccountermin(&mut self) {
-    self.built_in_binary_instruction_from_stack_with_pointer_lhs(BinaryOpCode::AtomicCounterMin);
+    self.built_in_instruction_from_stack_with_pointer_args(
+        BuiltInOpCode::AtomicCounterMin,
+        1, 1, 0,
+    );
 }
 pub fn built_in_atomiccountermax(&mut self) {
-    self.built_in_binary_instruction_from_stack_with_pointer_lhs(BinaryOpCode::AtomicCounterMax);
+    self.built_in_instruction_from_stack_with_pointer_args(
+        BuiltInOpCode::AtomicCounterMax,
+        1, 1, 0,
+    );
 }
 pub fn built_in_atomiccounterand(&mut self) {
-    self.built_in_binary_instruction_from_stack_with_pointer_lhs(BinaryOpCode::AtomicCounterAnd);
+    self.built_in_instruction_from_stack_with_pointer_args(
+        BuiltInOpCode::AtomicCounterAnd,
+        1, 1, 0,
+    );
 }
 pub fn built_in_atomiccounteror(&mut self) {
-    self.built_in_binary_instruction_from_stack_with_pointer_lhs(BinaryOpCode::AtomicCounterOr);
+    self.built_in_instruction_from_stack_with_pointer_args(
+        BuiltInOpCode::AtomicCounterOr,
+        1, 1, 0,
+    );
 }
 pub fn built_in_atomiccounterxor(&mut self) {
-    self.built_in_binary_instruction_from_stack_with_pointer_lhs(BinaryOpCode::AtomicCounterXor);
+    self.built_in_instruction_from_stack_with_pointer_args(
+        BuiltInOpCode::AtomicCounterXor,
+        1, 1, 0,
+    );
 }
 pub fn built_in_atomiccounterexchange(&mut self) {
-    self.built_in_binary_instruction_from_stack_with_pointer_lhs(BinaryOpCode::AtomicCounterExchange);
+    self.built_in_instruction_from_stack_with_pointer_args(
+        BuiltInOpCode::AtomicCounterExchange,
+        1, 1, 0,
+    );
 }
 pub fn built_in_atomiccountercompswap(&mut self) {
     self.built_in_instruction_from_stack_with_pointer_args(
         BuiltInOpCode::AtomicCounterCompSwap,
-        1,  // first pointer arg count
-        2,  // value arg count
-        0,  // last pointer arg count
+        1, 2, 0,
     );
 }
 
