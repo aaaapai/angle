@@ -3406,6 +3406,16 @@ mod promote {
             BuiltInOpCode::Rgb2Yuv | BuiltInOpCode::Yuv2Rgb => TYPE_ID_VEC3,
             BuiltInOpCode::NumSamples => TYPE_ID_UINT,
             BuiltInOpCode::SamplePosition => TYPE_ID_VEC2,
+            
+            BuiltInOpCode::AtomicCounterAdd
+            | BuiltInOpCode::AtomicCounterSubtract
+            | BuiltInOpCode::AtomicCounterMin
+            | BuiltInOpCode::AtomicCounterMax
+            | BuiltInOpCode::AtomicCounterAnd
+            | BuiltInOpCode::AtomicCounterOr
+            | BuiltInOpCode::AtomicCounterXor
+            | BuiltInOpCode::AtomicCounterExchange
+            | BuiltInOpCode::AtomicCounterCompSwap => TYPE_ID_UINT,
         }
     }
 
@@ -3750,6 +3760,16 @@ pub mod precision {
             | BuiltInOpCode::LoopForwardProgress => {
                 panic!("Internal error: invalid to derive precision of void built-in")
             }
+            
+            BuiltInOpCode::AtomicCounterAdd
+            | BuiltInOpCode::AtomicCounterSubtract
+            | BuiltInOpCode::AtomicCounterMin
+            | BuiltInOpCode::AtomicCounterMax
+            | BuiltInOpCode::AtomicCounterAnd
+            | BuiltInOpCode::AtomicCounterOr
+            | BuiltInOpCode::AtomicCounterXor
+            | BuiltInOpCode::AtomicCounterExchange
+            | BuiltInOpCode::AtomicCounterCompSwap => Precision::High,
         }
     }
 

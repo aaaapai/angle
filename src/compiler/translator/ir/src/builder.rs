@@ -2791,6 +2791,41 @@ impl Builder {
             offset: Some(offset),
         });
     }
+    
+// Atomic counter operations
+pub fn built_in_atomiccounteradd(&mut self) {
+    self.built_in_binary_instruction_from_stack_with_pointer_lhs(BinaryOpCode::AtomicCounterAdd);
+}
+pub fn built_in_atomiccountersubtract(&mut self) {
+    self.built_in_binary_instruction_from_stack_with_pointer_lhs(BinaryOpCode::AtomicCounterSubtract);
+}
+pub fn built_in_atomiccountermin(&mut self) {
+    self.built_in_binary_instruction_from_stack_with_pointer_lhs(BinaryOpCode::AtomicCounterMin);
+}
+pub fn built_in_atomiccountermax(&mut self) {
+    self.built_in_binary_instruction_from_stack_with_pointer_lhs(BinaryOpCode::AtomicCounterMax);
+}
+pub fn built_in_atomiccounterand(&mut self) {
+    self.built_in_binary_instruction_from_stack_with_pointer_lhs(BinaryOpCode::AtomicCounterAnd);
+}
+pub fn built_in_atomiccounteror(&mut self) {
+    self.built_in_binary_instruction_from_stack_with_pointer_lhs(BinaryOpCode::AtomicCounterOr);
+}
+pub fn built_in_atomiccounterxor(&mut self) {
+    self.built_in_binary_instruction_from_stack_with_pointer_lhs(BinaryOpCode::AtomicCounterXor);
+}
+pub fn built_in_atomiccounterexchange(&mut self) {
+    self.built_in_binary_instruction_from_stack_with_pointer_lhs(BinaryOpCode::AtomicCounterExchange);
+}
+pub fn built_in_atomiccountercompswap(&mut self) {
+    self.built_in_instruction_from_stack_with_pointer_args(
+        BuiltInOpCode::AtomicCounterCompSwap,
+        1,  // first pointer arg count
+        2,  // value arg count
+        0,  // last pointer arg count
+    );
+}
+
 }
 
 #[cxx::bridge(namespace = "sh::ir::ffi")]
@@ -3498,6 +3533,16 @@ pub mod ffi {
         fn built_in_texturegatheroffset(self: &mut BuilderWrapper);
         fn built_in_texturegatheroffsetcomp(self: &mut BuilderWrapper);
         fn built_in_texturegatheroffsetref(self: &mut BuilderWrapper);
+        fn built_in_atomiccounteradd(self: &mut BuilderWrapper);
+fn built_in_atomiccountersubtract(self: &mut BuilderWrapper);
+fn built_in_atomiccountermin(self: &mut BuilderWrapper);
+fn built_in_atomiccountermax(self: &mut BuilderWrapper);
+fn built_in_atomiccounterand(self: &mut BuilderWrapper);
+fn built_in_atomiccounteror(self: &mut BuilderWrapper);
+fn built_in_atomiccounterxor(self: &mut BuilderWrapper);
+fn built_in_atomiccounterexchange(self: &mut BuilderWrapper);
+fn built_in_atomiccountercompswap(self: &mut BuilderWrapper);
+
     }
 }
 
@@ -5633,4 +5678,34 @@ impl BuilderWrapper {
     fn built_in_texturegatheroffsetref(&mut self) {
         self.builder.built_in_texturegatheroffsetref();
     }
+
+fn built_in_atomiccounteradd(&mut self) {
+    self.builder.built_in_atomiccounteradd();
+}
+fn built_in_atomiccountersubtract(&mut self) {
+    self.builder.built_in_atomiccountersubtract();
+}
+fn built_in_atomiccountermin(&mut self) {
+    self.builder.built_in_atomiccountermin();
+}
+fn built_in_atomiccountermax(&mut self) {
+    self.builder.built_in_atomiccountermax();
+}
+fn built_in_atomiccounterand(&mut self) {
+    self.builder.built_in_atomiccounterand();
+}
+fn built_in_atomiccounteror(&mut self) {
+    self.builder.built_in_atomiccounteror();
+}
+fn built_in_atomiccounterxor(&mut self) {
+    self.builder.built_in_atomiccounterxor();
+}
+fn built_in_atomiccounterexchange(&mut self) {
+    self.builder.built_in_atomiccounterexchange();
+}
+fn built_in_atomiccountercompswap(&mut self) {
+    self.builder.built_in_atomiccountercompswap();
+}
+
+
 }

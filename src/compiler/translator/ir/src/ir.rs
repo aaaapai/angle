@@ -531,6 +531,16 @@ pub enum BuiltInOpCode {
     BeginInvocationInterlockARB,
     EndInvocationInterlockARB,
 
+    AtomicCounterAdd,
+    AtomicCounterSubtract,
+    AtomicCounterMin,
+    AtomicCounterMax,
+    AtomicCounterAnd,
+    AtomicCounterOr,
+    AtomicCounterXor,
+    AtomicCounterExchange,
+    AtomicCounterCompSwap,
+
     // MSL built-in
     NumSamples,
     SamplePosition,
@@ -872,6 +882,15 @@ impl OpCode {
             | OpCode::BuiltIn(BuiltInOpCode::UmulExtended, _)
             | OpCode::BuiltIn(BuiltInOpCode::ImulExtended, _)
             | OpCode::BuiltIn(BuiltInOpCode::AtomicCompSwap, _)
+            | OpCode::BuiltIn(BuiltInOpCode::AtomicCounterAdd, _)
+            | OpCode::BuiltIn(BuiltInOpCode::AtomicCounterSubtract, _)
+            | OpCode::BuiltIn(BuiltInOpCode::AtomicCounterMin, _)
+            | OpCode::BuiltIn(BuiltInOpCode::AtomicCounterMax, _)
+            | OpCode::BuiltIn(BuiltInOpCode::AtomicCounterAnd, _)
+            | OpCode::BuiltIn(BuiltInOpCode::AtomicCounterOr, _)
+            | OpCode::BuiltIn(BuiltInOpCode::AtomicCounterXor, _)
+            | OpCode::BuiltIn(BuiltInOpCode::AtomicCounterExchange, _)
+            | OpCode::BuiltIn(BuiltInOpCode::AtomicCounterCompSwap, _)
             | OpCode::BuiltIn(BuiltInOpCode::ImageLoad, _)
             | OpCode::BuiltIn(BuiltInOpCode::ImageAtomicAdd, _)
             | OpCode::BuiltIn(BuiltInOpCode::ImageAtomicMin, _)

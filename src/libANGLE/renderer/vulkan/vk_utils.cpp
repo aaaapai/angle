@@ -8,6 +8,9 @@
 //
 
 #include "libANGLE/renderer/vulkan/vk_utils.h"
+
+#include <array>
+
 #include "common/unsafe_buffers.h"
 
 #include "common/span.h"
@@ -962,7 +965,7 @@ void GarbageObject::destroy(Renderer *renderer)
 
 void MakeDebugUtilsLabel(GLenum source, const char *marker, VkDebugUtilsLabelEXT *label)
 {
-    static constexpr angle::ColorF kLabelColors[6] = {
+    static constexpr std::array<angle::ColorF, 6> kLabelColors = {
         angle::ColorF(1.0f, 0.5f, 0.5f, 1.0f),  // DEBUG_SOURCE_API
         angle::ColorF(0.5f, 1.0f, 0.5f, 1.0f),  // DEBUG_SOURCE_WINDOW_SYSTEM
         angle::ColorF(0.5f, 0.5f, 1.0f, 1.0f),  // DEBUG_SOURCE_SHADER_COMPILER
@@ -972,12 +975,12 @@ void MakeDebugUtilsLabel(GLenum source, const char *marker, VkDebugUtilsLabelEXT
     };
 
     int colorIndex = source - GL_DEBUG_SOURCE_API;
-    ASSERT(colorIndex >= 0 && static_cast<size_t>(colorIndex) < ArraySize(kLabelColors));
+    ASSERT(colorIndex >= 0 && static_cast<size_t>(colorIndex) < kLabelColors.size());
 
     label->sType      = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
     label->pNext      = nullptr;
     label->pLabelName = marker;
-    ANGLE_UNSAFE_TODO(kLabelColors[colorIndex]).writeData(label->color);
+    kLabelColors[colorIndex].writeData(label->color);
 }
 
 angle::Result SetDebugUtilsObjectName(ContextVk *contextVk,
