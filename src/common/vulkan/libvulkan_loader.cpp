@@ -11,12 +11,78 @@
 
 #include "common/system_utils.h"
 
+#include <cstdlib>
+#include <cstring>
+#include <dlfcn.h>
+#include <string>
+#include <charconv>
+#include <format>
+
+static void print_message(std::string_view msg) {
+    fwrite(msg.data(), 1, msg.size(), stdout);
+}
+
+static void* vulkan_load_from_pojavexec() {
+    // 首先检查环境变量 VULKAN_PTR
+    const char* vulkan_ptr_env = std::getenv("VULKAN_PTR");
+    const char* turnipEnv = std::getenv("ANGLE_LOAD_TURNIP");
+
+    if (vulkan_ptr_env && turnipEnv && std::string(turnipEnv) == "true") {
+        std::string msg = std::format("[ANGLE] Use VULKAN_PTR = {}\n", vulkan_ptr_env);
+        print_message(msg);
+        unsigned long value = 0;
+        auto [ptr, ec] = std::from_chars(vulkan_ptr_env,
+                                         vulkan_ptr_env + std::strlen(vulkan_ptr_env),
+                                         value, 16);
+        return reinterpret_cast<void*>(value);
+    }
+
+    if (!turnipEnv || std::string(turnipEnv) != "true") {
+        return nullptr;
+    }
+
+    print_message("[ANGLE] Try to dlopen libpojavexec.\n");
+    void* lib_handle = dlopen("libpojavexec.so", RTLD_NOLOAD);
+    if (lib_handle == nullptr) {
+        print_message("[ANGLE] Failed to dlopen libpojavexec, now try again.\n");
+        lib_handle = dlopen("libpojavexec.so", RTLD_LOCAL | RTLD_LAZY);
+        if (lib_handle == nullptr) {
+            print_message("[ANGLE] Failed to dlopen libpojavexec. Are you using Pojav Glow Worm? Now try to dlopen libpgw.\n");
+            lib_handle = dlopen("libpgw.so", RTLD_NOLOAD);
+            if (lib_handle == nullptr) {
+                print_message("[ANGLE] Failed to dlopen libpgw. Now try again.\n");
+                lib_handle = dlopen("libpgw.so", RTLD_LOCAL | RTLD_LAZY);
+            }
+        }
+    }
+
+    // 获取 load_vulkan 函数
+    void *(*load_vulkan_func)() = reinterpret_cast<void*(*)()>(dlsym(lib_handle, "maybe_load_vulkan"));
+    if (load_vulkan_func) {
+        // 调用 load_vulkan 函数
+        vulkan_ptr_env = std::getenv("VULKAN_PTR");
+        if (vulkan_ptr_env) {
+            std::string msg = std::format("[ANGLE] Use VULKAN_PTR = {}\n", vulkan_ptr_env);
+            print_message(msg);
+        }
+        return load_vulkan_func();
+    }
+
+    return nullptr;
+}
+
 namespace angle
 {
 namespace vk
 {
 void *OpenLibVulkan()
 {
+    void* vulkan_load_from_pojavexec_result = vulkan_load_from_pojavexec();
+    if (vulkan_load_from_pojavexec_result != nullptr) {
+        return vulkan_load_from_pojavexec_result;
+    }
+
+    print_message("[ANGLE] Warning: No environment variable VULKAN_PTR! Will load libvulkan.\n");
     constexpr const char *kLibVulkanNames[] = {
 #if defined(ANGLE_PLATFORM_WINDOWS)
         "vulkan-1.dll",
@@ -32,6 +98,8 @@ void *OpenLibVulkan()
 #endif
     };
 
+    const char *kLibVulkanName_env = std::getenv("ANGLE_LIBVULKAN_NAME");
+
     constexpr SearchType kSearchTypes[] = {
 // On Android and Fuchsia we use the system libvulkan.
 #if defined(ANGLE_USE_CUSTOM_LIBVULKAN)
@@ -45,7 +113,12 @@ void *OpenLibVulkan()
     {
         for (const char *libraryName : kLibVulkanNames)
         {
-            void *library = OpenSystemLibraryWithExtension(libraryName, searchType);
+            void *library = nullptr;
+            if (kLibVulkanName_env) {
+                library = OpenSystemLibraryWithExtension(kLibVulkanName_env, searchType);
+            } else {
+                library = OpenSystemLibraryWithExtension(libraryName, searchType);
+            }
             if (library)
             {
                 return library;
@@ -53,6 +126,7 @@ void *OpenLibVulkan()
         }
     }
 
+    print_message("[ANGLE] Error: failed to load libvulkan.\n");
     return nullptr;
 }
 }  // namespace vk

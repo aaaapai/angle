@@ -400,37 +400,211 @@ class Matrix
 class Mat4
 {
   public:
-    Mat4();
-    Mat4(const Matrix<float> generalMatrix);
-    Mat4(const std::vector<float> &elements);
-    Mat4(const float *elements);
-    Mat4(float m00,
-         float m01,
-         float m02,
-         float m03,
-         float m10,
-         float m11,
-         float m12,
-         float m13,
-         float m20,
-         float m21,
-         float m22,
-         float m23,
-         float m30,
-         float m31,
-         float m32,
-         float m33);
+    Mat4() : Mat4(1.f, 0.f, 0.f, 0.f,
+                  0.f, 1.f, 0.f, 0.f,
+                  0.f, 0.f, 1.f, 0.f,
+                  0.f, 0.f, 0.f, 1.f) {}
 
-    static Mat4 Rotate(float angle, const Vector3 &axis);
-    static Mat4 Translate(const Vector3 &t);
-    static Mat4 Scale(const Vector3 &s);
-    static Mat4 Frustum(float l, float r, float b, float t, float n, float f);
-    static Mat4 Perspective(float fov, float aspectRatio, float n, float f);
-    static Mat4 Ortho(float l, float r, float b, float t, float n, float f);
+    Mat4(const Matrix<float> generalMatrix)
+    {
+        unsigned int minCols = std::min((unsigned int)4, generalMatrix.columns());
+        unsigned int minRows = std::min((unsigned int)4, generalMatrix.rows());
+        for (unsigned int i = 0; i < minCols; i++)
+        {
+            for (unsigned int j = 0; j < minRows; j++)
+            {
+                mElements[j * minCols + i] = generalMatrix.at(j, i);
+            }
+        }
+    }
 
-    Mat4 product(const Mat4 &m);
-    Vector4 product(const Vector4 &b);
-    void dump();
+    Mat4(const std::vector<float> &elements)
+    {
+        std::copy(elements.begin(), std::min(elements.end(), elements.begin() + std::size(mElements)),
+                  mElements.data());
+    }
+
+    Mat4(const float *elements)
+    {
+        std::copy(elements, ANGLE_UNSAFE_TODO(elements + std::size(mElements)), mElements.data());
+    }
+
+    Mat4(float m00, float m01, float m02, float m03,
+         float m10, float m11, float m12, float m13,
+         float m20, float m21, float m22, float m23,
+         float m30, float m31, float m32, float m33)
+    {
+        mElements[0]  = m00;
+        mElements[1]  = m01;
+        mElements[2]  = m02;
+        mElements[3]  = m03;
+        mElements[4]  = m10;
+        mElements[5]  = m11;
+        mElements[6]  = m12;
+        mElements[7]  = m13;
+        mElements[8]  = m20;
+        mElements[9]  = m21;
+        mElements[10] = m22;
+        mElements[11] = m23;
+        mElements[12] = m30;
+        mElements[13] = m31;
+        mElements[14] = m32;
+        mElements[15] = m33;
+    }
+
+    static Mat4 Rotate(float angle, const Vector3 &axis)
+    {
+        if (axis.length() == 0.0f)
+        {
+            return Mat4();
+        }
+
+        auto axis_normalized = axis.normalized();
+        constexpr float kPi = 3.14159265358979323f;
+        float angle_radians  = angle * (kPi / 180.0f);
+        float c              = cos(angle_radians);
+        float ci             = 1.f - c;
+        float s              = sin(angle_radians);
+
+        float x = axis_normalized.x();
+        float y = axis_normalized.y();
+        float z = axis_normalized.z();
+
+        float x2 = x * x;
+        float y2 = y * y;
+        float z2 = z * z;
+
+        float xy = x * y;
+        float yz = y * z;
+        float zx = z * x;
+
+        float r00 = c + ci * x2;
+        float r01 = ci * xy + s * z;
+        float r02 = ci * zx - s * y;
+        float r03 = 0.f;
+
+        float r10 = ci * xy - s * z;
+        float r11 = c + ci * y2;
+        float r12 = ci * yz + s * x;
+        float r13 = 0.f;
+
+        float r20 = ci * zx + s * y;
+        float r21 = ci * yz - s * x;
+        float r22 = c + ci * z2;
+        float r23 = 0.f;
+
+        float r30 = 0.f;
+        float r31 = 0.f;
+        float r32 = 0.f;
+        float r33 = 1.f;
+
+        return Mat4(r00, r01, r02, r03,
+                    r10, r11, r12, r13,
+                    r20, r21, r22, r23,
+                    r30, r31, r32, r33);
+    }
+
+    static Mat4 Translate(const Vector3 &t)
+    {
+        return Mat4(1.f, 0.f, 0.f, 0.f,
+                    0.f, 1.f, 0.f, 0.f,
+                    0.f, 0.f, 1.f, 0.f,
+                    t.x(), t.y(), t.z(), 1.f);
+    }
+
+    static Mat4 Scale(const Vector3 &s)
+    {
+        return Mat4(s.x(), 0.f, 0.f, 0.f,
+                    0.f, s.y(), 0.f, 0.f,
+                    0.f, 0.f, s.z(), 0.f,
+                    0.f, 0.f, 0.f, 1.f);
+    }
+
+    static Mat4 Frustum(float l, float r, float b, float t, float n, float f)
+    {
+        float nn  = 2.f * n;
+        float fpn = f + n;
+        float fmn = f - n;
+        float tpb = t + b;
+        float tmb = t - b;
+        float rpl = r + l;
+        float rml = r - l;
+
+        return Mat4(nn / rml, 0.f, 0.f, 0.f,
+                    0.f, nn / tmb, 0.f, 0.f,
+                    rpl / rml, tpb / tmb, -fpn / fmn, -1.f,
+                    0.f, 0.f, -nn * f / fmn, 0.f);
+    }
+
+    static Mat4 Perspective(float fov, float aspectRatio, float n, float f)
+    {
+        constexpr float kPi = 3.14159265358979323f;
+        const float frustumHeight = tanf(fov / 360.0f * kPi) * n;
+        const float frustumWidth  = frustumHeight * aspectRatio;
+        return Frustum(-frustumWidth, frustumWidth, -frustumHeight, frustumHeight, n, f);
+    }
+
+    static Mat4 Ortho(float l, float r, float b, float t, float n, float f)
+    {
+        float fpn = f + n;
+        float fmn = f - n;
+        float tpb = t + b;
+        float tmb = t - b;
+        float rpl = r + l;
+        float rml = r - l;
+
+        return Mat4(2.f / rml, 0.f, 0.f, 0.f,
+                    0.f, 2.f / tmb, 0.f, 0.f,
+                    0.f, 0.f, -2.f / fmn, 0.f,
+                    -rpl / rml, -tpb / tmb, -fpn / fmn, 1.f);
+    }
+
+    // Optimized matrix multiplication – manually unrolled with __restrict hints
+    Mat4 product(const Mat4 &m)
+    {
+        const float * __restrict a = mElements.data();
+        const float * __restrict b = m.mElements.data();
+        // We assume 'this' and 'm' do not alias; if they do, result is still correct but may violate strict aliasing.
+        return Mat4(
+            a[0]*b[0] + a[4]*b[1] + a[8]*b[2] + a[12]*b[3],
+            a[1]*b[0] + a[5]*b[1] + a[9]*b[2] + a[13]*b[3],
+            a[2]*b[0] + a[6]*b[1] + a[10]*b[2] + a[14]*b[3],
+            a[3]*b[0] + a[7]*b[1] + a[11]*b[2] + a[15]*b[3],
+
+            a[0]*b[4] + a[4]*b[5] + a[8]*b[6] + a[12]*b[7],
+            a[1]*b[4] + a[5]*b[5] + a[9]*b[6] + a[13]*b[7],
+            a[2]*b[4] + a[6]*b[5] + a[10]*b[6] + a[14]*b[7],
+            a[3]*b[4] + a[7]*b[5] + a[11]*b[6] + a[15]*b[7],
+
+            a[0]*b[8] + a[4]*b[9] + a[8]*b[10] + a[12]*b[11],
+            a[1]*b[8] + a[5]*b[9] + a[9]*b[10] + a[13]*b[11],
+            a[2]*b[8] + a[6]*b[9] + a[10]*b[10] + a[14]*b[11],
+            a[3]*b[8] + a[7]*b[9] + a[11]*b[10] + a[15]*b[11],
+
+            a[0]*b[12] + a[4]*b[13] + a[8]*b[14] + a[12]*b[15],
+            a[1]*b[12] + a[5]*b[13] + a[9]*b[14] + a[13]*b[15],
+            a[2]*b[12] + a[6]*b[13] + a[10]*b[14] + a[14]*b[15],
+            a[3]*b[12] + a[7]*b[13] + a[11]*b[14] + a[15]*b[15]
+        );
+    }
+
+    Vector4 product(const Vector4 &b)
+    {
+        return Vector4(
+            mElements[0] * b.x() + mElements[4] * b.y() + mElements[8] * b.z() + mElements[12] * b.w(),
+            mElements[1] * b.x() + mElements[5] * b.y() + mElements[9] * b.z() + mElements[13] * b.w(),
+            mElements[2] * b.x() + mElements[6] * b.y() + mElements[10] * b.z() + mElements[14] * b.w(),
+            mElements[3] * b.x() + mElements[7] * b.y() + mElements[11] * b.z() + mElements[15] * b.w()
+        );
+    }
+
+    void dump()
+    {
+        printf("[ %f %f %f %f ]\n", mElements[0], mElements[4], mElements[8], mElements[12]);
+        printf("[ %f %f %f %f ]\n", mElements[1], mElements[5], mElements[9], mElements[13]);
+        printf("[ %f %f %f %f ]\n", mElements[2], mElements[6], mElements[10], mElements[14]);
+        printf("[ %f %f %f %f ]\n", mElements[3], mElements[7], mElements[11], mElements[15]);
+    }
 
     float *data() { return mElements.data(); }
     const float *constData() const { return mElements.data(); }
@@ -477,24 +651,28 @@ class Mat4
         for (unsigned int i = 0; i < 4; i++)
             for (unsigned int j = 0; j < 4; j++)
                 result(i, j) = at(j, i);
-
         return result;
     }
 
+    // Optimized inverse: use inverse of determinant once, then multiply instead of divide
     Mat4 inverse() const
     {
         Mat4 coft;
         CofactorTransposed(*this, coft);
 
-        float det = at(0, 0) * coft(0, 0) + at(0, 1) * coft(1, 0) + at(0, 2) * coft(2, 0) +
-                    at(0, 3) * coft(3, 0);
+        // Determinant via first row dot cofactor row 0
+        float det = at(0, 0) * coft(0, 0) + at(0, 1) * coft(1, 0) +
+                    at(0, 2) * coft(2, 0) + at(0, 3) * coft(3, 0);
 
-        Mat4 result = coft;
-        for (int i = 0; i < 16; i++)
-        {
-            ANGLE_UNSAFE_TODO(result.data()[i]) /= det;
-        }
-
+        const float invDet = 1.0f / det;
+        Mat4 result;
+        // Unroll the 16‑element scaling
+        float * __restrict r = result.mElements.data();
+        const float * __restrict c = coft.mElements.data();
+        r[0] = c[0] * invDet; r[1] = c[1] * invDet; r[2] = c[2] * invDet; r[3] = c[3] * invDet;
+        r[4] = c[4] * invDet; r[5] = c[5] * invDet; r[6] = c[6] * invDet; r[7] = c[7] * invDet;
+        r[8] = c[8] * invDet; r[9] = c[9] * invDet; r[10] = c[10] * invDet; r[11] = c[11] * invDet;
+        r[12] = c[12] * invDet; r[13] = c[13] * invDet; r[14] = c[14] * invDet; r[15] = c[15] * invDet;
         return result;
     }
 

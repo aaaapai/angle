@@ -21,9 +21,8 @@ namespace vk
 namespace
 {
 constexpr bool kOutputVmaStatsString = false;
-// When suballocation garbages is more than this, we may wait for GPU to finish and free up some
-// memory for allocation.
-constexpr VkDeviceSize kMaxBufferSuballocationGarbageSize = 64 * 1024 * 1024;
+// Optimize: Increase garbage size threshold to reduce cleaning frequency.
+constexpr VkDeviceSize kMaxBufferSuballocationGarbageSize = 128 * 1024 * 1024;  // was 64 MiB
 
 void InitializeSubmitInfo(VkSubmitInfo *submitInfo,
                           const PrimaryCommandBuffer &commandBuffer,
@@ -698,7 +697,8 @@ angle::Result CommandQueue::postSubmitCheck(ErrorContext *context)
         // destroyed. This is important to keep peak memory usage at check when game launched and a
         // lot of staging buffers used for textures upload and then gets released. But if there is
         // only one command buffer in flight, we do not wait here to ensure we keep GPU busy.
-        constexpr size_t kMinInFlightBatchesToKeep = 1;
+        // Optimize: Increase min batches to keep to 2 to reduce blocking.
+        constexpr size_t kMinInFlightBatchesToKeep = 2;  // was 1
         bool anyGarbageCleaned                     = false;
         ANGLE_TRY(cleanupSomeGarbage(context, kMinInFlightBatchesToKeep, &anyGarbageCleaned));
         if (!anyGarbageCleaned)
@@ -993,6 +993,7 @@ angle::Result CommandQueue::queueSubmitLocked(ErrorContext *context,
         {
             VkFence externalFenceHandle = batch.getExternalFence()->getHandle();
             ASSERT(externalFenceHandle != VK_NULL_HANDLE);
+            // In case of device lost, propagate the error via ANGLE_VK_TRY.
             ANGLE_VK_TRY(context,
                          VK_CALL(vkQueueSubmit, queue, 1, &submitInfo, externalFenceHandle));
             mPerfCounters.vkQueueSubmitCallsTotal.fetch_add(1, std::memory_order_relaxed);
@@ -1133,6 +1134,7 @@ angle::Result CommandQueue::finishOneCommandBatch(ErrorContext *context,
     if (batch.hasFence())
     {
         VkResult status = batch.waitFenceUnlocked(context->getDevice(), timeout, lock);
+        // Propagate device lost errors.
         ANGLE_VK_TRY(context, status);
     }
 
