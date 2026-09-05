@@ -930,13 +930,16 @@ void Renderer::ensureCapsInitialized() const
     const int32_t maxVertexPipelineImages =
         mPhysicalDeviceFeatures.vertexPipelineStoresAndAtomics ? maxPerStageImages : 0;
 
-    mNativeCaps.maxShaderImageUniforms[gl::ShaderType::Vertex]         = maxVertexPipelineImages;
-    mNativeCaps.maxShaderImageUniforms[gl::ShaderType::TessControl]    = maxVertexPipelineImages;
-    mNativeCaps.maxShaderImageUniforms[gl::ShaderType::TessEvaluation] = maxVertexPipelineImages;
-    mNativeCaps.maxShaderImageUniforms[gl::ShaderType::Geometry]       = maxVertexPipelineImages;
+    int vertexVal = maxVertexPipelineImages ? maxVertexPipelineImages : 16;
+    int perStageVal = maxPerStageImages ? maxPerStageImages : 16;
+
+    mNativeCaps.maxShaderImageUniforms[gl::ShaderType::Vertex]         = vertexVal;
+    mNativeCaps.maxShaderImageUniforms[gl::ShaderType::TessControl]    = vertexVal;
+    mNativeCaps.maxShaderImageUniforms[gl::ShaderType::TessEvaluation] = vertexVal;
+    mNativeCaps.maxShaderImageUniforms[gl::ShaderType::Geometry]       = vertexVal;
     mNativeCaps.maxShaderImageUniforms[gl::ShaderType::Fragment] =
-        mPhysicalDeviceFeatures.fragmentStoresAndAtomics ? maxPerStageImages : 0;
-    mNativeCaps.maxShaderImageUniforms[gl::ShaderType::Compute] = maxPerStageImages;
+    mPhysicalDeviceFeatures.fragmentStoresAndAtomics ? perStageVal : 16;
+    mNativeCaps.maxShaderImageUniforms[gl::ShaderType::Compute] = perStageVal;
 
     mNativeCaps.maxCombinedImageUniforms = maxCombinedImages;
     mNativeCaps.maxImageUnits            = maxCombinedImages;
