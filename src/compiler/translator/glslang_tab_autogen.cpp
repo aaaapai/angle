@@ -131,7 +131,7 @@ using namespace sh;
 #  endif
 # endif
 
-#include "glslang_tab_autogen.hpp"
+#include "glslang_tab_autogen.h"
 /* Symbol kind.  */
 enum yysymbol_kind_t
 {
