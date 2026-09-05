@@ -145,13 +145,11 @@ extern void yyerror(YYLTYPE* yylloc, TParseContext* context, void *scanner, cons
 
 #define ES3_OR_NEWER(TOKEN, LINE, REASON) do {  \
     if (context->getShaderVersion() < 300) {  \
-        context->warning(LINE, REASON " supported in GLSL ES 3.00 and above only", TOKEN);  \
     }  \
 } while (0)
 
 #define ES3_1_OR_NEWER(TOKEN, LINE, REASON) do {  \
     if (context->getShaderVersion() < 310) {  \
-        context->warning(LINE, REASON " supported in GLSL ES 3.10 and above only", TOKEN);  \
     }  \
 } while (0)
 %}

@@ -470,17 +470,15 @@ extern void yyerror(YYLTYPE* yylloc, TParseContext* context, void *scanner, cons
 
 #define ES3_OR_NEWER(TOKEN, LINE, REASON) do {  \
     if (context->getShaderVersion() < 300) {  \
-        context->warning(LINE, REASON " supported in GLSL ES 3.00 and above only", TOKEN);  \
     }  \
 } while (0)
 
 #define ES3_1_OR_NEWER(TOKEN, LINE, REASON) do {  \
     if (context->getShaderVersion() < 310) {  \
-        context->warning(LINE, REASON " supported in GLSL ES 3.10 and above only", TOKEN);  \
     }  \
 } while (0)
 
-#line 484 "glslang_tab_autogen.cpp"
+#line 482 "glslang_tab_autogen.cpp"
 
 
 #ifdef short
@@ -883,40 +881,40 @@ static const yytype_uint8 yytranslate[] =
 /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_int16 yyrline[] =
 {
-       0,   256,   256,   257,   260,   267,   270,   275,   280,   285,
-     290,   299,   305,   308,   311,   314,   317,   320,   326,   333,
-     339,   342,   350,   353,   359,   362,   368,   372,   379,   387,
-     390,   393,   399,   402,   405,   408,   415,   416,   417,   418,
-     426,   427,   430,   433,   440,   441,   444,   450,   451,   455,
-     462,   463,   466,   469,   472,   478,   479,   482,   488,   489,
-     496,   497,   504,   505,   512,   513,   513,   521,   522,   528,
-     529,   529,   537,   538,   540,   538,   548,   549,   555,   556,
-     557,   558,   562,   563,   564,   568,   572,   576,   580,   587,
-     590,   590,   598,   605,   612,   615,   618,   622,   626,   630,
-     634,   638,   645,   652,   655,   662,   675,   698,   708,   711,
-     717,   721,   725,   729,   736,   742,   745,   749,   753,   758,
-     765,   769,   773,   777,   782,   789,   793,   799,   802,   805,
-     815,   819,   826,   832,   838,   842,   846,   849,   852,   856,
-     864,   869,   873,   876,   879,   882,   885,   889,   899,   902,
-     906,   909,   912,   915,   918,   921,   925,   932,   939,   942,
-     945,   951,   958,   961,   967,   970,   973,   976,   982,   985,
-     992,   997,  1004,  1012,  1026,  1029,  1032,  1035,  1038,  1041,
-    1045,  1049,  1053,  1057,  1061,  1065,  1069,  1073,  1077,  1081,
-    1085,  1089,  1093,  1097,  1101,  1105,  1109,  1113,  1117,  1121,
-    1125,  1132,  1135,  1138,  1141,  1144,  1147,  1150,  1158,  1166,
-    1176,  1179,  1182,  1185,  1188,  1191,  1194,  1202,  1210,  1220,
-    1223,  1226,  1229,  1232,  1235,  1238,  1246,  1254,  1264,  1267,
-    1270,  1273,  1281,  1289,  1299,  1306,  1313,  1316,  1319,  1322,
-    1325,  1328,  1331,  1334,  1337,  1340,  1343,  1346,  1349,  1357,
-    1365,  1373,  1381,  1389,  1397,  1407,  1417,  1427,  1430,  1437,
-    1444,  1451,  1454,  1464,  1464,  1467,  1467,  1473,  1476,  1482,
-    1485,  1492,  1496,  1502,  1505,  1511,  1515,  1519,  1520,  1526,
-    1527,  1528,  1529,  1530,  1531,  1532,  1536,  1540,  1540,  1540,
-    1547,  1548,  1555,  1555,  1556,  1556,  1565,  1569,  1576,  1580,
-    1587,  1588,  1595,  1595,  1603,  1603,  1611,  1621,  1621,  1627,
-    1630,  1636,  1640,  1646,  1649,  1646,  1655,  1658,  1655,  1663,
-    1663,  1663,  1672,  1676,  1682,  1685,  1691,  1697,  1697,  1707,
-    1710,  1713,  1716,  1719,  1727,  1733,  1739,  1742,  1748,  1748
+       0,   254,   254,   255,   258,   265,   268,   273,   278,   283,
+     288,   297,   303,   306,   309,   312,   315,   318,   324,   331,
+     337,   340,   348,   351,   357,   360,   366,   370,   377,   385,
+     388,   391,   397,   400,   403,   406,   413,   414,   415,   416,
+     424,   425,   428,   431,   438,   439,   442,   448,   449,   453,
+     460,   461,   464,   467,   470,   476,   477,   480,   486,   487,
+     494,   495,   502,   503,   510,   511,   511,   519,   520,   526,
+     527,   527,   535,   536,   538,   536,   546,   547,   553,   554,
+     555,   556,   560,   561,   562,   566,   570,   574,   578,   585,
+     588,   588,   596,   603,   610,   613,   616,   620,   624,   628,
+     632,   636,   643,   650,   653,   660,   673,   696,   706,   709,
+     715,   719,   723,   727,   734,   740,   743,   747,   751,   756,
+     763,   767,   771,   775,   780,   787,   791,   797,   800,   803,
+     813,   817,   824,   830,   836,   840,   844,   847,   850,   854,
+     862,   867,   871,   874,   877,   880,   883,   887,   897,   900,
+     904,   907,   910,   913,   916,   919,   923,   930,   937,   940,
+     943,   949,   956,   959,   965,   968,   971,   974,   980,   983,
+     990,   995,  1002,  1010,  1024,  1027,  1030,  1033,  1036,  1039,
+    1043,  1047,  1051,  1055,  1059,  1063,  1067,  1071,  1075,  1079,
+    1083,  1087,  1091,  1095,  1099,  1103,  1107,  1111,  1115,  1119,
+    1123,  1130,  1133,  1136,  1139,  1142,  1145,  1148,  1156,  1164,
+    1174,  1177,  1180,  1183,  1186,  1189,  1192,  1200,  1208,  1218,
+    1221,  1224,  1227,  1230,  1233,  1236,  1244,  1252,  1262,  1265,
+    1268,  1271,  1279,  1287,  1297,  1304,  1311,  1314,  1317,  1320,
+    1323,  1326,  1329,  1332,  1335,  1338,  1341,  1344,  1347,  1355,
+    1363,  1371,  1379,  1387,  1395,  1405,  1415,  1425,  1428,  1435,
+    1442,  1449,  1452,  1462,  1462,  1465,  1465,  1471,  1474,  1480,
+    1483,  1490,  1494,  1500,  1503,  1509,  1513,  1517,  1518,  1524,
+    1525,  1526,  1527,  1528,  1529,  1530,  1534,  1538,  1538,  1538,
+    1545,  1546,  1553,  1553,  1554,  1554,  1563,  1567,  1574,  1578,
+    1585,  1586,  1593,  1593,  1601,  1601,  1609,  1619,  1619,  1625,
+    1628,  1634,  1638,  1644,  1647,  1644,  1653,  1656,  1653,  1661,
+    1661,  1661,  1670,  1674,  1680,  1683,  1689,  1695,  1695,  1705,
+    1708,  1711,  1714,  1717,  1725,  1731,  1737,  1740,  1746,  1746
 };
 #endif
 
@@ -2603,64 +2601,64 @@ yyreduce:
   switch (yyn)
     {
   case 4: /* variable_identifier: IDENTIFIER  */
-#line 260 "glslang.y"
+#line 258 "glslang.y"
                  {
         // The symbol table search was done in the lexical phase
         (yyval.interm.intermTypedNode) = context->parseVariableIdentifier((yylsp[0]), ImmutableString((yyvsp[0].lex).string), (yyvsp[0].lex).symbol);
     }
-#line 2612 "glslang_tab_autogen.cpp"
+#line 2610 "glslang_tab_autogen.cpp"
     break;
 
   case 5: /* primary_expression: variable_identifier  */
-#line 267 "glslang.y"
+#line 265 "glslang.y"
                           {
         (yyval.interm.intermTypedNode) = (yyvsp[0].interm.intermTypedNode);
     }
-#line 2620 "glslang_tab_autogen.cpp"
+#line 2618 "glslang_tab_autogen.cpp"
     break;
 
   case 6: /* primary_expression: INTCONSTANT  */
-#line 270 "glslang.y"
+#line 268 "glslang.y"
                   {
         TConstantUnion *unionArray = new TConstantUnion[1];
         unionArray->setIConst((yyvsp[0].lex).i);
         (yyval.interm.intermTypedNode) = context->addScalarLiteral(unionArray, (yylsp[0]));
     }
-#line 2630 "glslang_tab_autogen.cpp"
+#line 2628 "glslang_tab_autogen.cpp"
     break;
 
   case 7: /* primary_expression: UINTCONSTANT  */
-#line 275 "glslang.y"
+#line 273 "glslang.y"
                    {
         TConstantUnion *unionArray = new TConstantUnion[1];
         unionArray->setUConst((yyvsp[0].lex).u);
         (yyval.interm.intermTypedNode) = context->addScalarLiteral(unionArray, (yylsp[0]));
     }
-#line 2640 "glslang_tab_autogen.cpp"
+#line 2638 "glslang_tab_autogen.cpp"
     break;
 
   case 8: /* primary_expression: FLOATCONSTANT  */
-#line 280 "glslang.y"
+#line 278 "glslang.y"
                     {
         TConstantUnion *unionArray = new TConstantUnion[1];
         unionArray->setFConst((yyvsp[0].lex).f);
         (yyval.interm.intermTypedNode) = context->addScalarLiteral(unionArray, (yylsp[0]));
     }
-#line 2650 "glslang_tab_autogen.cpp"
+#line 2648 "glslang_tab_autogen.cpp"
     break;
 
   case 9: /* primary_expression: BOOLCONSTANT  */
-#line 285 "glslang.y"
+#line 283 "glslang.y"
                    {
         TConstantUnion *unionArray = new TConstantUnion[1];
         unionArray->setBConst((yyvsp[0].lex).b);
         (yyval.interm.intermTypedNode) = context->addScalarLiteral(unionArray, (yylsp[0]));
     }
-#line 2660 "glslang_tab_autogen.cpp"
+#line 2658 "glslang_tab_autogen.cpp"
     break;
 
   case 10: /* primary_expression: YUVCSCSTANDARDEXTCONSTANT  */
-#line 290 "glslang.y"
+#line 288 "glslang.y"
                                 {
         if (!context->checkCanUseExtension((yylsp[0]), TExtension::EXT_YUV_target))
         {
@@ -2670,747 +2668,747 @@ yyreduce:
         unionArray->setYuvCscStandardEXTConst(getYuvCscStandardEXT(ImmutableString((yyvsp[0].lex).string)));
         (yyval.interm.intermTypedNode) = context->addScalarLiteral(unionArray, (yylsp[0]));
     }
-#line 2674 "glslang_tab_autogen.cpp"
+#line 2672 "glslang_tab_autogen.cpp"
     break;
 
   case 11: /* primary_expression: LEFT_PAREN expression RIGHT_PAREN  */
-#line 299 "glslang.y"
+#line 297 "glslang.y"
                                         {
         (yyval.interm.intermTypedNode) = (yyvsp[-1].interm.intermTypedNode);
     }
-#line 2682 "glslang_tab_autogen.cpp"
+#line 2680 "glslang_tab_autogen.cpp"
     break;
 
   case 12: /* postfix_expression: primary_expression  */
-#line 305 "glslang.y"
+#line 303 "glslang.y"
                          {
         (yyval.interm.intermTypedNode) = (yyvsp[0].interm.intermTypedNode);
     }
-#line 2690 "glslang_tab_autogen.cpp"
+#line 2688 "glslang_tab_autogen.cpp"
     break;
 
   case 13: /* postfix_expression: postfix_expression LEFT_BRACKET integer_expression RIGHT_BRACKET  */
-#line 308 "glslang.y"
+#line 306 "glslang.y"
                                                                        {
         (yyval.interm.intermTypedNode) = context->addIndexExpression((yyvsp[-3].interm.intermTypedNode), (yylsp[-2]), (yyvsp[-1].interm.intermTypedNode));
     }
-#line 2698 "glslang_tab_autogen.cpp"
+#line 2696 "glslang_tab_autogen.cpp"
     break;
 
   case 14: /* postfix_expression: function_call  */
-#line 311 "glslang.y"
+#line 309 "glslang.y"
                     {
         (yyval.interm.intermTypedNode) = (yyvsp[0].interm.intermTypedNode);
     }
-#line 2706 "glslang_tab_autogen.cpp"
+#line 2704 "glslang_tab_autogen.cpp"
     break;
 
   case 15: /* postfix_expression: postfix_expression DOT FIELD_SELECTION  */
-#line 314 "glslang.y"
+#line 312 "glslang.y"
                                              {
         (yyval.interm.intermTypedNode) = context->addFieldSelectionExpression((yyvsp[-2].interm.intermTypedNode), (yylsp[-1]), ImmutableString((yyvsp[0].lex).string), (yylsp[0]));
     }
-#line 2714 "glslang_tab_autogen.cpp"
+#line 2712 "glslang_tab_autogen.cpp"
     break;
 
   case 16: /* postfix_expression: postfix_expression INC_OP  */
-#line 317 "glslang.y"
+#line 315 "glslang.y"
                                 {
         (yyval.interm.intermTypedNode) = context->addUnaryMathLValue(EOpPostIncrement, (yyvsp[-1].interm.intermTypedNode), (yylsp[0]));
     }
-#line 2722 "glslang_tab_autogen.cpp"
+#line 2720 "glslang_tab_autogen.cpp"
     break;
 
   case 17: /* postfix_expression: postfix_expression DEC_OP  */
-#line 320 "glslang.y"
+#line 318 "glslang.y"
                                 {
         (yyval.interm.intermTypedNode) = context->addUnaryMathLValue(EOpPostDecrement, (yyvsp[-1].interm.intermTypedNode), (yylsp[0]));
     }
-#line 2730 "glslang_tab_autogen.cpp"
+#line 2728 "glslang_tab_autogen.cpp"
     break;
 
   case 18: /* integer_expression: expression  */
-#line 326 "glslang.y"
+#line 324 "glslang.y"
                  {
         context->checkIsScalarInteger((yyvsp[0].interm.intermTypedNode), "[]");
         (yyval.interm.intermTypedNode) = (yyvsp[0].interm.intermTypedNode);
     }
-#line 2739 "glslang_tab_autogen.cpp"
+#line 2737 "glslang_tab_autogen.cpp"
     break;
 
   case 19: /* function_call: function_call_or_method  */
-#line 333 "glslang.y"
+#line 331 "glslang.y"
                               {
         (yyval.interm.intermTypedNode) = context->addFunctionCallOrMethod((yyvsp[0].interm.functionLookup), (yylsp[0]));
     }
-#line 2747 "glslang_tab_autogen.cpp"
+#line 2745 "glslang_tab_autogen.cpp"
     break;
 
   case 20: /* function_call_or_method: function_call_generic  */
-#line 339 "glslang.y"
+#line 337 "glslang.y"
                             {
         (yyval.interm.functionLookup) = (yyvsp[0].interm.functionLookup);
     }
-#line 2755 "glslang_tab_autogen.cpp"
+#line 2753 "glslang_tab_autogen.cpp"
     break;
 
   case 21: /* function_call_or_method: postfix_expression DOT function_call_generic  */
-#line 342 "glslang.y"
+#line 340 "glslang.y"
                                                    {
         ES3_OR_NEWER("", (yylsp[0]), "methods");
         (yyval.interm.functionLookup) = (yyvsp[0].interm.functionLookup);
         (yyval.interm.functionLookup)->setThisNode((yyvsp[-2].interm.intermTypedNode));
     }
-#line 2765 "glslang_tab_autogen.cpp"
+#line 2763 "glslang_tab_autogen.cpp"
     break;
 
   case 22: /* function_call_generic: function_call_header_with_parameters RIGHT_PAREN  */
-#line 350 "glslang.y"
+#line 348 "glslang.y"
                                                        {
         (yyval.interm.functionLookup) = (yyvsp[-1].interm.functionLookup);
     }
-#line 2773 "glslang_tab_autogen.cpp"
+#line 2771 "glslang_tab_autogen.cpp"
     break;
 
   case 23: /* function_call_generic: function_call_header_no_parameters RIGHT_PAREN  */
-#line 353 "glslang.y"
+#line 351 "glslang.y"
                                                      {
         (yyval.interm.functionLookup) = (yyvsp[-1].interm.functionLookup);
     }
-#line 2781 "glslang_tab_autogen.cpp"
+#line 2779 "glslang_tab_autogen.cpp"
     break;
 
   case 24: /* function_call_header_no_parameters: function_call_header VOID_TYPE  */
-#line 359 "glslang.y"
+#line 357 "glslang.y"
                                      {
         (yyval.interm.functionLookup) = (yyvsp[-1].interm.functionLookup);
     }
-#line 2789 "glslang_tab_autogen.cpp"
+#line 2787 "glslang_tab_autogen.cpp"
     break;
 
   case 25: /* function_call_header_no_parameters: function_call_header  */
-#line 362 "glslang.y"
+#line 360 "glslang.y"
                            {
         (yyval.interm.functionLookup) = (yyvsp[0].interm.functionLookup);
     }
-#line 2797 "glslang_tab_autogen.cpp"
+#line 2795 "glslang_tab_autogen.cpp"
     break;
 
   case 26: /* function_call_header_with_parameters: function_call_header assignment_expression  */
-#line 368 "glslang.y"
+#line 366 "glslang.y"
                                                  {
         (yyval.interm.functionLookup) = (yyvsp[-1].interm.functionLookup);
         (yyval.interm.functionLookup)->addArgument((yyvsp[0].interm.intermTypedNode));
     }
-#line 2806 "glslang_tab_autogen.cpp"
+#line 2804 "glslang_tab_autogen.cpp"
     break;
 
   case 27: /* function_call_header_with_parameters: function_call_header_with_parameters COMMA assignment_expression  */
-#line 372 "glslang.y"
+#line 370 "glslang.y"
                                                                        {
         (yyval.interm.functionLookup) = (yyvsp[-2].interm.functionLookup);
         (yyval.interm.functionLookup)->addArgument((yyvsp[0].interm.intermTypedNode));
     }
-#line 2815 "glslang_tab_autogen.cpp"
+#line 2813 "glslang_tab_autogen.cpp"
     break;
 
   case 28: /* function_call_header: function_identifier LEFT_PAREN  */
-#line 379 "glslang.y"
+#line 377 "glslang.y"
                                      {
         (yyval.interm.functionLookup) = (yyvsp[-1].interm.functionLookup);
     }
-#line 2823 "glslang_tab_autogen.cpp"
+#line 2821 "glslang_tab_autogen.cpp"
     break;
 
   case 29: /* function_identifier: type_specifier_no_prec  */
-#line 387 "glslang.y"
+#line 385 "glslang.y"
                              {
         (yyval.interm.functionLookup) = context->addConstructorFunc((yyvsp[0].interm.type));
     }
-#line 2831 "glslang_tab_autogen.cpp"
+#line 2829 "glslang_tab_autogen.cpp"
     break;
 
   case 30: /* function_identifier: IDENTIFIER  */
-#line 390 "glslang.y"
+#line 388 "glslang.y"
                  {
         (yyval.interm.functionLookup) = context->addNonConstructorFunc(ImmutableString((yyvsp[0].lex).string), (yyvsp[0].lex).symbol);
     }
-#line 2839 "glslang_tab_autogen.cpp"
+#line 2837 "glslang_tab_autogen.cpp"
     break;
 
   case 31: /* function_identifier: FIELD_SELECTION  */
-#line 393 "glslang.y"
+#line 391 "glslang.y"
                       {
         (yyval.interm.functionLookup) = context->addNonConstructorFunc(ImmutableString((yyvsp[0].lex).string), (yyvsp[0].lex).symbol);
     }
-#line 2847 "glslang_tab_autogen.cpp"
+#line 2845 "glslang_tab_autogen.cpp"
     break;
 
   case 32: /* unary_expression: postfix_expression  */
-#line 399 "glslang.y"
+#line 397 "glslang.y"
                          {
         (yyval.interm.intermTypedNode) = (yyvsp[0].interm.intermTypedNode);
     }
-#line 2855 "glslang_tab_autogen.cpp"
+#line 2853 "glslang_tab_autogen.cpp"
     break;
 
   case 33: /* unary_expression: INC_OP unary_expression  */
-#line 402 "glslang.y"
+#line 400 "glslang.y"
                               {
         (yyval.interm.intermTypedNode) = context->addUnaryMathLValue(EOpPreIncrement, (yyvsp[0].interm.intermTypedNode), (yylsp[-1]));
     }
-#line 2863 "glslang_tab_autogen.cpp"
+#line 2861 "glslang_tab_autogen.cpp"
     break;
 
   case 34: /* unary_expression: DEC_OP unary_expression  */
-#line 405 "glslang.y"
+#line 403 "glslang.y"
                               {
         (yyval.interm.intermTypedNode) = context->addUnaryMathLValue(EOpPreDecrement, (yyvsp[0].interm.intermTypedNode), (yylsp[-1]));
     }
-#line 2871 "glslang_tab_autogen.cpp"
+#line 2869 "glslang_tab_autogen.cpp"
     break;
 
   case 35: /* unary_expression: unary_operator unary_expression  */
-#line 408 "glslang.y"
+#line 406 "glslang.y"
                                       {
         (yyval.interm.intermTypedNode) = context->addUnaryMath((yyvsp[-1].interm.op), (yyvsp[0].interm.intermTypedNode), (yylsp[-1]));
     }
-#line 2879 "glslang_tab_autogen.cpp"
+#line 2877 "glslang_tab_autogen.cpp"
     break;
 
   case 36: /* unary_operator: PLUS  */
-#line 415 "glslang.y"
+#line 413 "glslang.y"
             { (yyval.interm.op) = EOpPositive; }
-#line 2885 "glslang_tab_autogen.cpp"
+#line 2883 "glslang_tab_autogen.cpp"
     break;
 
   case 37: /* unary_operator: DASH  */
-#line 416 "glslang.y"
+#line 414 "glslang.y"
             { (yyval.interm.op) = EOpNegative; }
-#line 2891 "glslang_tab_autogen.cpp"
+#line 2889 "glslang_tab_autogen.cpp"
     break;
 
   case 38: /* unary_operator: BANG  */
-#line 417 "glslang.y"
+#line 415 "glslang.y"
             { (yyval.interm.op) = EOpLogicalNot; }
-#line 2897 "glslang_tab_autogen.cpp"
+#line 2895 "glslang_tab_autogen.cpp"
     break;
 
   case 39: /* unary_operator: TILDE  */
-#line 418 "glslang.y"
+#line 416 "glslang.y"
             {
         ES3_OR_NEWER("~", (yyloc), "bit-wise operator");
         (yyval.interm.op) = EOpBitwiseNot;
     }
-#line 2906 "glslang_tab_autogen.cpp"
+#line 2904 "glslang_tab_autogen.cpp"
     break;
 
   case 40: /* multiplicative_expression: unary_expression  */
-#line 426 "glslang.y"
+#line 424 "glslang.y"
                        { (yyval.interm.intermTypedNode) = (yyvsp[0].interm.intermTypedNode); }
-#line 2912 "glslang_tab_autogen.cpp"
+#line 2910 "glslang_tab_autogen.cpp"
     break;
 
   case 41: /* multiplicative_expression: multiplicative_expression STAR unary_expression  */
-#line 427 "glslang.y"
+#line 425 "glslang.y"
                                                       {
         (yyval.interm.intermTypedNode) = context->addBinaryMath(EOpMul, (yyvsp[-2].interm.intermTypedNode), (yyvsp[0].interm.intermTypedNode), (yylsp[-1]));
     }
-#line 2920 "glslang_tab_autogen.cpp"
+#line 2918 "glslang_tab_autogen.cpp"
     break;
 
   case 42: /* multiplicative_expression: multiplicative_expression SLASH unary_expression  */
-#line 430 "glslang.y"
+#line 428 "glslang.y"
                                                        {
         (yyval.interm.intermTypedNode) = context->addBinaryMath(EOpDiv, (yyvsp[-2].interm.intermTypedNode), (yyvsp[0].interm.intermTypedNode), (yylsp[-1]));
     }
-#line 2928 "glslang_tab_autogen.cpp"
+#line 2926 "glslang_tab_autogen.cpp"
     break;
 
   case 43: /* multiplicative_expression: multiplicative_expression PERCENT unary_expression  */
-#line 433 "glslang.y"
+#line 431 "glslang.y"
                                                          {
         ES3_OR_NEWER("%", (yylsp[-1]), "integer modulus operator");
         (yyval.interm.intermTypedNode) = context->addBinaryMath(EOpIMod, (yyvsp[-2].interm.intermTypedNode), (yyvsp[0].interm.intermTypedNode), (yylsp[-1]));
     }
-#line 2937 "glslang_tab_autogen.cpp"
+#line 2935 "glslang_tab_autogen.cpp"
     break;
 
   case 44: /* additive_expression: multiplicative_expression  */
-#line 440 "glslang.y"
+#line 438 "glslang.y"
                                 { (yyval.interm.intermTypedNode) = (yyvsp[0].interm.intermTypedNode); }
-#line 2943 "glslang_tab_autogen.cpp"
+#line 2941 "glslang_tab_autogen.cpp"
     break;
 
   case 45: /* additive_expression: additive_expression PLUS multiplicative_expression  */
-#line 441 "glslang.y"
+#line 439 "glslang.y"
                                                          {
         (yyval.interm.intermTypedNode) = context->addBinaryMath(EOpAdd, (yyvsp[-2].interm.intermTypedNode), (yyvsp[0].interm.intermTypedNode), (yylsp[-1]));
     }
-#line 2951 "glslang_tab_autogen.cpp"
+#line 2949 "glslang_tab_autogen.cpp"
     break;
 
   case 46: /* additive_expression: additive_expression DASH multiplicative_expression  */
-#line 444 "glslang.y"
+#line 442 "glslang.y"
                                                          {
         (yyval.interm.intermTypedNode) = context->addBinaryMath(EOpSub, (yyvsp[-2].interm.intermTypedNode), (yyvsp[0].interm.intermTypedNode), (yylsp[-1]));
     }
-#line 2959 "glslang_tab_autogen.cpp"
+#line 2957 "glslang_tab_autogen.cpp"
     break;
 
   case 47: /* shift_expression: additive_expression  */
-#line 450 "glslang.y"
+#line 448 "glslang.y"
                           { (yyval.interm.intermTypedNode) = (yyvsp[0].interm.intermTypedNode); }
-#line 2965 "glslang_tab_autogen.cpp"
+#line 2963 "glslang_tab_autogen.cpp"
     break;
 
   case 48: /* shift_expression: shift_expression LEFT_OP additive_expression  */
-#line 451 "glslang.y"
+#line 449 "glslang.y"
                                                    {
         ES3_OR_NEWER("<<", (yylsp[-1]), "bit-wise operator");
         (yyval.interm.intermTypedNode) = context->addBinaryMath(EOpBitShiftLeft, (yyvsp[-2].interm.intermTypedNode), (yyvsp[0].interm.intermTypedNode), (yylsp[-1]));
     }
-#line 2974 "glslang_tab_autogen.cpp"
+#line 2972 "glslang_tab_autogen.cpp"
     break;
 
   case 49: /* shift_expression: shift_expression RIGHT_OP additive_expression  */
-#line 455 "glslang.y"
+#line 453 "glslang.y"
                                                     {
         ES3_OR_NEWER(">>", (yylsp[-1]), "bit-wise operator");
         (yyval.interm.intermTypedNode) = context->addBinaryMath(EOpBitShiftRight, (yyvsp[-2].interm.intermTypedNode), (yyvsp[0].interm.intermTypedNode), (yylsp[-1]));
     }
-#line 2983 "glslang_tab_autogen.cpp"
+#line 2981 "glslang_tab_autogen.cpp"
     break;
 
   case 50: /* relational_expression: shift_expression  */
-#line 462 "glslang.y"
+#line 460 "glslang.y"
                        { (yyval.interm.intermTypedNode) = (yyvsp[0].interm.intermTypedNode); }
-#line 2989 "glslang_tab_autogen.cpp"
+#line 2987 "glslang_tab_autogen.cpp"
     break;
 
   case 51: /* relational_expression: relational_expression LEFT_ANGLE shift_expression  */
-#line 463 "glslang.y"
+#line 461 "glslang.y"
                                                         {
         (yyval.interm.intermTypedNode) = context->addBinaryMathBooleanResult(EOpLessThan, (yyvsp[-2].interm.intermTypedNode), (yyvsp[0].interm.intermTypedNode), (yylsp[-1]));
     }
-#line 2997 "glslang_tab_autogen.cpp"
+#line 2995 "glslang_tab_autogen.cpp"
     break;
 
   case 52: /* relational_expression: relational_expression RIGHT_ANGLE shift_expression  */
-#line 466 "glslang.y"
+#line 464 "glslang.y"
                                                           {
         (yyval.interm.intermTypedNode) = context->addBinaryMathBooleanResult(EOpGreaterThan, (yyvsp[-2].interm.intermTypedNode), (yyvsp[0].interm.intermTypedNode), (yylsp[-1]));
     }
-#line 3005 "glslang_tab_autogen.cpp"
+#line 3003 "glslang_tab_autogen.cpp"
     break;
 
   case 53: /* relational_expression: relational_expression LE_OP shift_expression  */
-#line 469 "glslang.y"
+#line 467 "glslang.y"
                                                     {
         (yyval.interm.intermTypedNode) = context->addBinaryMathBooleanResult(EOpLessThanEqual, (yyvsp[-2].interm.intermTypedNode), (yyvsp[0].interm.intermTypedNode), (yylsp[-1]));
     }
-#line 3013 "glslang_tab_autogen.cpp"
+#line 3011 "glslang_tab_autogen.cpp"
     break;
 
   case 54: /* relational_expression: relational_expression GE_OP shift_expression  */
-#line 472 "glslang.y"
+#line 470 "glslang.y"
                                                     {
         (yyval.interm.intermTypedNode) = context->addBinaryMathBooleanResult(EOpGreaterThanEqual, (yyvsp[-2].interm.intermTypedNode), (yyvsp[0].interm.intermTypedNode), (yylsp[-1]));
     }
-#line 3021 "glslang_tab_autogen.cpp"
+#line 3019 "glslang_tab_autogen.cpp"
     break;
 
   case 55: /* equality_expression: relational_expression  */
-#line 478 "glslang.y"
+#line 476 "glslang.y"
                             { (yyval.interm.intermTypedNode) = (yyvsp[0].interm.intermTypedNode); }
-#line 3027 "glslang_tab_autogen.cpp"
+#line 3025 "glslang_tab_autogen.cpp"
     break;
 
   case 56: /* equality_expression: equality_expression EQ_OP relational_expression  */
-#line 479 "glslang.y"
+#line 477 "glslang.y"
                                                        {
         (yyval.interm.intermTypedNode) = context->addBinaryMathBooleanResult(EOpEqual, (yyvsp[-2].interm.intermTypedNode), (yyvsp[0].interm.intermTypedNode), (yylsp[-1]));
     }
-#line 3035 "glslang_tab_autogen.cpp"
+#line 3033 "glslang_tab_autogen.cpp"
     break;
 
   case 57: /* equality_expression: equality_expression NE_OP relational_expression  */
-#line 482 "glslang.y"
+#line 480 "glslang.y"
                                                       {
         (yyval.interm.intermTypedNode) = context->addBinaryMathBooleanResult(EOpNotEqual, (yyvsp[-2].interm.intermTypedNode), (yyvsp[0].interm.intermTypedNode), (yylsp[-1]));
     }
-#line 3043 "glslang_tab_autogen.cpp"
+#line 3041 "glslang_tab_autogen.cpp"
     break;
 
   case 58: /* and_expression: equality_expression  */
-#line 488 "glslang.y"
+#line 486 "glslang.y"
                           { (yyval.interm.intermTypedNode) = (yyvsp[0].interm.intermTypedNode); }
-#line 3049 "glslang_tab_autogen.cpp"
+#line 3047 "glslang_tab_autogen.cpp"
     break;
 
   case 59: /* and_expression: and_expression AMPERSAND equality_expression  */
-#line 489 "glslang.y"
+#line 487 "glslang.y"
                                                    {
         ES3_OR_NEWER("&", (yylsp[-1]), "bit-wise operator");
         (yyval.interm.intermTypedNode) = context->addBinaryMath(EOpBitwiseAnd, (yyvsp[-2].interm.intermTypedNode), (yyvsp[0].interm.intermTypedNode), (yylsp[-1]));
     }
-#line 3058 "glslang_tab_autogen.cpp"
+#line 3056 "glslang_tab_autogen.cpp"
     break;
 
   case 60: /* exclusive_or_expression: and_expression  */
-#line 496 "glslang.y"
+#line 494 "glslang.y"
                      { (yyval.interm.intermTypedNode) = (yyvsp[0].interm.intermTypedNode); }
-#line 3064 "glslang_tab_autogen.cpp"
+#line 3062 "glslang_tab_autogen.cpp"
     break;
 
   case 61: /* exclusive_or_expression: exclusive_or_expression CARET and_expression  */
-#line 497 "glslang.y"
+#line 495 "glslang.y"
                                                    {
         ES3_OR_NEWER("^", (yylsp[-1]), "bit-wise operator");
         (yyval.interm.intermTypedNode) = context->addBinaryMath(EOpBitwiseXor, (yyvsp[-2].interm.intermTypedNode), (yyvsp[0].interm.intermTypedNode), (yylsp[-1]));
     }
-#line 3073 "glslang_tab_autogen.cpp"
+#line 3071 "glslang_tab_autogen.cpp"
     break;
 
   case 62: /* inclusive_or_expression: exclusive_or_expression  */
-#line 504 "glslang.y"
+#line 502 "glslang.y"
                               { (yyval.interm.intermTypedNode) = (yyvsp[0].interm.intermTypedNode); }
-#line 3079 "glslang_tab_autogen.cpp"
+#line 3077 "glslang_tab_autogen.cpp"
     break;
 
   case 63: /* inclusive_or_expression: inclusive_or_expression VERTICAL_BAR exclusive_or_expression  */
-#line 505 "glslang.y"
+#line 503 "glslang.y"
                                                                    {
         ES3_OR_NEWER("|", (yylsp[-1]), "bit-wise operator");
         (yyval.interm.intermTypedNode) = context->addBinaryMath(EOpBitwiseOr, (yyvsp[-2].interm.intermTypedNode), (yyvsp[0].interm.intermTypedNode), (yylsp[-1]));
     }
-#line 3088 "glslang_tab_autogen.cpp"
+#line 3086 "glslang_tab_autogen.cpp"
     break;
 
   case 64: /* logical_and_expression: inclusive_or_expression  */
-#line 512 "glslang.y"
+#line 510 "glslang.y"
                               { (yyval.interm.intermTypedNode) = (yyvsp[0].interm.intermTypedNode); }
-#line 3094 "glslang_tab_autogen.cpp"
+#line 3092 "glslang_tab_autogen.cpp"
     break;
 
   case 65: /* $@1: %empty  */
-#line 513 "glslang.y"
+#line 511 "glslang.y"
                                     {
         context->onShortCircuitAndBegin((yyvsp[-1].interm.intermTypedNode), (yylsp[0]));
     }
-#line 3102 "glslang_tab_autogen.cpp"
+#line 3100 "glslang_tab_autogen.cpp"
     break;
 
   case 66: /* logical_and_expression: logical_and_expression AND_OP $@1 inclusive_or_expression  */
-#line 515 "glslang.y"
+#line 513 "glslang.y"
                               {
         (yyval.interm.intermTypedNode) = context->addBinaryMathBooleanResult(EOpLogicalAnd, (yyvsp[-3].interm.intermTypedNode), (yyvsp[0].interm.intermTypedNode), (yylsp[-2]));
     }
-#line 3110 "glslang_tab_autogen.cpp"
+#line 3108 "glslang_tab_autogen.cpp"
     break;
 
   case 67: /* logical_xor_expression: logical_and_expression  */
-#line 521 "glslang.y"
+#line 519 "glslang.y"
                              { (yyval.interm.intermTypedNode) = (yyvsp[0].interm.intermTypedNode); }
-#line 3116 "glslang_tab_autogen.cpp"
+#line 3114 "glslang_tab_autogen.cpp"
     break;
 
   case 68: /* logical_xor_expression: logical_xor_expression XOR_OP logical_and_expression  */
-#line 522 "glslang.y"
+#line 520 "glslang.y"
                                                             {
         (yyval.interm.intermTypedNode) = context->addBinaryMathBooleanResult(EOpLogicalXor, (yyvsp[-2].interm.intermTypedNode), (yyvsp[0].interm.intermTypedNode), (yylsp[-1]));
     }
-#line 3124 "glslang_tab_autogen.cpp"
+#line 3122 "glslang_tab_autogen.cpp"
     break;
 
   case 69: /* logical_or_expression: logical_xor_expression  */
-#line 528 "glslang.y"
+#line 526 "glslang.y"
                              { (yyval.interm.intermTypedNode) = (yyvsp[0].interm.intermTypedNode); }
-#line 3130 "glslang_tab_autogen.cpp"
+#line 3128 "glslang_tab_autogen.cpp"
     break;
 
   case 70: /* $@2: %empty  */
-#line 529 "glslang.y"
+#line 527 "glslang.y"
                                   {
         context->onShortCircuitOrBegin((yyvsp[-1].interm.intermTypedNode), (yylsp[0]));
     }
-#line 3138 "glslang_tab_autogen.cpp"
+#line 3136 "glslang_tab_autogen.cpp"
     break;
 
   case 71: /* logical_or_expression: logical_or_expression OR_OP $@2 logical_xor_expression  */
-#line 531 "glslang.y"
+#line 529 "glslang.y"
                               {
         (yyval.interm.intermTypedNode) = context->addBinaryMathBooleanResult(EOpLogicalOr, (yyvsp[-3].interm.intermTypedNode), (yyvsp[0].interm.intermTypedNode), (yylsp[-2]));
     }
-#line 3146 "glslang_tab_autogen.cpp"
+#line 3144 "glslang_tab_autogen.cpp"
     break;
 
   case 72: /* conditional_expression: logical_or_expression  */
-#line 537 "glslang.y"
+#line 535 "glslang.y"
                             { (yyval.interm.intermTypedNode) = (yyvsp[0].interm.intermTypedNode); }
-#line 3152 "glslang_tab_autogen.cpp"
+#line 3150 "glslang_tab_autogen.cpp"
     break;
 
   case 73: /* $@3: %empty  */
-#line 538 "glslang.y"
+#line 536 "glslang.y"
                                      {
         context->onTernaryConditionParsed((yyvsp[-1].interm.intermTypedNode), (yylsp[0]));
     }
-#line 3160 "glslang_tab_autogen.cpp"
+#line 3158 "glslang_tab_autogen.cpp"
     break;
 
   case 74: /* $@4: %empty  */
-#line 540 "glslang.y"
+#line 538 "glslang.y"
                        {
         context->onTernaryTrueExpressionParsed((yyvsp[-1].interm.intermTypedNode), (yylsp[-3]));
     }
-#line 3168 "glslang_tab_autogen.cpp"
+#line 3166 "glslang_tab_autogen.cpp"
     break;
 
   case 75: /* conditional_expression: logical_or_expression QUESTION $@3 expression COLON $@4 assignment_expression  */
-#line 542 "glslang.y"
+#line 540 "glslang.y"
                             {
         (yyval.interm.intermTypedNode) = context->addTernarySelection((yyvsp[-6].interm.intermTypedNode), (yyvsp[-3].interm.intermTypedNode), (yyvsp[0].interm.intermTypedNode), (yylsp[-5]));
     }
-#line 3176 "glslang_tab_autogen.cpp"
+#line 3174 "glslang_tab_autogen.cpp"
     break;
 
   case 76: /* assignment_expression: conditional_expression  */
-#line 548 "glslang.y"
+#line 546 "glslang.y"
                              { (yyval.interm.intermTypedNode) = (yyvsp[0].interm.intermTypedNode); }
-#line 3182 "glslang_tab_autogen.cpp"
+#line 3180 "glslang_tab_autogen.cpp"
     break;
 
   case 77: /* assignment_expression: unary_expression assignment_operator assignment_expression  */
-#line 549 "glslang.y"
+#line 547 "glslang.y"
                                                                  {
         (yyval.interm.intermTypedNode) = context->addAssign((yyvsp[-1].interm.op), (yyvsp[-2].interm.intermTypedNode), (yyvsp[0].interm.intermTypedNode), (yylsp[-1]));
     }
-#line 3190 "glslang_tab_autogen.cpp"
+#line 3188 "glslang_tab_autogen.cpp"
     break;
 
   case 78: /* assignment_operator: EQUAL  */
-#line 555 "glslang.y"
+#line 553 "glslang.y"
                    { (yyval.interm.op) = EOpAssign; }
-#line 3196 "glslang_tab_autogen.cpp"
+#line 3194 "glslang_tab_autogen.cpp"
     break;
 
   case 79: /* assignment_operator: MUL_ASSIGN  */
-#line 556 "glslang.y"
+#line 554 "glslang.y"
                    { (yyval.interm.op) = EOpMulAssign; }
-#line 3202 "glslang_tab_autogen.cpp"
+#line 3200 "glslang_tab_autogen.cpp"
     break;
 
   case 80: /* assignment_operator: DIV_ASSIGN  */
-#line 557 "glslang.y"
+#line 555 "glslang.y"
                    { (yyval.interm.op) = EOpDivAssign; }
-#line 3208 "glslang_tab_autogen.cpp"
+#line 3206 "glslang_tab_autogen.cpp"
     break;
 
   case 81: /* assignment_operator: MOD_ASSIGN  */
-#line 558 "glslang.y"
+#line 556 "glslang.y"
                    {
         ES3_OR_NEWER("%=", (yyloc), "integer modulus operator");
         (yyval.interm.op) = EOpIModAssign;
     }
-#line 3217 "glslang_tab_autogen.cpp"
+#line 3215 "glslang_tab_autogen.cpp"
     break;
 
   case 82: /* assignment_operator: ADD_ASSIGN  */
-#line 562 "glslang.y"
+#line 560 "glslang.y"
                    { (yyval.interm.op) = EOpAddAssign; }
-#line 3223 "glslang_tab_autogen.cpp"
+#line 3221 "glslang_tab_autogen.cpp"
     break;
 
   case 83: /* assignment_operator: SUB_ASSIGN  */
-#line 563 "glslang.y"
+#line 561 "glslang.y"
                    { (yyval.interm.op) = EOpSubAssign; }
-#line 3229 "glslang_tab_autogen.cpp"
+#line 3227 "glslang_tab_autogen.cpp"
     break;
 
   case 84: /* assignment_operator: LEFT_ASSIGN  */
-#line 564 "glslang.y"
+#line 562 "glslang.y"
                   {
         ES3_OR_NEWER("<<=", (yyloc), "bit-wise operator");
         (yyval.interm.op) = EOpBitShiftLeftAssign;
     }
-#line 3238 "glslang_tab_autogen.cpp"
+#line 3236 "glslang_tab_autogen.cpp"
     break;
 
   case 85: /* assignment_operator: RIGHT_ASSIGN  */
-#line 568 "glslang.y"
+#line 566 "glslang.y"
                    {
         ES3_OR_NEWER(">>=", (yyloc), "bit-wise operator");
         (yyval.interm.op) = EOpBitShiftRightAssign;
     }
-#line 3247 "glslang_tab_autogen.cpp"
+#line 3245 "glslang_tab_autogen.cpp"
     break;
 
   case 86: /* assignment_operator: AND_ASSIGN  */
-#line 572 "glslang.y"
+#line 570 "glslang.y"
                  {
         ES3_OR_NEWER("&=", (yyloc), "bit-wise operator");
         (yyval.interm.op) = EOpBitwiseAndAssign;
     }
-#line 3256 "glslang_tab_autogen.cpp"
+#line 3254 "glslang_tab_autogen.cpp"
     break;
 
   case 87: /* assignment_operator: XOR_ASSIGN  */
-#line 576 "glslang.y"
+#line 574 "glslang.y"
                  {
         ES3_OR_NEWER("^=", (yyloc), "bit-wise operator");
         (yyval.interm.op) = EOpBitwiseXorAssign;
     }
-#line 3265 "glslang_tab_autogen.cpp"
+#line 3263 "glslang_tab_autogen.cpp"
     break;
 
   case 88: /* assignment_operator: OR_ASSIGN  */
-#line 580 "glslang.y"
+#line 578 "glslang.y"
                 {
         ES3_OR_NEWER("|=", (yyloc), "bit-wise operator");
         (yyval.interm.op) = EOpBitwiseOrAssign;
     }
-#line 3274 "glslang_tab_autogen.cpp"
+#line 3272 "glslang_tab_autogen.cpp"
     break;
 
   case 89: /* expression: assignment_expression  */
-#line 587 "glslang.y"
+#line 585 "glslang.y"
                             {
         (yyval.interm.intermTypedNode) = (yyvsp[0].interm.intermTypedNode);
     }
-#line 3282 "glslang_tab_autogen.cpp"
+#line 3280 "glslang_tab_autogen.cpp"
     break;
 
   case 90: /* $@5: %empty  */
-#line 590 "glslang.y"
+#line 588 "glslang.y"
                        {
         context->onCommaLeftHandSideParsed((yyvsp[-1].interm.intermTypedNode));
     }
-#line 3290 "glslang_tab_autogen.cpp"
+#line 3288 "glslang_tab_autogen.cpp"
     break;
 
   case 91: /* expression: expression COMMA $@5 assignment_expression  */
-#line 592 "glslang.y"
+#line 590 "glslang.y"
                             {
         (yyval.interm.intermTypedNode) = context->addComma((yyvsp[-3].interm.intermTypedNode), (yyvsp[0].interm.intermTypedNode), (yylsp[-2]));
     }
-#line 3298 "glslang_tab_autogen.cpp"
+#line 3296 "glslang_tab_autogen.cpp"
     break;
 
   case 92: /* constant_expression: conditional_expression  */
-#line 598 "glslang.y"
+#line 596 "glslang.y"
                              {
         context->checkIsConst((yyvsp[0].interm.intermTypedNode));
         (yyval.interm.intermTypedNode) = (yyvsp[0].interm.intermTypedNode);
     }
-#line 3307 "glslang_tab_autogen.cpp"
+#line 3305 "glslang_tab_autogen.cpp"
     break;
 
   case 93: /* enter_struct: IDENTIFIER LEFT_BRACE  */
-#line 605 "glslang.y"
+#line 603 "glslang.y"
                             {
         context->enterStructDeclaration((yylsp[-1]), ImmutableString((yyvsp[-1].lex).string));
         (yyval.lex) = (yyvsp[-1].lex);
     }
-#line 3316 "glslang_tab_autogen.cpp"
+#line 3314 "glslang_tab_autogen.cpp"
     break;
 
   case 94: /* declaration: init_declarator_list SEMICOLON  */
-#line 612 "glslang.y"
+#line 610 "glslang.y"
                                      {
         (yyval.interm.intermNode) = (yyvsp[-1].interm).intermDeclaration;
     }
-#line 3324 "glslang_tab_autogen.cpp"
+#line 3322 "glslang_tab_autogen.cpp"
     break;
 
   case 95: /* declaration: function_prototype SEMICOLON  */
-#line 615 "glslang.y"
+#line 613 "glslang.y"
                                    {
         (yyval.interm.intermNode) = context->addFunctionPrototypeDeclaration(*((yyvsp[-1].interm).function), (yylsp[-1]));
     }
-#line 3332 "glslang_tab_autogen.cpp"
+#line 3330 "glslang_tab_autogen.cpp"
     break;
 
   case 96: /* declaration: PRECISION precision_qualifier type_specifier_no_prec SEMICOLON  */
-#line 618 "glslang.y"
+#line 616 "glslang.y"
                                                                      {
         context->parseDefaultPrecisionQualifier((yyvsp[-2].interm.precision), (yyvsp[-1].interm.type), (yylsp[-3]));
         (yyval.interm.intermNode) = nullptr;
     }
-#line 3341 "glslang_tab_autogen.cpp"
+#line 3339 "glslang_tab_autogen.cpp"
     break;
 
   case 97: /* declaration: type_qualifier enter_struct struct_declaration_list RIGHT_BRACE SEMICOLON  */
-#line 622 "glslang.y"
+#line 620 "glslang.y"
                                                                                 {
         ES3_OR_NEWER(ImmutableString((yyvsp[-3].lex).string), (yylsp[-4]), "interface blocks");
         (yyval.interm.intermNode) = context->addInterfaceBlock(*(yyvsp[-4].interm.typeQualifierBuilder), (yylsp[-3]), ImmutableString((yyvsp[-3].lex).string), (yyvsp[-2].interm.fieldList), kEmptyImmutableString, (yyloc), NULL, (yyloc));
     }
-#line 3350 "glslang_tab_autogen.cpp"
+#line 3348 "glslang_tab_autogen.cpp"
     break;
 
   case 98: /* declaration: type_qualifier enter_struct struct_declaration_list RIGHT_BRACE IDENTIFIER SEMICOLON  */
-#line 626 "glslang.y"
+#line 624 "glslang.y"
                                                                                            {
         ES3_OR_NEWER(ImmutableString((yyvsp[-4].lex).string), (yylsp[-5]), "interface blocks");
         (yyval.interm.intermNode) = context->addInterfaceBlock(*(yyvsp[-5].interm.typeQualifierBuilder), (yylsp[-4]), ImmutableString((yyvsp[-4].lex).string), (yyvsp[-3].interm.fieldList), ImmutableString((yyvsp[-1].lex).string), (yylsp[-1]), NULL, (yyloc));
     }
-#line 3359 "glslang_tab_autogen.cpp"
+#line 3357 "glslang_tab_autogen.cpp"
     break;
 
   case 99: /* declaration: type_qualifier enter_struct struct_declaration_list RIGHT_BRACE IDENTIFIER array_specifier SEMICOLON  */
-#line 630 "glslang.y"
+#line 628 "glslang.y"
                                                                                                            {
         ES3_OR_NEWER(ImmutableString((yyvsp[-5].lex).string), (yylsp[-6]), "interface blocks");
         (yyval.interm.intermNode) = context->addInterfaceBlock(*(yyvsp[-6].interm.typeQualifierBuilder), (yylsp[-5]), ImmutableString((yyvsp[-5].lex).string), (yyvsp[-4].interm.fieldList), ImmutableString((yyvsp[-2].lex).string), (yylsp[-2]), (yyvsp[-1].interm.arraySizes), (yylsp[-1]));
     }
-#line 3368 "glslang_tab_autogen.cpp"
+#line 3366 "glslang_tab_autogen.cpp"
     break;
 
   case 100: /* declaration: type_qualifier SEMICOLON  */
-#line 634 "glslang.y"
+#line 632 "glslang.y"
                                {
         context->parseGlobalLayoutQualifier(*(yyvsp[-1].interm.typeQualifierBuilder));
         (yyval.interm.intermNode) = nullptr;
     }
-#line 3377 "glslang_tab_autogen.cpp"
+#line 3375 "glslang_tab_autogen.cpp"
     break;
 
   case 101: /* declaration: type_qualifier IDENTIFIER SEMICOLON  */
-#line 639 "glslang.y"
+#line 637 "glslang.y"
     {
         (yyval.interm.intermNode) = context->parseGlobalQualifierDeclaration(*(yyvsp[-2].interm.typeQualifierBuilder), (yylsp[-1]), ImmutableString((yyvsp[-1].lex).string), (yyvsp[-1].lex).symbol);
     }
-#line 3385 "glslang_tab_autogen.cpp"
+#line 3383 "glslang_tab_autogen.cpp"
     break;
 
   case 102: /* function_prototype: function_declarator RIGHT_PAREN  */
-#line 645 "glslang.y"
+#line 643 "glslang.y"
                                        {
         (yyval.interm).function = context->parseFunctionDeclarator((yylsp[0]), (yyvsp[-1].interm.function));
         context->exitFunctionDeclaration();
     }
-#line 3394 "glslang_tab_autogen.cpp"
+#line 3392 "glslang_tab_autogen.cpp"
     break;
 
   case 103: /* function_declarator: function_header  */
-#line 652 "glslang.y"
+#line 650 "glslang.y"
                       {
         (yyval.interm.function) = (yyvsp[0].interm.function);
     }
-#line 3402 "glslang_tab_autogen.cpp"
+#line 3400 "glslang_tab_autogen.cpp"
     break;
 
   case 104: /* function_declarator: function_header_with_parameters  */
-#line 655 "glslang.y"
+#line 653 "glslang.y"
                                       {
         (yyval.interm.function) = (yyvsp[0].interm.function);
     }
-#line 3410 "glslang_tab_autogen.cpp"
+#line 3408 "glslang_tab_autogen.cpp"
     break;
 
   case 105: /* function_header_with_parameters: function_header parameter_declaration  */
-#line 662 "glslang.y"
+#line 660 "glslang.y"
                                             {
         // Add the parameter
         (yyval.interm.function) = (yyvsp[-1].interm.function);
@@ -3424,11 +3422,11 @@ yyreduce:
             (yyvsp[-1].interm.function)->setHasVoidParameter();
         }
     }
-#line 3428 "glslang_tab_autogen.cpp"
+#line 3426 "glslang_tab_autogen.cpp"
     break;
 
   case 106: /* function_header_with_parameters: function_header_with_parameters COMMA parameter_declaration  */
-#line 675 "glslang.y"
+#line 673 "glslang.y"
                                                                   {
         (yyval.interm.function) = (yyvsp[-2].interm.function);
         // Only first parameter of one-parameter functions can be void
@@ -3449,206 +3447,206 @@ yyreduce:
             context->addParameter((yyvsp[-2].interm.function), &(yyvsp[0].interm.param));
         }
     }
-#line 3453 "glslang_tab_autogen.cpp"
+#line 3451 "glslang_tab_autogen.cpp"
     break;
 
   case 107: /* function_header: fully_specified_type IDENTIFIER LEFT_PAREN  */
-#line 698 "glslang.y"
+#line 696 "glslang.y"
                                                  {
         (yyval.interm.function) = context->parseFunctionHeader((yyvsp[-2].interm.type), ImmutableString((yyvsp[-1].lex).string), (yylsp[-1]));
 
         context->symbolTable.push();
         context->enterFunctionDeclaration();
     }
-#line 3464 "glslang_tab_autogen.cpp"
+#line 3462 "glslang_tab_autogen.cpp"
     break;
 
   case 108: /* parameter_declarator: type_specifier identifier  */
-#line 708 "glslang.y"
+#line 706 "glslang.y"
                                 {
         (yyval.interm.param) = context->parseParameterDeclarator((yyvsp[-1].interm.type), ImmutableString((yyvsp[0].lex).string), (yylsp[0]));
     }
-#line 3472 "glslang_tab_autogen.cpp"
+#line 3470 "glslang_tab_autogen.cpp"
     break;
 
   case 109: /* parameter_declarator: type_specifier identifier array_specifier  */
-#line 711 "glslang.y"
+#line 709 "glslang.y"
                                                 {
         (yyval.interm.param) = context->parseParameterArrayDeclarator((yyvsp[-2].interm.type), ImmutableString((yyvsp[-1].lex).string), (yylsp[-1]), (yyvsp[0].interm.arraySizes), (yylsp[0]));
     }
-#line 3480 "glslang_tab_autogen.cpp"
+#line 3478 "glslang_tab_autogen.cpp"
     break;
 
   case 110: /* parameter_declaration: type_qualifier parameter_declarator  */
-#line 717 "glslang.y"
+#line 715 "glslang.y"
                                           {
         (yyval.interm.param) = (yyvsp[0].interm.param);
         context->parseParameterQualifier((yylsp[0]), *(yyvsp[-1].interm.typeQualifierBuilder), (yyval.interm.param).type);
     }
-#line 3489 "glslang_tab_autogen.cpp"
+#line 3487 "glslang_tab_autogen.cpp"
     break;
 
   case 111: /* parameter_declaration: parameter_declarator  */
-#line 721 "glslang.y"
+#line 719 "glslang.y"
                            {
         (yyval.interm.param) = (yyvsp[0].interm.param);
         (yyval.interm.param).type.setQualifier(EvqParamIn);
     }
-#line 3498 "glslang_tab_autogen.cpp"
+#line 3496 "glslang_tab_autogen.cpp"
     break;
 
   case 112: /* parameter_declaration: type_qualifier parameter_type_specifier  */
-#line 725 "glslang.y"
+#line 723 "glslang.y"
                                               {
         (yyval.interm.param) = context->parseParameterDeclarator((yyvsp[0].interm.type), kEmptyImmutableString, (yylsp[0]));
         context->parseParameterQualifier((yylsp[0]), *(yyvsp[-1].interm.typeQualifierBuilder), (yyval.interm.param).type);
     }
-#line 3507 "glslang_tab_autogen.cpp"
+#line 3505 "glslang_tab_autogen.cpp"
     break;
 
   case 113: /* parameter_declaration: parameter_type_specifier  */
-#line 729 "glslang.y"
+#line 727 "glslang.y"
                                {
         (yyval.interm.param) = context->parseParameterDeclarator((yyvsp[0].interm.type), kEmptyImmutableString, (yylsp[0]));
         (yyval.interm.param).type.setQualifier(EvqParamIn);
     }
-#line 3516 "glslang_tab_autogen.cpp"
+#line 3514 "glslang_tab_autogen.cpp"
     break;
 
   case 114: /* parameter_type_specifier: type_specifier  */
-#line 736 "glslang.y"
+#line 734 "glslang.y"
                      {
         (yyval.interm.type) = (yyvsp[0].interm.type);
     }
-#line 3524 "glslang_tab_autogen.cpp"
+#line 3522 "glslang_tab_autogen.cpp"
     break;
 
   case 115: /* init_declarator_list: single_declaration  */
-#line 742 "glslang.y"
+#line 740 "glslang.y"
                          {
         (yyval.interm) = (yyvsp[0].interm);
     }
-#line 3532 "glslang_tab_autogen.cpp"
+#line 3530 "glslang_tab_autogen.cpp"
     break;
 
   case 116: /* init_declarator_list: init_declarator_list COMMA identifier  */
-#line 745 "glslang.y"
+#line 743 "glslang.y"
                                             {
         (yyval.interm) = (yyvsp[-2].interm);
         context->parseDeclarator((yyval.interm).type, (yylsp[0]), ImmutableString((yyvsp[0].lex).string), (yyval.interm).intermDeclaration);
     }
-#line 3541 "glslang_tab_autogen.cpp"
+#line 3539 "glslang_tab_autogen.cpp"
     break;
 
   case 117: /* init_declarator_list: init_declarator_list COMMA identifier array_specifier  */
-#line 749 "glslang.y"
+#line 747 "glslang.y"
                                                             {
         (yyval.interm) = (yyvsp[-3].interm);
         context->parseArrayDeclarator((yyval.interm).type, (yylsp[-1]), ImmutableString((yyvsp[-1].lex).string), (yylsp[0]), *((yyvsp[0].interm.arraySizes)), (yyval.interm).intermDeclaration);
     }
-#line 3550 "glslang_tab_autogen.cpp"
+#line 3548 "glslang_tab_autogen.cpp"
     break;
 
   case 118: /* init_declarator_list: init_declarator_list COMMA identifier array_specifier EQUAL initializer  */
-#line 753 "glslang.y"
+#line 751 "glslang.y"
                                                                               {
         ES3_OR_NEWER("=", (yylsp[-1]), "first-class arrays (array initializer)");
         (yyval.interm) = (yyvsp[-5].interm);
         context->parseArrayInitDeclarator((yyval.interm).type, (yylsp[-3]), ImmutableString((yyvsp[-3].lex).string), (yylsp[-2]), *((yyvsp[-2].interm.arraySizes)), (yylsp[-1]), (yyvsp[0].interm.intermTypedNode), (yyval.interm).intermDeclaration);
     }
-#line 3560 "glslang_tab_autogen.cpp"
+#line 3558 "glslang_tab_autogen.cpp"
     break;
 
   case 119: /* init_declarator_list: init_declarator_list COMMA identifier EQUAL initializer  */
-#line 758 "glslang.y"
+#line 756 "glslang.y"
                                                               {
         (yyval.interm) = (yyvsp[-4].interm);
         context->parseInitDeclarator((yyval.interm).type, (yylsp[-2]), ImmutableString((yyvsp[-2].lex).string), (yylsp[-1]), (yyvsp[0].interm.intermTypedNode), (yyval.interm).intermDeclaration);
     }
-#line 3569 "glslang_tab_autogen.cpp"
+#line 3567 "glslang_tab_autogen.cpp"
     break;
 
   case 120: /* single_declaration: fully_specified_type  */
-#line 765 "glslang.y"
+#line 763 "glslang.y"
                            {
         (yyval.interm).type = (yyvsp[0].interm.type);
         (yyval.interm).intermDeclaration = context->parseSingleDeclaration((yyval.interm).type, (yylsp[0]), kEmptyImmutableString);
     }
-#line 3578 "glslang_tab_autogen.cpp"
+#line 3576 "glslang_tab_autogen.cpp"
     break;
 
   case 121: /* single_declaration: fully_specified_type identifier  */
-#line 769 "glslang.y"
+#line 767 "glslang.y"
                                       {
         (yyval.interm).type = (yyvsp[-1].interm.type);
         (yyval.interm).intermDeclaration = context->parseSingleDeclaration((yyval.interm).type, (yylsp[0]), ImmutableString((yyvsp[0].lex).string));
     }
-#line 3587 "glslang_tab_autogen.cpp"
+#line 3585 "glslang_tab_autogen.cpp"
     break;
 
   case 122: /* single_declaration: fully_specified_type identifier array_specifier  */
-#line 773 "glslang.y"
+#line 771 "glslang.y"
                                                       {
         (yyval.interm).type = (yyvsp[-2].interm.type);
         (yyval.interm).intermDeclaration = context->parseSingleArrayDeclaration((yyval.interm).type, (yylsp[-1]), ImmutableString((yyvsp[-1].lex).string), (yylsp[0]), *((yyvsp[0].interm.arraySizes)));
     }
-#line 3596 "glslang_tab_autogen.cpp"
+#line 3594 "glslang_tab_autogen.cpp"
     break;
 
   case 123: /* single_declaration: fully_specified_type identifier array_specifier EQUAL initializer  */
-#line 777 "glslang.y"
+#line 775 "glslang.y"
                                                                         {
         ES3_OR_NEWER("[]", (yylsp[-2]), "first-class arrays (array initializer)");
         (yyval.interm).type = (yyvsp[-4].interm.type);
         (yyval.interm).intermDeclaration = context->parseSingleArrayInitDeclaration((yyval.interm).type, (yylsp[-3]), ImmutableString((yyvsp[-3].lex).string), (yylsp[-2]), *((yyvsp[-2].interm.arraySizes)), (yylsp[-1]), (yyvsp[0].interm.intermTypedNode));
     }
-#line 3606 "glslang_tab_autogen.cpp"
+#line 3604 "glslang_tab_autogen.cpp"
     break;
 
   case 124: /* single_declaration: fully_specified_type identifier EQUAL initializer  */
-#line 782 "glslang.y"
+#line 780 "glslang.y"
                                                         {
         (yyval.interm).type = (yyvsp[-3].interm.type);
         (yyval.interm).intermDeclaration = context->parseSingleInitDeclaration((yyval.interm).type, (yylsp[-2]), ImmutableString((yyvsp[-2].lex).string), (yylsp[-1]), (yyvsp[0].interm.intermTypedNode));
     }
-#line 3615 "glslang_tab_autogen.cpp"
+#line 3613 "glslang_tab_autogen.cpp"
     break;
 
   case 125: /* fully_specified_type: type_specifier  */
-#line 789 "glslang.y"
+#line 787 "glslang.y"
                      {
         context->addFullySpecifiedType(&(yyvsp[0].interm.type));
         (yyval.interm.type) = (yyvsp[0].interm.type);
     }
-#line 3624 "glslang_tab_autogen.cpp"
+#line 3622 "glslang_tab_autogen.cpp"
     break;
 
   case 126: /* fully_specified_type: type_qualifier type_specifier  */
-#line 793 "glslang.y"
+#line 791 "glslang.y"
                                     {
         (yyval.interm.type) = context->addFullySpecifiedType(*(yyvsp[-1].interm.typeQualifierBuilder), (yyvsp[0].interm.type));
     }
-#line 3632 "glslang_tab_autogen.cpp"
+#line 3630 "glslang_tab_autogen.cpp"
     break;
 
   case 127: /* interpolation_qualifier: SMOOTH  */
-#line 799 "glslang.y"
+#line 797 "glslang.y"
              {
         (yyval.interm.qualifier) = EvqSmooth;
     }
-#line 3640 "glslang_tab_autogen.cpp"
+#line 3638 "glslang_tab_autogen.cpp"
     break;
 
   case 128: /* interpolation_qualifier: FLAT  */
-#line 802 "glslang.y"
+#line 800 "glslang.y"
            {
         (yyval.interm.qualifier) = EvqFlat;
     }
-#line 3648 "glslang_tab_autogen.cpp"
+#line 3646 "glslang_tab_autogen.cpp"
     break;
 
   case 129: /* interpolation_qualifier: NOPERSPECTIVE  */
-#line 805 "glslang.y"
+#line 803 "glslang.y"
                     {
         if (!context->checkCanUseExtension((yylsp[0]), TExtension::NV_shader_noperspective_interpolation))
         {
@@ -3656,156 +3654,156 @@ yyreduce:
         }
         (yyval.interm.qualifier) = EvqNoPerspective;
     }
-#line 3660 "glslang_tab_autogen.cpp"
+#line 3658 "glslang_tab_autogen.cpp"
     break;
 
   case 130: /* type_qualifier: single_type_qualifier  */
-#line 815 "glslang.y"
+#line 813 "glslang.y"
                             {
         (yyval.interm.typeQualifierBuilder) = context->createTypeQualifierBuilder((yylsp[0]));
         (yyval.interm.typeQualifierBuilder)->appendQualifier((yyvsp[0].interm.qualifierWrapper));
     }
-#line 3669 "glslang_tab_autogen.cpp"
+#line 3667 "glslang_tab_autogen.cpp"
     break;
 
   case 131: /* type_qualifier: type_qualifier single_type_qualifier  */
-#line 819 "glslang.y"
+#line 817 "glslang.y"
                                            {
         (yyval.interm.typeQualifierBuilder) = (yyvsp[-1].interm.typeQualifierBuilder);
         (yyval.interm.typeQualifierBuilder)->appendQualifier((yyvsp[0].interm.qualifierWrapper));
     }
-#line 3678 "glslang_tab_autogen.cpp"
+#line 3676 "glslang_tab_autogen.cpp"
     break;
 
   case 132: /* invariant_qualifier: INVARIANT  */
-#line 826 "glslang.y"
+#line 824 "glslang.y"
                 {
         // empty
     }
-#line 3686 "glslang_tab_autogen.cpp"
+#line 3684 "glslang_tab_autogen.cpp"
     break;
 
   case 133: /* precise_qualifier: PRECISE  */
-#line 832 "glslang.y"
+#line 830 "glslang.y"
               {
         context->markShaderHasPrecise();
     }
-#line 3694 "glslang_tab_autogen.cpp"
+#line 3692 "glslang_tab_autogen.cpp"
     break;
 
   case 134: /* single_type_qualifier: storage_qualifier  */
-#line 838 "glslang.y"
+#line 836 "glslang.y"
                         {
         context->checkLocalVariableConstStorageQualifier(*(yyvsp[0].interm.qualifierWrapper));
         (yyval.interm.qualifierWrapper) = (yyvsp[0].interm.qualifierWrapper);
     }
-#line 3703 "glslang_tab_autogen.cpp"
+#line 3701 "glslang_tab_autogen.cpp"
     break;
 
   case 135: /* single_type_qualifier: layout_qualifier  */
-#line 842 "glslang.y"
+#line 840 "glslang.y"
                        {
         context->checkIsAtGlobalLevel((yylsp[0]), "layout");
         (yyval.interm.qualifierWrapper) = new TLayoutQualifierWrapper((yyvsp[0].interm.layoutQualifier), (yylsp[0]));
     }
-#line 3712 "glslang_tab_autogen.cpp"
+#line 3710 "glslang_tab_autogen.cpp"
     break;
 
   case 136: /* single_type_qualifier: precision_qualifier  */
-#line 846 "glslang.y"
+#line 844 "glslang.y"
                           {
         (yyval.interm.qualifierWrapper) = new TPrecisionQualifierWrapper((yyvsp[0].interm.precision), (yylsp[0]));
     }
-#line 3720 "glslang_tab_autogen.cpp"
+#line 3718 "glslang_tab_autogen.cpp"
     break;
 
   case 137: /* single_type_qualifier: interpolation_qualifier  */
-#line 849 "glslang.y"
+#line 847 "glslang.y"
                               {
         (yyval.interm.qualifierWrapper) = new TInterpolationQualifierWrapper((yyvsp[0].interm.qualifier), (yylsp[0]));
     }
-#line 3728 "glslang_tab_autogen.cpp"
+#line 3726 "glslang_tab_autogen.cpp"
     break;
 
   case 138: /* single_type_qualifier: invariant_qualifier  */
-#line 852 "glslang.y"
+#line 850 "glslang.y"
                           {
         context->checkIsAtGlobalLevel((yylsp[0]), "invariant");
         (yyval.interm.qualifierWrapper) = new TInvariantQualifierWrapper((yylsp[0]));
     }
-#line 3737 "glslang_tab_autogen.cpp"
+#line 3735 "glslang_tab_autogen.cpp"
     break;
 
   case 139: /* single_type_qualifier: precise_qualifier  */
-#line 856 "glslang.y"
+#line 854 "glslang.y"
                         {
         (yyval.interm.qualifierWrapper) = new TPreciseQualifierWrapper((yylsp[0]));
     }
-#line 3745 "glslang_tab_autogen.cpp"
+#line 3743 "glslang_tab_autogen.cpp"
     break;
 
   case 140: /* storage_qualifier: ATTRIBUTE  */
-#line 864 "glslang.y"
+#line 862 "glslang.y"
               {
         VERTEX_ONLY("attribute", (yylsp[0]));
         ES2_ONLY("attribute", (yylsp[0]));
         (yyval.interm.qualifierWrapper) = context->parseGlobalStorageQualifier(EvqAttribute, (yylsp[0]));
     }
-#line 3755 "glslang_tab_autogen.cpp"
+#line 3753 "glslang_tab_autogen.cpp"
     break;
 
   case 141: /* storage_qualifier: VARYING  */
-#line 869 "glslang.y"
+#line 867 "glslang.y"
               {
         ES2_ONLY("varying", (yylsp[0]));
         (yyval.interm.qualifierWrapper) = context->parseVaryingQualifier((yylsp[0]));
     }
-#line 3764 "glslang_tab_autogen.cpp"
+#line 3762 "glslang_tab_autogen.cpp"
     break;
 
   case 142: /* storage_qualifier: CONST_QUAL  */
-#line 873 "glslang.y"
+#line 871 "glslang.y"
                  {
         (yyval.interm.qualifierWrapper) = new TStorageQualifierWrapper(EvqConst, (yylsp[0]));
     }
-#line 3772 "glslang_tab_autogen.cpp"
+#line 3770 "glslang_tab_autogen.cpp"
     break;
 
   case 143: /* storage_qualifier: IN_QUAL  */
-#line 876 "glslang.y"
+#line 874 "glslang.y"
               {
         (yyval.interm.qualifierWrapper) = context->parseInQualifier((yylsp[0]));
     }
-#line 3780 "glslang_tab_autogen.cpp"
+#line 3778 "glslang_tab_autogen.cpp"
     break;
 
   case 144: /* storage_qualifier: OUT_QUAL  */
-#line 879 "glslang.y"
+#line 877 "glslang.y"
                {
         (yyval.interm.qualifierWrapper) = context->parseOutQualifier((yylsp[0]));
     }
-#line 3788 "glslang_tab_autogen.cpp"
+#line 3786 "glslang_tab_autogen.cpp"
     break;
 
   case 145: /* storage_qualifier: INOUT_QUAL  */
-#line 882 "glslang.y"
+#line 880 "glslang.y"
                  {
         (yyval.interm.qualifierWrapper) = context->parseInOutQualifier((yylsp[0]));
     }
-#line 3796 "glslang_tab_autogen.cpp"
+#line 3794 "glslang_tab_autogen.cpp"
     break;
 
   case 146: /* storage_qualifier: CENTROID  */
-#line 885 "glslang.y"
+#line 883 "glslang.y"
                {
         ES3_OR_NEWER("centroid", (yylsp[0]), "storage qualifier");
         (yyval.interm.qualifierWrapper) = new TStorageQualifierWrapper(EvqCentroid, (yylsp[0]));
     }
-#line 3805 "glslang_tab_autogen.cpp"
+#line 3803 "glslang_tab_autogen.cpp"
     break;
 
   case 147: /* storage_qualifier: PATCH  */
-#line 889 "glslang.y"
+#line 887 "glslang.y"
             {
         constexpr std::array<TExtension, 2u> extensions{ { TExtension::OES_tessellation_shader,
                                                            TExtension::EXT_tessellation_shader } };
@@ -3816,203 +3814,203 @@ yyreduce:
         }
         (yyval.interm.qualifierWrapper) = new TStorageQualifierWrapper(EvqPatch, (yylsp[0]));
     }
-#line 3820 "glslang_tab_autogen.cpp"
+#line 3818 "glslang_tab_autogen.cpp"
     break;
 
   case 148: /* storage_qualifier: UNIFORM  */
-#line 899 "glslang.y"
+#line 897 "glslang.y"
               {
         (yyval.interm.qualifierWrapper) = context->parseGlobalStorageQualifier(EvqUniform, (yylsp[0]));
     }
-#line 3828 "glslang_tab_autogen.cpp"
+#line 3826 "glslang_tab_autogen.cpp"
     break;
 
   case 149: /* storage_qualifier: BUFFER  */
-#line 902 "glslang.y"
+#line 900 "glslang.y"
              {
         ES3_1_OR_NEWER("buffer", (yylsp[0]), "storage qualifier");
         (yyval.interm.qualifierWrapper) = context->parseGlobalStorageQualifier(EvqBuffer, (yylsp[0]));
     }
-#line 3837 "glslang_tab_autogen.cpp"
+#line 3835 "glslang_tab_autogen.cpp"
     break;
 
   case 150: /* storage_qualifier: READONLY  */
-#line 906 "glslang.y"
+#line 904 "glslang.y"
                {
         (yyval.interm.qualifierWrapper) = new TMemoryQualifierWrapper(EvqReadOnly, (yylsp[0]));
     }
-#line 3845 "glslang_tab_autogen.cpp"
+#line 3843 "glslang_tab_autogen.cpp"
     break;
 
   case 151: /* storage_qualifier: WRITEONLY  */
-#line 909 "glslang.y"
+#line 907 "glslang.y"
                 {
         (yyval.interm.qualifierWrapper) = new TMemoryQualifierWrapper(EvqWriteOnly, (yylsp[0]));
     }
-#line 3853 "glslang_tab_autogen.cpp"
+#line 3851 "glslang_tab_autogen.cpp"
     break;
 
   case 152: /* storage_qualifier: COHERENT  */
-#line 912 "glslang.y"
+#line 910 "glslang.y"
                {
         (yyval.interm.qualifierWrapper) = new TMemoryQualifierWrapper(EvqCoherent, (yylsp[0]));
     }
-#line 3861 "glslang_tab_autogen.cpp"
+#line 3859 "glslang_tab_autogen.cpp"
     break;
 
   case 153: /* storage_qualifier: RESTRICT  */
-#line 915 "glslang.y"
+#line 913 "glslang.y"
                {
         (yyval.interm.qualifierWrapper) = new TMemoryQualifierWrapper(EvqRestrict, (yylsp[0]));
     }
-#line 3869 "glslang_tab_autogen.cpp"
+#line 3867 "glslang_tab_autogen.cpp"
     break;
 
   case 154: /* storage_qualifier: VOLATILE  */
-#line 918 "glslang.y"
+#line 916 "glslang.y"
                {
         (yyval.interm.qualifierWrapper) = new TMemoryQualifierWrapper(EvqVolatile, (yylsp[0]));
     }
-#line 3877 "glslang_tab_autogen.cpp"
+#line 3875 "glslang_tab_autogen.cpp"
     break;
 
   case 155: /* storage_qualifier: SHARED  */
-#line 921 "glslang.y"
+#line 919 "glslang.y"
              {
         COMPUTE_ONLY("shared", (yylsp[0]));
         (yyval.interm.qualifierWrapper) = context->parseGlobalStorageQualifier(EvqShared, (yylsp[0]));
     }
-#line 3886 "glslang_tab_autogen.cpp"
+#line 3884 "glslang_tab_autogen.cpp"
     break;
 
   case 156: /* storage_qualifier: SAMPLE  */
-#line 925 "glslang.y"
+#line 923 "glslang.y"
              {
         ES3_OR_NEWER("sample", (yylsp[0]), "storage qualifier");
         (yyval.interm.qualifierWrapper) = new TStorageQualifierWrapper(EvqSample, (yylsp[0]));
     }
-#line 3895 "glslang_tab_autogen.cpp"
+#line 3893 "glslang_tab_autogen.cpp"
     break;
 
   case 157: /* type_specifier: type_specifier_no_prec  */
-#line 932 "glslang.y"
+#line 930 "glslang.y"
                              {
         (yyval.interm.type) = (yyvsp[0].interm.type);
         (yyval.interm.type).precision = context->symbolTable.getDefaultPrecision((yyvsp[0].interm.type).getBasicType());
     }
-#line 3904 "glslang_tab_autogen.cpp"
+#line 3902 "glslang_tab_autogen.cpp"
     break;
 
   case 158: /* precision_qualifier: HIGH_PRECISION  */
-#line 939 "glslang.y"
+#line 937 "glslang.y"
                      {
         (yyval.interm.precision) = EbpHigh;
     }
-#line 3912 "glslang_tab_autogen.cpp"
+#line 3910 "glslang_tab_autogen.cpp"
     break;
 
   case 159: /* precision_qualifier: MEDIUM_PRECISION  */
-#line 942 "glslang.y"
+#line 940 "glslang.y"
                        {
         (yyval.interm.precision) = EbpMedium;
     }
-#line 3920 "glslang_tab_autogen.cpp"
+#line 3918 "glslang_tab_autogen.cpp"
     break;
 
   case 160: /* precision_qualifier: LOW_PRECISION  */
-#line 945 "glslang.y"
+#line 943 "glslang.y"
                      {
         (yyval.interm.precision) = EbpLow;
     }
-#line 3928 "glslang_tab_autogen.cpp"
+#line 3926 "glslang_tab_autogen.cpp"
     break;
 
   case 161: /* layout_qualifier: LAYOUT LEFT_PAREN layout_qualifier_id_list RIGHT_PAREN  */
-#line 951 "glslang.y"
+#line 949 "glslang.y"
                                                              {
         context->checkCanUseLayoutQualifier((yylsp[-3]));
         (yyval.interm.layoutQualifier) = (yyvsp[-1].interm.layoutQualifier);
     }
-#line 3937 "glslang_tab_autogen.cpp"
+#line 3935 "glslang_tab_autogen.cpp"
     break;
 
   case 162: /* layout_qualifier_id_list: layout_qualifier_id  */
-#line 958 "glslang.y"
+#line 956 "glslang.y"
                           {
         (yyval.interm.layoutQualifier) = (yyvsp[0].interm.layoutQualifier);
     }
-#line 3945 "glslang_tab_autogen.cpp"
+#line 3943 "glslang_tab_autogen.cpp"
     break;
 
   case 163: /* layout_qualifier_id_list: layout_qualifier_id_list COMMA layout_qualifier_id  */
-#line 961 "glslang.y"
+#line 959 "glslang.y"
                                                          {
         (yyval.interm.layoutQualifier) = context->joinLayoutQualifiers((yyvsp[-2].interm.layoutQualifier), (yyvsp[0].interm.layoutQualifier), (yylsp[0]));
     }
-#line 3953 "glslang_tab_autogen.cpp"
+#line 3951 "glslang_tab_autogen.cpp"
     break;
 
   case 164: /* layout_qualifier_id: IDENTIFIER  */
-#line 967 "glslang.y"
+#line 965 "glslang.y"
                  {
         (yyval.interm.layoutQualifier) = context->parseLayoutQualifier(ImmutableString((yyvsp[0].lex).string), (yylsp[0]));
     }
-#line 3961 "glslang_tab_autogen.cpp"
+#line 3959 "glslang_tab_autogen.cpp"
     break;
 
   case 165: /* layout_qualifier_id: IDENTIFIER EQUAL INTCONSTANT  */
-#line 970 "glslang.y"
+#line 968 "glslang.y"
                                    {
         (yyval.interm.layoutQualifier) = context->parseLayoutQualifier(ImmutableString((yyvsp[-2].lex).string), (yylsp[-2]), (yyvsp[0].lex).i, (yylsp[0]));
     }
-#line 3969 "glslang_tab_autogen.cpp"
+#line 3967 "glslang_tab_autogen.cpp"
     break;
 
   case 166: /* layout_qualifier_id: IDENTIFIER EQUAL UINTCONSTANT  */
-#line 973 "glslang.y"
+#line 971 "glslang.y"
                                     {
         (yyval.interm.layoutQualifier) = context->parseLayoutQualifier(ImmutableString((yyvsp[-2].lex).string), (yylsp[-2]), (yyvsp[0].lex).i, (yylsp[0]));
     }
-#line 3977 "glslang_tab_autogen.cpp"
+#line 3975 "glslang_tab_autogen.cpp"
     break;
 
   case 167: /* layout_qualifier_id: SHARED  */
-#line 976 "glslang.y"
+#line 974 "glslang.y"
              {
         (yyval.interm.layoutQualifier) = context->parseLayoutQualifier(ImmutableString("shared"), (yylsp[0]));
     }
-#line 3985 "glslang_tab_autogen.cpp"
+#line 3983 "glslang_tab_autogen.cpp"
     break;
 
   case 168: /* type_specifier_no_prec: type_specifier_nonarray  */
-#line 982 "glslang.y"
+#line 980 "glslang.y"
                               {
         (yyval.interm.type).initialize((yyvsp[0].interm.typeSpecifierNonArray), (context->symbolTable.atGlobalLevel() ? EvqGlobal : EvqTemporary));
     }
-#line 3993 "glslang_tab_autogen.cpp"
+#line 3991 "glslang_tab_autogen.cpp"
     break;
 
   case 169: /* type_specifier_no_prec: type_specifier_nonarray array_specifier  */
-#line 985 "glslang.y"
+#line 983 "glslang.y"
                                               {
         (yyval.interm.type).initialize((yyvsp[-1].interm.typeSpecifierNonArray), (context->symbolTable.atGlobalLevel() ? EvqGlobal : EvqTemporary));
         (yyval.interm.type).setArraySizes((yyvsp[0].interm.arraySizes));
     }
-#line 4002 "glslang_tab_autogen.cpp"
+#line 4000 "glslang_tab_autogen.cpp"
     break;
 
   case 170: /* array_specifier: LEFT_BRACKET RIGHT_BRACKET  */
-#line 992 "glslang.y"
+#line 990 "glslang.y"
                                  {
         ES3_OR_NEWER("[]", (yylsp[-1]), "implicitly sized array");
         (yyval.interm.arraySizes) = new TVector<unsigned int>();
         (yyval.interm.arraySizes)->push_back(0u);
     }
-#line 4012 "glslang_tab_autogen.cpp"
+#line 4010 "glslang_tab_autogen.cpp"
     break;
 
   case 171: /* array_specifier: LEFT_BRACKET constant_expression RIGHT_BRACKET  */
-#line 997 "glslang.y"
+#line 995 "glslang.y"
                                                      {
         (yyval.interm.arraySizes) = new TVector<unsigned int>();
         unsigned int size = context->checkIsValidArraySize((yylsp[-2]), (yyvsp[-1].interm.intermTypedNode));
@@ -4020,11 +4018,11 @@ yyreduce:
         // This ensures useless error messages regarding a variable's non-arrayness won't follow.
         (yyval.interm.arraySizes)->push_back(size);
     }
-#line 4024 "glslang_tab_autogen.cpp"
+#line 4022 "glslang_tab_autogen.cpp"
     break;
 
   case 172: /* array_specifier: array_specifier LEFT_BRACKET RIGHT_BRACKET  */
-#line 1004 "glslang.y"
+#line 1002 "glslang.y"
                                                  {
         ES3_1_OR_NEWER("[]", (yylsp[-1]), "arrays of arrays");
         (yyval.interm.arraySizes) = (yyvsp[-2].interm.arraySizes);
@@ -4033,11 +4031,11 @@ yyreduce:
             YYABORT;
         }
     }
-#line 4037 "glslang_tab_autogen.cpp"
+#line 4035 "glslang_tab_autogen.cpp"
     break;
 
   case 173: /* array_specifier: array_specifier LEFT_BRACKET constant_expression RIGHT_BRACKET  */
-#line 1012 "glslang.y"
+#line 1010 "glslang.y"
                                                                      {
         ES3_1_OR_NEWER("[]", (yylsp[-2]), "arrays of arrays");
         (yyval.interm.arraySizes) = (yyvsp[-3].interm.arraySizes);
@@ -4049,240 +4047,240 @@ yyreduce:
             YYABORT;
         }
     }
-#line 4053 "glslang_tab_autogen.cpp"
+#line 4051 "glslang_tab_autogen.cpp"
     break;
 
   case 174: /* type_specifier_nonarray: VOID_TYPE  */
-#line 1026 "glslang.y"
+#line 1024 "glslang.y"
                 {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtVoid, (yylsp[0]));
     }
-#line 4061 "glslang_tab_autogen.cpp"
+#line 4059 "glslang_tab_autogen.cpp"
     break;
 
   case 175: /* type_specifier_nonarray: FLOAT_TYPE  */
-#line 1029 "glslang.y"
+#line 1027 "glslang.y"
                  {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtFloat, (yylsp[0]));
     }
-#line 4069 "glslang_tab_autogen.cpp"
+#line 4067 "glslang_tab_autogen.cpp"
     break;
 
   case 176: /* type_specifier_nonarray: INT_TYPE  */
-#line 1032 "glslang.y"
+#line 1030 "glslang.y"
                {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtInt, (yylsp[0]));
     }
-#line 4077 "glslang_tab_autogen.cpp"
+#line 4075 "glslang_tab_autogen.cpp"
     break;
 
   case 177: /* type_specifier_nonarray: UINT_TYPE  */
-#line 1035 "glslang.y"
+#line 1033 "glslang.y"
                 {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtUInt, (yylsp[0]));
     }
-#line 4085 "glslang_tab_autogen.cpp"
+#line 4083 "glslang_tab_autogen.cpp"
     break;
 
   case 178: /* type_specifier_nonarray: BOOL_TYPE  */
-#line 1038 "glslang.y"
+#line 1036 "glslang.y"
                 {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtBool, (yylsp[0]));
     }
-#line 4093 "glslang_tab_autogen.cpp"
+#line 4091 "glslang_tab_autogen.cpp"
     break;
 
   case 179: /* type_specifier_nonarray: VEC2  */
-#line 1041 "glslang.y"
+#line 1039 "glslang.y"
            {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtFloat, (yylsp[0]));
         (yyval.interm.typeSpecifierNonArray).setAggregate(2);
     }
-#line 4102 "glslang_tab_autogen.cpp"
+#line 4100 "glslang_tab_autogen.cpp"
     break;
 
   case 180: /* type_specifier_nonarray: VEC3  */
-#line 1045 "glslang.y"
+#line 1043 "glslang.y"
            {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtFloat, (yylsp[0]));
         (yyval.interm.typeSpecifierNonArray).setAggregate(3);
     }
-#line 4111 "glslang_tab_autogen.cpp"
+#line 4109 "glslang_tab_autogen.cpp"
     break;
 
   case 181: /* type_specifier_nonarray: VEC4  */
-#line 1049 "glslang.y"
+#line 1047 "glslang.y"
            {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtFloat, (yylsp[0]));
         (yyval.interm.typeSpecifierNonArray).setAggregate(4);
     }
-#line 4120 "glslang_tab_autogen.cpp"
+#line 4118 "glslang_tab_autogen.cpp"
     break;
 
   case 182: /* type_specifier_nonarray: BVEC2  */
-#line 1053 "glslang.y"
+#line 1051 "glslang.y"
             {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtBool, (yylsp[0]));
         (yyval.interm.typeSpecifierNonArray).setAggregate(2);
     }
-#line 4129 "glslang_tab_autogen.cpp"
+#line 4127 "glslang_tab_autogen.cpp"
     break;
 
   case 183: /* type_specifier_nonarray: BVEC3  */
-#line 1057 "glslang.y"
+#line 1055 "glslang.y"
             {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtBool, (yylsp[0]));
         (yyval.interm.typeSpecifierNonArray).setAggregate(3);
     }
-#line 4138 "glslang_tab_autogen.cpp"
+#line 4136 "glslang_tab_autogen.cpp"
     break;
 
   case 184: /* type_specifier_nonarray: BVEC4  */
-#line 1061 "glslang.y"
+#line 1059 "glslang.y"
             {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtBool, (yylsp[0]));
         (yyval.interm.typeSpecifierNonArray).setAggregate(4);
     }
-#line 4147 "glslang_tab_autogen.cpp"
+#line 4145 "glslang_tab_autogen.cpp"
     break;
 
   case 185: /* type_specifier_nonarray: IVEC2  */
-#line 1065 "glslang.y"
+#line 1063 "glslang.y"
             {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtInt, (yylsp[0]));
         (yyval.interm.typeSpecifierNonArray).setAggregate(2);
     }
-#line 4156 "glslang_tab_autogen.cpp"
+#line 4154 "glslang_tab_autogen.cpp"
     break;
 
   case 186: /* type_specifier_nonarray: IVEC3  */
-#line 1069 "glslang.y"
+#line 1067 "glslang.y"
             {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtInt, (yylsp[0]));
         (yyval.interm.typeSpecifierNonArray).setAggregate(3);
     }
-#line 4165 "glslang_tab_autogen.cpp"
+#line 4163 "glslang_tab_autogen.cpp"
     break;
 
   case 187: /* type_specifier_nonarray: IVEC4  */
-#line 1073 "glslang.y"
+#line 1071 "glslang.y"
             {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtInt, (yylsp[0]));
         (yyval.interm.typeSpecifierNonArray).setAggregate(4);
     }
-#line 4174 "glslang_tab_autogen.cpp"
+#line 4172 "glslang_tab_autogen.cpp"
     break;
 
   case 188: /* type_specifier_nonarray: UVEC2  */
-#line 1077 "glslang.y"
+#line 1075 "glslang.y"
             {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtUInt, (yylsp[0]));
         (yyval.interm.typeSpecifierNonArray).setAggregate(2);
     }
-#line 4183 "glslang_tab_autogen.cpp"
+#line 4181 "glslang_tab_autogen.cpp"
     break;
 
   case 189: /* type_specifier_nonarray: UVEC3  */
-#line 1081 "glslang.y"
+#line 1079 "glslang.y"
             {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtUInt, (yylsp[0]));
         (yyval.interm.typeSpecifierNonArray).setAggregate(3);
     }
-#line 4192 "glslang_tab_autogen.cpp"
+#line 4190 "glslang_tab_autogen.cpp"
     break;
 
   case 190: /* type_specifier_nonarray: UVEC4  */
-#line 1085 "glslang.y"
+#line 1083 "glslang.y"
             {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtUInt, (yylsp[0]));
         (yyval.interm.typeSpecifierNonArray).setAggregate(4);
     }
-#line 4201 "glslang_tab_autogen.cpp"
+#line 4199 "glslang_tab_autogen.cpp"
     break;
 
   case 191: /* type_specifier_nonarray: MATRIX2  */
-#line 1089 "glslang.y"
+#line 1087 "glslang.y"
               {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtFloat, (yylsp[0]));
         (yyval.interm.typeSpecifierNonArray).setMatrix(2, 2);
     }
-#line 4210 "glslang_tab_autogen.cpp"
+#line 4208 "glslang_tab_autogen.cpp"
     break;
 
   case 192: /* type_specifier_nonarray: MATRIX3  */
-#line 1093 "glslang.y"
+#line 1091 "glslang.y"
               {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtFloat, (yylsp[0]));
         (yyval.interm.typeSpecifierNonArray).setMatrix(3, 3);
     }
-#line 4219 "glslang_tab_autogen.cpp"
+#line 4217 "glslang_tab_autogen.cpp"
     break;
 
   case 193: /* type_specifier_nonarray: MATRIX4  */
-#line 1097 "glslang.y"
+#line 1095 "glslang.y"
               {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtFloat, (yylsp[0]));
         (yyval.interm.typeSpecifierNonArray).setMatrix(4, 4);
     }
-#line 4228 "glslang_tab_autogen.cpp"
+#line 4226 "glslang_tab_autogen.cpp"
     break;
 
   case 194: /* type_specifier_nonarray: MATRIX2x3  */
-#line 1101 "glslang.y"
+#line 1099 "glslang.y"
                 {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtFloat, (yylsp[0]));
         (yyval.interm.typeSpecifierNonArray).setMatrix(2, 3);
     }
-#line 4237 "glslang_tab_autogen.cpp"
+#line 4235 "glslang_tab_autogen.cpp"
     break;
 
   case 195: /* type_specifier_nonarray: MATRIX3x2  */
-#line 1105 "glslang.y"
+#line 1103 "glslang.y"
                 {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtFloat, (yylsp[0]));
         (yyval.interm.typeSpecifierNonArray).setMatrix(3, 2);
     }
-#line 4246 "glslang_tab_autogen.cpp"
+#line 4244 "glslang_tab_autogen.cpp"
     break;
 
   case 196: /* type_specifier_nonarray: MATRIX2x4  */
-#line 1109 "glslang.y"
+#line 1107 "glslang.y"
                 {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtFloat, (yylsp[0]));
         (yyval.interm.typeSpecifierNonArray).setMatrix(2, 4);
     }
-#line 4255 "glslang_tab_autogen.cpp"
+#line 4253 "glslang_tab_autogen.cpp"
     break;
 
   case 197: /* type_specifier_nonarray: MATRIX4x2  */
-#line 1113 "glslang.y"
+#line 1111 "glslang.y"
                 {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtFloat, (yylsp[0]));
         (yyval.interm.typeSpecifierNonArray).setMatrix(4, 2);
     }
-#line 4264 "glslang_tab_autogen.cpp"
+#line 4262 "glslang_tab_autogen.cpp"
     break;
 
   case 198: /* type_specifier_nonarray: MATRIX3x4  */
-#line 1117 "glslang.y"
+#line 1115 "glslang.y"
                 {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtFloat, (yylsp[0]));
         (yyval.interm.typeSpecifierNonArray).setMatrix(3, 4);
     }
-#line 4273 "glslang_tab_autogen.cpp"
+#line 4271 "glslang_tab_autogen.cpp"
     break;
 
   case 199: /* type_specifier_nonarray: MATRIX4x3  */
-#line 1121 "glslang.y"
+#line 1119 "glslang.y"
                 {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtFloat, (yylsp[0]));
         (yyval.interm.typeSpecifierNonArray).setMatrix(4, 3);
     }
-#line 4282 "glslang_tab_autogen.cpp"
+#line 4280 "glslang_tab_autogen.cpp"
     break;
 
   case 200: /* type_specifier_nonarray: YUVCSCSTANDARDEXT  */
-#line 1125 "glslang.y"
+#line 1123 "glslang.y"
                         {
         if (!context->checkCanUseExtension((yylsp[0]), TExtension::EXT_YUV_target))
         {
@@ -4290,59 +4288,59 @@ yyreduce:
         }
         (yyval.interm.typeSpecifierNonArray).initialize(EbtYuvCscStandardEXT, (yylsp[0]));
     }
-#line 4294 "glslang_tab_autogen.cpp"
+#line 4292 "glslang_tab_autogen.cpp"
     break;
 
   case 201: /* type_specifier_nonarray: SAMPLER2D  */
-#line 1132 "glslang.y"
+#line 1130 "glslang.y"
                 {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtSampler2D, (yylsp[0]));
     }
-#line 4302 "glslang_tab_autogen.cpp"
+#line 4300 "glslang_tab_autogen.cpp"
     break;
 
   case 202: /* type_specifier_nonarray: SAMPLER3D  */
-#line 1135 "glslang.y"
+#line 1133 "glslang.y"
                 {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtSampler3D, (yylsp[0]));
     }
-#line 4310 "glslang_tab_autogen.cpp"
+#line 4308 "glslang_tab_autogen.cpp"
     break;
 
   case 203: /* type_specifier_nonarray: SAMPLERCUBE  */
-#line 1138 "glslang.y"
+#line 1136 "glslang.y"
                   {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtSamplerCube, (yylsp[0]));
     }
-#line 4318 "glslang_tab_autogen.cpp"
+#line 4316 "glslang_tab_autogen.cpp"
     break;
 
   case 204: /* type_specifier_nonarray: SAMPLER2DARRAY  */
-#line 1141 "glslang.y"
+#line 1139 "glslang.y"
                      {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtSampler2DArray, (yylsp[0]));
     }
-#line 4326 "glslang_tab_autogen.cpp"
+#line 4324 "glslang_tab_autogen.cpp"
     break;
 
   case 205: /* type_specifier_nonarray: SAMPLER2DMS  */
-#line 1144 "glslang.y"
+#line 1142 "glslang.y"
                   {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtSampler2DMS, (yylsp[0]));
     }
-#line 4334 "glslang_tab_autogen.cpp"
+#line 4332 "glslang_tab_autogen.cpp"
     break;
 
   case 206: /* type_specifier_nonarray: SAMPLER2DMSARRAY  */
-#line 1147 "glslang.y"
+#line 1145 "glslang.y"
                        {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtSampler2DMSArray, (yylsp[0]));
     }
-#line 4342 "glslang_tab_autogen.cpp"
+#line 4340 "glslang_tab_autogen.cpp"
     break;
 
   case 207: /* type_specifier_nonarray: SAMPLERCUBEARRAYOES  */
-#line 1150 "glslang.y"
+#line 1148 "glslang.y"
                           {
         if (context->getShaderVersion() < 320
         && !context->checkCanUseExtension((yylsp[0]), TExtension::OES_texture_cube_map_array))
@@ -4351,11 +4349,11 @@ yyreduce:
         }
         (yyval.interm.typeSpecifierNonArray).initialize(EbtSamplerCubeArray, (yylsp[0]));
     }
-#line 4355 "glslang_tab_autogen.cpp"
+#line 4353 "glslang_tab_autogen.cpp"
     break;
 
   case 208: /* type_specifier_nonarray: SAMPLERCUBEARRAYEXT  */
-#line 1158 "glslang.y"
+#line 1156 "glslang.y"
                           {
         if (context->getShaderVersion() < 320
         && !context->checkCanUseExtension((yylsp[0]), TExtension::EXT_texture_cube_map_array))
@@ -4364,11 +4362,11 @@ yyreduce:
         }
         (yyval.interm.typeSpecifierNonArray).initialize(EbtSamplerCubeArray, (yylsp[0]));
     }
-#line 4368 "glslang_tab_autogen.cpp"
+#line 4366 "glslang_tab_autogen.cpp"
     break;
 
   case 209: /* type_specifier_nonarray: SAMPLERBUFFER  */
-#line 1166 "glslang.y"
+#line 1164 "glslang.y"
                     {
         constexpr std::array<TExtension, 2u> extensions{ { TExtension::OES_texture_buffer,
                                                            TExtension::EXT_texture_buffer } };
@@ -4379,59 +4377,59 @@ yyreduce:
         }
         (yyval.interm.typeSpecifierNonArray).initialize(EbtSamplerBuffer, (yylsp[0]));
     }
-#line 4383 "glslang_tab_autogen.cpp"
+#line 4381 "glslang_tab_autogen.cpp"
     break;
 
   case 210: /* type_specifier_nonarray: ISAMPLER2D  */
-#line 1176 "glslang.y"
+#line 1174 "glslang.y"
                  {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtISampler2D, (yylsp[0]));
     }
-#line 4391 "glslang_tab_autogen.cpp"
+#line 4389 "glslang_tab_autogen.cpp"
     break;
 
   case 211: /* type_specifier_nonarray: ISAMPLER3D  */
-#line 1179 "glslang.y"
+#line 1177 "glslang.y"
                  {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtISampler3D, (yylsp[0]));
     }
-#line 4399 "glslang_tab_autogen.cpp"
+#line 4397 "glslang_tab_autogen.cpp"
     break;
 
   case 212: /* type_specifier_nonarray: ISAMPLERCUBE  */
-#line 1182 "glslang.y"
+#line 1180 "glslang.y"
                    {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtISamplerCube, (yylsp[0]));
     }
-#line 4407 "glslang_tab_autogen.cpp"
+#line 4405 "glslang_tab_autogen.cpp"
     break;
 
   case 213: /* type_specifier_nonarray: ISAMPLER2DARRAY  */
-#line 1185 "glslang.y"
+#line 1183 "glslang.y"
                       {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtISampler2DArray, (yylsp[0]));
     }
-#line 4415 "glslang_tab_autogen.cpp"
+#line 4413 "glslang_tab_autogen.cpp"
     break;
 
   case 214: /* type_specifier_nonarray: ISAMPLER2DMS  */
-#line 1188 "glslang.y"
+#line 1186 "glslang.y"
                    {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtISampler2DMS, (yylsp[0]));
     }
-#line 4423 "glslang_tab_autogen.cpp"
+#line 4421 "glslang_tab_autogen.cpp"
     break;
 
   case 215: /* type_specifier_nonarray: ISAMPLER2DMSARRAY  */
-#line 1191 "glslang.y"
+#line 1189 "glslang.y"
                         {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtISampler2DMSArray, (yylsp[0]));
     }
-#line 4431 "glslang_tab_autogen.cpp"
+#line 4429 "glslang_tab_autogen.cpp"
     break;
 
   case 216: /* type_specifier_nonarray: ISAMPLERCUBEARRAYOES  */
-#line 1194 "glslang.y"
+#line 1192 "glslang.y"
                            {
         if (context->getShaderVersion() < 320
         && !context->checkCanUseExtension((yylsp[0]), TExtension::OES_texture_cube_map_array))
@@ -4440,11 +4438,11 @@ yyreduce:
         }
         (yyval.interm.typeSpecifierNonArray).initialize(EbtISamplerCubeArray, (yylsp[0]));
     }
-#line 4444 "glslang_tab_autogen.cpp"
+#line 4442 "glslang_tab_autogen.cpp"
     break;
 
   case 217: /* type_specifier_nonarray: ISAMPLERCUBEARRAYEXT  */
-#line 1202 "glslang.y"
+#line 1200 "glslang.y"
                            {
         if (context->getShaderVersion() < 320
         && !context->checkCanUseExtension((yylsp[0]), TExtension::EXT_texture_cube_map_array))
@@ -4453,11 +4451,11 @@ yyreduce:
         }
         (yyval.interm.typeSpecifierNonArray).initialize(EbtISamplerCubeArray, (yylsp[0]));
     }
-#line 4457 "glslang_tab_autogen.cpp"
+#line 4455 "glslang_tab_autogen.cpp"
     break;
 
   case 218: /* type_specifier_nonarray: ISAMPLERBUFFER  */
-#line 1210 "glslang.y"
+#line 1208 "glslang.y"
                      {
         constexpr std::array<TExtension, 2u> extensions{ { TExtension::OES_texture_buffer,
                                                            TExtension::EXT_texture_buffer } };
@@ -4468,59 +4466,59 @@ yyreduce:
         }
         (yyval.interm.typeSpecifierNonArray).initialize(EbtISamplerBuffer, (yylsp[0]));
     }
-#line 4472 "glslang_tab_autogen.cpp"
+#line 4470 "glslang_tab_autogen.cpp"
     break;
 
   case 219: /* type_specifier_nonarray: USAMPLER2D  */
-#line 1220 "glslang.y"
+#line 1218 "glslang.y"
                  {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtUSampler2D, (yylsp[0]));
     }
-#line 4480 "glslang_tab_autogen.cpp"
+#line 4478 "glslang_tab_autogen.cpp"
     break;
 
   case 220: /* type_specifier_nonarray: USAMPLER3D  */
-#line 1223 "glslang.y"
+#line 1221 "glslang.y"
                  {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtUSampler3D, (yylsp[0]));
     }
-#line 4488 "glslang_tab_autogen.cpp"
+#line 4486 "glslang_tab_autogen.cpp"
     break;
 
   case 221: /* type_specifier_nonarray: USAMPLERCUBE  */
-#line 1226 "glslang.y"
+#line 1224 "glslang.y"
                    {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtUSamplerCube, (yylsp[0]));
     }
-#line 4496 "glslang_tab_autogen.cpp"
+#line 4494 "glslang_tab_autogen.cpp"
     break;
 
   case 222: /* type_specifier_nonarray: USAMPLER2DARRAY  */
-#line 1229 "glslang.y"
+#line 1227 "glslang.y"
                       {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtUSampler2DArray, (yylsp[0]));
     }
-#line 4504 "glslang_tab_autogen.cpp"
+#line 4502 "glslang_tab_autogen.cpp"
     break;
 
   case 223: /* type_specifier_nonarray: USAMPLER2DMS  */
-#line 1232 "glslang.y"
+#line 1230 "glslang.y"
                    {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtUSampler2DMS, (yylsp[0]));
     }
-#line 4512 "glslang_tab_autogen.cpp"
+#line 4510 "glslang_tab_autogen.cpp"
     break;
 
   case 224: /* type_specifier_nonarray: USAMPLER2DMSARRAY  */
-#line 1235 "glslang.y"
+#line 1233 "glslang.y"
                         {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtUSampler2DMSArray, (yylsp[0]));
     }
-#line 4520 "glslang_tab_autogen.cpp"
+#line 4518 "glslang_tab_autogen.cpp"
     break;
 
   case 225: /* type_specifier_nonarray: USAMPLERCUBEARRAYOES  */
-#line 1238 "glslang.y"
+#line 1236 "glslang.y"
                            {
         if (context->getShaderVersion() < 320
         && !context->checkCanUseExtension((yylsp[0]), TExtension::OES_texture_cube_map_array))
@@ -4529,11 +4527,11 @@ yyreduce:
         }
         (yyval.interm.typeSpecifierNonArray).initialize(EbtUSamplerCubeArray, (yylsp[0]));
     }
-#line 4533 "glslang_tab_autogen.cpp"
+#line 4531 "glslang_tab_autogen.cpp"
     break;
 
   case 226: /* type_specifier_nonarray: USAMPLERCUBEARRAYEXT  */
-#line 1246 "glslang.y"
+#line 1244 "glslang.y"
                            {
         if (context->getShaderVersion() < 320
         && !context->checkCanUseExtension((yylsp[0]), TExtension::EXT_texture_cube_map_array))
@@ -4542,11 +4540,11 @@ yyreduce:
         }
         (yyval.interm.typeSpecifierNonArray).initialize(EbtUSamplerCubeArray, (yylsp[0]));
     }
-#line 4546 "glslang_tab_autogen.cpp"
+#line 4544 "glslang_tab_autogen.cpp"
     break;
 
   case 227: /* type_specifier_nonarray: USAMPLERBUFFER  */
-#line 1254 "glslang.y"
+#line 1252 "glslang.y"
                      {
         constexpr std::array<TExtension, 2u> extensions{ { TExtension::OES_texture_buffer,
                                                            TExtension::EXT_texture_buffer } };
@@ -4557,35 +4555,35 @@ yyreduce:
         }
         (yyval.interm.typeSpecifierNonArray).initialize(EbtUSamplerBuffer, (yylsp[0]));
     }
-#line 4561 "glslang_tab_autogen.cpp"
+#line 4559 "glslang_tab_autogen.cpp"
     break;
 
   case 228: /* type_specifier_nonarray: SAMPLER2DSHADOW  */
-#line 1264 "glslang.y"
+#line 1262 "glslang.y"
                       {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtSampler2DShadow, (yylsp[0]));
     }
-#line 4569 "glslang_tab_autogen.cpp"
+#line 4567 "glslang_tab_autogen.cpp"
     break;
 
   case 229: /* type_specifier_nonarray: SAMPLERCUBESHADOW  */
-#line 1267 "glslang.y"
+#line 1265 "glslang.y"
                         {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtSamplerCubeShadow, (yylsp[0]));
     }
-#line 4577 "glslang_tab_autogen.cpp"
+#line 4575 "glslang_tab_autogen.cpp"
     break;
 
   case 230: /* type_specifier_nonarray: SAMPLER2DARRAYSHADOW  */
-#line 1270 "glslang.y"
+#line 1268 "glslang.y"
                            {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtSampler2DArrayShadow, (yylsp[0]));
     }
-#line 4585 "glslang_tab_autogen.cpp"
+#line 4583 "glslang_tab_autogen.cpp"
     break;
 
   case 231: /* type_specifier_nonarray: SAMPLERCUBEARRAYSHADOWOES  */
-#line 1273 "glslang.y"
+#line 1271 "glslang.y"
                                 {
         if (context->getShaderVersion() < 320
         && !context->checkCanUseExtension((yylsp[0]), TExtension::OES_texture_cube_map_array))
@@ -4594,11 +4592,11 @@ yyreduce:
         }
         (yyval.interm.typeSpecifierNonArray).initialize(EbtSamplerCubeArrayShadow, (yylsp[0]));
     }
-#line 4598 "glslang_tab_autogen.cpp"
+#line 4596 "glslang_tab_autogen.cpp"
     break;
 
   case 232: /* type_specifier_nonarray: SAMPLERCUBEARRAYSHADOWEXT  */
-#line 1281 "glslang.y"
+#line 1279 "glslang.y"
                                 {
         if (context->getShaderVersion() < 320
         && !context->checkCanUseExtension((yylsp[0]), TExtension::EXT_texture_cube_map_array))
@@ -4607,11 +4605,11 @@ yyreduce:
         }
         (yyval.interm.typeSpecifierNonArray).initialize(EbtSamplerCubeArrayShadow, (yylsp[0]));
     }
-#line 4611 "glslang_tab_autogen.cpp"
+#line 4609 "glslang_tab_autogen.cpp"
     break;
 
   case 233: /* type_specifier_nonarray: SAMPLER_EXTERNAL_OES  */
-#line 1289 "glslang.y"
+#line 1287 "glslang.y"
                            {
         constexpr std::array<TExtension, 3u> extensions{ { TExtension::NV_EGL_stream_consumer_external,
                                                            TExtension::OES_EGL_image_external_essl3,
@@ -4622,11 +4620,11 @@ yyreduce:
         }
         (yyval.interm.typeSpecifierNonArray).initialize(EbtSamplerExternalOES, (yylsp[0]));
     }
-#line 4626 "glslang_tab_autogen.cpp"
+#line 4624 "glslang_tab_autogen.cpp"
     break;
 
   case 234: /* type_specifier_nonarray: SAMPLEREXTERNAL2DY2YEXT  */
-#line 1299 "glslang.y"
+#line 1297 "glslang.y"
                               {
         if (!context->checkCanUseExtension((yylsp[0]), TExtension::EXT_YUV_target))
         {
@@ -4634,11 +4632,11 @@ yyreduce:
         }
         (yyval.interm.typeSpecifierNonArray).initialize(EbtSamplerExternal2DY2YEXT, (yylsp[0]));
     }
-#line 4638 "glslang_tab_autogen.cpp"
+#line 4636 "glslang_tab_autogen.cpp"
     break;
 
   case 235: /* type_specifier_nonarray: SAMPLER2DRECT  */
-#line 1306 "glslang.y"
+#line 1304 "glslang.y"
                     {
         if (!context->checkCanUseExtension((yylsp[0]), TExtension::ARB_texture_rectangle))
         {
@@ -4646,107 +4644,107 @@ yyreduce:
         }
         (yyval.interm.typeSpecifierNonArray).initialize(EbtSampler2DRect, (yylsp[0]));
     }
-#line 4650 "glslang_tab_autogen.cpp"
+#line 4648 "glslang_tab_autogen.cpp"
     break;
 
   case 236: /* type_specifier_nonarray: IMAGE2D  */
-#line 1313 "glslang.y"
+#line 1311 "glslang.y"
               {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtImage2D, (yylsp[0]));
     }
-#line 4658 "glslang_tab_autogen.cpp"
+#line 4656 "glslang_tab_autogen.cpp"
     break;
 
   case 237: /* type_specifier_nonarray: IIMAGE2D  */
-#line 1316 "glslang.y"
+#line 1314 "glslang.y"
                {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtIImage2D, (yylsp[0]));
     }
-#line 4666 "glslang_tab_autogen.cpp"
+#line 4664 "glslang_tab_autogen.cpp"
     break;
 
   case 238: /* type_specifier_nonarray: UIMAGE2D  */
-#line 1319 "glslang.y"
+#line 1317 "glslang.y"
                {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtUImage2D, (yylsp[0]));
     }
-#line 4674 "glslang_tab_autogen.cpp"
+#line 4672 "glslang_tab_autogen.cpp"
     break;
 
   case 239: /* type_specifier_nonarray: IMAGE3D  */
-#line 1322 "glslang.y"
+#line 1320 "glslang.y"
               {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtImage3D, (yylsp[0]));
     }
-#line 4682 "glslang_tab_autogen.cpp"
+#line 4680 "glslang_tab_autogen.cpp"
     break;
 
   case 240: /* type_specifier_nonarray: IIMAGE3D  */
-#line 1325 "glslang.y"
+#line 1323 "glslang.y"
                {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtIImage3D, (yylsp[0]));
     }
-#line 4690 "glslang_tab_autogen.cpp"
+#line 4688 "glslang_tab_autogen.cpp"
     break;
 
   case 241: /* type_specifier_nonarray: UIMAGE3D  */
-#line 1328 "glslang.y"
+#line 1326 "glslang.y"
                {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtUImage3D, (yylsp[0]));
     }
-#line 4698 "glslang_tab_autogen.cpp"
+#line 4696 "glslang_tab_autogen.cpp"
     break;
 
   case 242: /* type_specifier_nonarray: IMAGE2DARRAY  */
-#line 1331 "glslang.y"
+#line 1329 "glslang.y"
                    {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtImage2DArray, (yylsp[0]));
     }
-#line 4706 "glslang_tab_autogen.cpp"
+#line 4704 "glslang_tab_autogen.cpp"
     break;
 
   case 243: /* type_specifier_nonarray: IIMAGE2DARRAY  */
-#line 1334 "glslang.y"
+#line 1332 "glslang.y"
                     {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtIImage2DArray, (yylsp[0]));
     }
-#line 4714 "glslang_tab_autogen.cpp"
+#line 4712 "glslang_tab_autogen.cpp"
     break;
 
   case 244: /* type_specifier_nonarray: UIMAGE2DARRAY  */
-#line 1337 "glslang.y"
+#line 1335 "glslang.y"
                     {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtUImage2DArray, (yylsp[0]));
     }
-#line 4722 "glslang_tab_autogen.cpp"
+#line 4720 "glslang_tab_autogen.cpp"
     break;
 
   case 245: /* type_specifier_nonarray: IMAGECUBE  */
-#line 1340 "glslang.y"
+#line 1338 "glslang.y"
                 {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtImageCube, (yylsp[0]));
     }
-#line 4730 "glslang_tab_autogen.cpp"
+#line 4728 "glslang_tab_autogen.cpp"
     break;
 
   case 246: /* type_specifier_nonarray: IIMAGECUBE  */
-#line 1343 "glslang.y"
+#line 1341 "glslang.y"
                  {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtIImageCube, (yylsp[0]));
     }
-#line 4738 "glslang_tab_autogen.cpp"
+#line 4736 "glslang_tab_autogen.cpp"
     break;
 
   case 247: /* type_specifier_nonarray: UIMAGECUBE  */
-#line 1346 "glslang.y"
+#line 1344 "glslang.y"
                  {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtUImageCube, (yylsp[0]));
     }
-#line 4746 "glslang_tab_autogen.cpp"
+#line 4744 "glslang_tab_autogen.cpp"
     break;
 
   case 248: /* type_specifier_nonarray: IMAGECUBEARRAYOES  */
-#line 1349 "glslang.y"
+#line 1347 "glslang.y"
                         {
         if (context->getShaderVersion() < 320
         && !context->checkCanUseExtension((yylsp[0]), TExtension::OES_texture_cube_map_array))
@@ -4755,11 +4753,11 @@ yyreduce:
         }
         (yyval.interm.typeSpecifierNonArray).initialize(EbtImageCubeArray, (yylsp[0]));
     }
-#line 4759 "glslang_tab_autogen.cpp"
+#line 4757 "glslang_tab_autogen.cpp"
     break;
 
   case 249: /* type_specifier_nonarray: IMAGECUBEARRAYEXT  */
-#line 1357 "glslang.y"
+#line 1355 "glslang.y"
                         {
         if (context->getShaderVersion() < 320
         && !context->checkCanUseExtension((yylsp[0]), TExtension::EXT_texture_cube_map_array))
@@ -4768,11 +4766,11 @@ yyreduce:
         }
         (yyval.interm.typeSpecifierNonArray).initialize(EbtImageCubeArray, (yylsp[0]));
     }
-#line 4772 "glslang_tab_autogen.cpp"
+#line 4770 "glslang_tab_autogen.cpp"
     break;
 
   case 250: /* type_specifier_nonarray: IIMAGECUBEARRAYOES  */
-#line 1365 "glslang.y"
+#line 1363 "glslang.y"
                          {
         if (context->getShaderVersion() < 320
         && !context->checkCanUseExtension((yylsp[0]), TExtension::OES_texture_cube_map_array))
@@ -4781,11 +4779,11 @@ yyreduce:
         }
         (yyval.interm.typeSpecifierNonArray).initialize(EbtIImageCubeArray, (yylsp[0]));
     }
-#line 4785 "glslang_tab_autogen.cpp"
+#line 4783 "glslang_tab_autogen.cpp"
     break;
 
   case 251: /* type_specifier_nonarray: IIMAGECUBEARRAYEXT  */
-#line 1373 "glslang.y"
+#line 1371 "glslang.y"
                          {
         if (context->getShaderVersion() < 320
         && !context->checkCanUseExtension((yylsp[0]), TExtension::EXT_texture_cube_map_array))
@@ -4794,11 +4792,11 @@ yyreduce:
         }
         (yyval.interm.typeSpecifierNonArray).initialize(EbtIImageCubeArray, (yylsp[0]));
     }
-#line 4798 "glslang_tab_autogen.cpp"
+#line 4796 "glslang_tab_autogen.cpp"
     break;
 
   case 252: /* type_specifier_nonarray: UIMAGECUBEARRAYOES  */
-#line 1381 "glslang.y"
+#line 1379 "glslang.y"
                          {
        if (context->getShaderVersion() < 320
        && !context->checkCanUseExtension((yylsp[0]), TExtension::OES_texture_cube_map_array))
@@ -4807,11 +4805,11 @@ yyreduce:
         }
         (yyval.interm.typeSpecifierNonArray).initialize(EbtUImageCubeArray, (yylsp[0]));
     }
-#line 4811 "glslang_tab_autogen.cpp"
+#line 4809 "glslang_tab_autogen.cpp"
     break;
 
   case 253: /* type_specifier_nonarray: UIMAGECUBEARRAYEXT  */
-#line 1389 "glslang.y"
+#line 1387 "glslang.y"
                          {
        if (context->getShaderVersion() < 320
        && !context->checkCanUseExtension((yylsp[0]), TExtension::EXT_texture_cube_map_array))
@@ -4820,11 +4818,11 @@ yyreduce:
         }
         (yyval.interm.typeSpecifierNonArray).initialize(EbtUImageCubeArray, (yylsp[0]));
     }
-#line 4824 "glslang_tab_autogen.cpp"
+#line 4822 "glslang_tab_autogen.cpp"
     break;
 
   case 254: /* type_specifier_nonarray: IMAGEBUFFER  */
-#line 1397 "glslang.y"
+#line 1395 "glslang.y"
                   {
         constexpr std::array<TExtension, 2u> extensions{ { TExtension::OES_texture_buffer,
                                                            TExtension::EXT_texture_buffer } };
@@ -4835,11 +4833,11 @@ yyreduce:
         }
         (yyval.interm.typeSpecifierNonArray).initialize(EbtImageBuffer, (yylsp[0]));
     }
-#line 4839 "glslang_tab_autogen.cpp"
+#line 4837 "glslang_tab_autogen.cpp"
     break;
 
   case 255: /* type_specifier_nonarray: IIMAGEBUFFER  */
-#line 1407 "glslang.y"
+#line 1405 "glslang.y"
                    {
         constexpr std::array<TExtension, 2u> extensions{ { TExtension::OES_texture_buffer,
                                                            TExtension::EXT_texture_buffer } };
@@ -4850,11 +4848,11 @@ yyreduce:
         }
         (yyval.interm.typeSpecifierNonArray).initialize(EbtIImageBuffer, (yylsp[0]));
     }
-#line 4854 "glslang_tab_autogen.cpp"
+#line 4852 "glslang_tab_autogen.cpp"
     break;
 
   case 256: /* type_specifier_nonarray: UIMAGEBUFFER  */
-#line 1417 "glslang.y"
+#line 1415 "glslang.y"
                    {
         constexpr std::array<TExtension, 2u> extensions{ { TExtension::OES_texture_buffer,
                                                            TExtension::EXT_texture_buffer } };
@@ -4865,19 +4863,19 @@ yyreduce:
         }
         (yyval.interm.typeSpecifierNonArray).initialize(EbtUImageBuffer, (yylsp[0]));
     }
-#line 4869 "glslang_tab_autogen.cpp"
+#line 4867 "glslang_tab_autogen.cpp"
     break;
 
   case 257: /* type_specifier_nonarray: ATOMICUINT  */
-#line 1427 "glslang.y"
+#line 1425 "glslang.y"
                  {
         (yyval.interm.typeSpecifierNonArray).initialize(EbtAtomicCounter, (yylsp[0]));
     }
-#line 4877 "glslang_tab_autogen.cpp"
+#line 4875 "glslang_tab_autogen.cpp"
     break;
 
   case 258: /* type_specifier_nonarray: PIXELLOCALANGLE  */
-#line 1430 "glslang.y"
+#line 1428 "glslang.y"
                       {
         if (!context->checkCanUseExtension((yylsp[0]), TExtension::ANGLE_shader_pixel_local_storage))
         {
@@ -4885,11 +4883,11 @@ yyreduce:
         }
         (yyval.interm.typeSpecifierNonArray).initialize(EbtPixelLocalANGLE, (yylsp[0]));
     }
-#line 4889 "glslang_tab_autogen.cpp"
+#line 4887 "glslang_tab_autogen.cpp"
     break;
 
   case 259: /* type_specifier_nonarray: IPIXELLOCALANGLE  */
-#line 1437 "glslang.y"
+#line 1435 "glslang.y"
                        {
         if (!context->checkCanUseExtension((yylsp[0]), TExtension::ANGLE_shader_pixel_local_storage))
         {
@@ -4897,11 +4895,11 @@ yyreduce:
         }
         (yyval.interm.typeSpecifierNonArray).initialize(EbtIPixelLocalANGLE, (yylsp[0]));
     }
-#line 4901 "glslang_tab_autogen.cpp"
+#line 4899 "glslang_tab_autogen.cpp"
     break;
 
   case 260: /* type_specifier_nonarray: UPIXELLOCALANGLE  */
-#line 1444 "glslang.y"
+#line 1442 "glslang.y"
                        {
         if (!context->checkCanUseExtension((yylsp[0]), TExtension::ANGLE_shader_pixel_local_storage))
         {
@@ -4909,19 +4907,19 @@ yyreduce:
         }
         (yyval.interm.typeSpecifierNonArray).initialize(EbtUPixelLocalANGLE, (yylsp[0]));
     }
-#line 4913 "glslang_tab_autogen.cpp"
+#line 4911 "glslang_tab_autogen.cpp"
     break;
 
   case 261: /* type_specifier_nonarray: struct_specifier  */
-#line 1451 "glslang.y"
+#line 1449 "glslang.y"
                        {
         (yyval.interm.typeSpecifierNonArray) = (yyvsp[0].interm.typeSpecifierNonArray);
     }
-#line 4921 "glslang_tab_autogen.cpp"
+#line 4919 "glslang_tab_autogen.cpp"
     break;
 
   case 262: /* type_specifier_nonarray: TYPE_NAME  */
-#line 1454 "glslang.y"
+#line 1452 "glslang.y"
                 {
         // This is for user defined type names. The lexical phase looked up the type.
         const TStructure *structure = static_cast<const TStructure*>((yyvsp[0].lex).symbol);
@@ -4929,614 +4927,614 @@ yyreduce:
         context->checkIsNotReserved((yylsp[0]), ImmutableString((yyvsp[0].lex).string));
         (yyval.interm.typeSpecifierNonArray).initializeStruct(structure, false, false, (yylsp[0]));
     }
-#line 4933 "glslang_tab_autogen.cpp"
+#line 4931 "glslang_tab_autogen.cpp"
     break;
 
   case 263: /* $@6: %empty  */
-#line 1464 "glslang.y"
+#line 1462 "glslang.y"
                                    { context->enterStructDeclaration((yylsp[-1]), ImmutableString((yyvsp[-1].lex).string)); }
-#line 4939 "glslang_tab_autogen.cpp"
+#line 4937 "glslang_tab_autogen.cpp"
     break;
 
   case 264: /* struct_specifier: STRUCT identifier LEFT_BRACE $@6 struct_declaration_list RIGHT_BRACE  */
-#line 1464 "glslang.y"
+#line 1462 "glslang.y"
                                                                                                                                             {
         (yyval.interm.typeSpecifierNonArray) = context->addStructure((yylsp[-5]), (yylsp[-4]), ImmutableString((yyvsp[-4].lex).string), (yyvsp[-1].interm.fieldList));
     }
-#line 4947 "glslang_tab_autogen.cpp"
+#line 4945 "glslang_tab_autogen.cpp"
     break;
 
   case 265: /* $@7: %empty  */
-#line 1467 "glslang.y"
+#line 1465 "glslang.y"
                         { context->enterStructDeclaration((yylsp[0]), kEmptyImmutableString); }
-#line 4953 "glslang_tab_autogen.cpp"
+#line 4951 "glslang_tab_autogen.cpp"
     break;
 
   case 266: /* struct_specifier: STRUCT LEFT_BRACE $@7 struct_declaration_list RIGHT_BRACE  */
-#line 1467 "glslang.y"
+#line 1465 "glslang.y"
                                                                                                                             {
         (yyval.interm.typeSpecifierNonArray) = context->addStructure((yylsp[-4]), (yyloc), kEmptyImmutableString, (yyvsp[-1].interm.fieldList));
     }
-#line 4961 "glslang_tab_autogen.cpp"
+#line 4959 "glslang_tab_autogen.cpp"
     break;
 
   case 267: /* struct_declaration_list: struct_declaration  */
-#line 1473 "glslang.y"
+#line 1471 "glslang.y"
                          {
         (yyval.interm.fieldList) = context->addStructFieldList((yyvsp[0].interm.fieldList), (yylsp[0]));
     }
-#line 4969 "glslang_tab_autogen.cpp"
+#line 4967 "glslang_tab_autogen.cpp"
     break;
 
   case 268: /* struct_declaration_list: struct_declaration_list struct_declaration  */
-#line 1476 "glslang.y"
+#line 1474 "glslang.y"
                                                  {
         (yyval.interm.fieldList) = context->combineStructFieldLists((yyvsp[-1].interm.fieldList), (yyvsp[0].interm.fieldList), (yylsp[0]));
     }
-#line 4977 "glslang_tab_autogen.cpp"
+#line 4975 "glslang_tab_autogen.cpp"
     break;
 
   case 269: /* struct_declaration: type_specifier struct_declarator_list SEMICOLON  */
-#line 1482 "glslang.y"
+#line 1480 "glslang.y"
                                                       {
         (yyval.interm.fieldList) = context->addStructDeclaratorList((yyvsp[-2].interm.type), (yyvsp[-1].interm.declaratorList));
     }
-#line 4985 "glslang_tab_autogen.cpp"
+#line 4983 "glslang_tab_autogen.cpp"
     break;
 
   case 270: /* struct_declaration: type_qualifier type_specifier struct_declarator_list SEMICOLON  */
-#line 1485 "glslang.y"
+#line 1483 "glslang.y"
                                                                      {
         // ES3 Only, but errors should be handled elsewhere
         (yyval.interm.fieldList) = context->addStructDeclaratorListWithQualifiers(*(yyvsp[-3].interm.typeQualifierBuilder), &(yyvsp[-2].interm.type), (yyvsp[-1].interm.declaratorList));
     }
-#line 4994 "glslang_tab_autogen.cpp"
+#line 4992 "glslang_tab_autogen.cpp"
     break;
 
   case 271: /* struct_declarator_list: struct_declarator  */
-#line 1492 "glslang.y"
+#line 1490 "glslang.y"
                         {
         (yyval.interm.declaratorList) = new TDeclaratorList();
         (yyval.interm.declaratorList)->push_back((yyvsp[0].interm.declarator));
     }
-#line 5003 "glslang_tab_autogen.cpp"
+#line 5001 "glslang_tab_autogen.cpp"
     break;
 
   case 272: /* struct_declarator_list: struct_declarator_list COMMA struct_declarator  */
-#line 1496 "glslang.y"
+#line 1494 "glslang.y"
                                                      {
         (yyval.interm.declaratorList)->push_back((yyvsp[0].interm.declarator));
     }
-#line 5011 "glslang_tab_autogen.cpp"
+#line 5009 "glslang_tab_autogen.cpp"
     break;
 
   case 273: /* struct_declarator: identifier  */
-#line 1502 "glslang.y"
+#line 1500 "glslang.y"
                  {
         (yyval.interm.declarator) = context->parseStructDeclarator(ImmutableString((yyvsp[0].lex).string), (yylsp[0]));
     }
-#line 5019 "glslang_tab_autogen.cpp"
+#line 5017 "glslang_tab_autogen.cpp"
     break;
 
   case 274: /* struct_declarator: identifier array_specifier  */
-#line 1505 "glslang.y"
+#line 1503 "glslang.y"
                                  {
         (yyval.interm.declarator) = context->parseStructArrayDeclarator(ImmutableString((yyvsp[-1].lex).string), (yylsp[-1]), (yyvsp[0].interm.arraySizes));
     }
-#line 5027 "glslang_tab_autogen.cpp"
+#line 5025 "glslang_tab_autogen.cpp"
     break;
 
   case 275: /* initializer: assignment_expression  */
-#line 1511 "glslang.y"
+#line 1509 "glslang.y"
                             { (yyval.interm.intermTypedNode) = (yyvsp[0].interm.intermTypedNode); }
-#line 5033 "glslang_tab_autogen.cpp"
+#line 5031 "glslang_tab_autogen.cpp"
     break;
 
   case 276: /* declaration_statement: declaration  */
-#line 1515 "glslang.y"
+#line 1513 "glslang.y"
                   { (yyval.interm.intermNode) = (yyvsp[0].interm.intermNode); }
-#line 5039 "glslang_tab_autogen.cpp"
+#line 5037 "glslang_tab_autogen.cpp"
     break;
 
   case 277: /* statement: compound_statement_with_scope  */
-#line 1519 "glslang.y"
+#line 1517 "glslang.y"
                                     { (yyval.interm.intermNode) = (yyvsp[0].interm.intermBlock); }
-#line 5045 "glslang_tab_autogen.cpp"
+#line 5043 "glslang_tab_autogen.cpp"
     break;
 
   case 278: /* statement: simple_statement  */
-#line 1520 "glslang.y"
+#line 1518 "glslang.y"
                                     { (yyval.interm.intermNode) = (yyvsp[0].interm.intermNode); }
-#line 5051 "glslang_tab_autogen.cpp"
+#line 5049 "glslang_tab_autogen.cpp"
     break;
 
   case 279: /* simple_statement: declaration_statement  */
-#line 1526 "glslang.y"
+#line 1524 "glslang.y"
                             { (yyval.interm.intermNode) = (yyvsp[0].interm.intermNode); }
-#line 5057 "glslang_tab_autogen.cpp"
+#line 5055 "glslang_tab_autogen.cpp"
     break;
 
   case 280: /* simple_statement: expression_statement  */
-#line 1527 "glslang.y"
+#line 1525 "glslang.y"
                             { (yyval.interm.intermNode) = (yyvsp[0].interm.intermNode); }
-#line 5063 "glslang_tab_autogen.cpp"
+#line 5061 "glslang_tab_autogen.cpp"
     break;
 
   case 281: /* simple_statement: selection_statement  */
-#line 1528 "glslang.y"
+#line 1526 "glslang.y"
                             { (yyval.interm.intermNode) = (yyvsp[0].interm.intermNode); }
-#line 5069 "glslang_tab_autogen.cpp"
+#line 5067 "glslang_tab_autogen.cpp"
     break;
 
   case 282: /* simple_statement: switch_statement  */
-#line 1529 "glslang.y"
+#line 1527 "glslang.y"
                             { (yyval.interm.intermNode) = (yyvsp[0].interm.intermSwitch); }
-#line 5075 "glslang_tab_autogen.cpp"
+#line 5073 "glslang_tab_autogen.cpp"
     break;
 
   case 283: /* simple_statement: case_label  */
-#line 1530 "glslang.y"
+#line 1528 "glslang.y"
                             { (yyval.interm.intermNode) = (yyvsp[0].interm.intermCase); }
-#line 5081 "glslang_tab_autogen.cpp"
+#line 5079 "glslang_tab_autogen.cpp"
     break;
 
   case 284: /* simple_statement: iteration_statement  */
-#line 1531 "glslang.y"
+#line 1529 "glslang.y"
                             { (yyval.interm.intermNode) = (yyvsp[0].interm.intermNode); }
-#line 5087 "glslang_tab_autogen.cpp"
+#line 5085 "glslang_tab_autogen.cpp"
     break;
 
   case 285: /* simple_statement: jump_statement  */
-#line 1532 "glslang.y"
+#line 1530 "glslang.y"
                             { (yyval.interm.intermNode) = (yyvsp[0].interm.intermNode); }
-#line 5093 "glslang_tab_autogen.cpp"
+#line 5091 "glslang_tab_autogen.cpp"
     break;
 
   case 286: /* compound_statement_with_scope: LEFT_BRACE RIGHT_BRACE  */
-#line 1536 "glslang.y"
+#line 1534 "glslang.y"
                              {
         (yyval.interm.intermBlock) = new TIntermBlock();
         (yyval.interm.intermBlock)->setLine((yyloc));
     }
-#line 5102 "glslang_tab_autogen.cpp"
+#line 5100 "glslang_tab_autogen.cpp"
     break;
 
   case 287: /* $@8: %empty  */
-#line 1540 "glslang.y"
+#line 1538 "glslang.y"
                  { context->beginNestedScope(); }
-#line 5108 "glslang_tab_autogen.cpp"
+#line 5106 "glslang_tab_autogen.cpp"
     break;
 
   case 288: /* $@9: %empty  */
-#line 1540 "glslang.y"
+#line 1538 "glslang.y"
                                                                  { context->endNestedScope(); }
-#line 5114 "glslang_tab_autogen.cpp"
+#line 5112 "glslang_tab_autogen.cpp"
     break;
 
   case 289: /* compound_statement_with_scope: LEFT_BRACE $@8 statement_list $@9 RIGHT_BRACE  */
-#line 1540 "glslang.y"
+#line 1538 "glslang.y"
                                                                                                             {
         (yyvsp[-2].interm.intermBlock)->setLine((yyloc));
         (yyval.interm.intermBlock) = (yyvsp[-2].interm.intermBlock);
     }
-#line 5123 "glslang_tab_autogen.cpp"
+#line 5121 "glslang_tab_autogen.cpp"
     break;
 
   case 290: /* statement_no_new_scope: compound_statement_no_new_scope  */
-#line 1547 "glslang.y"
+#line 1545 "glslang.y"
                                       { (yyval.interm.intermNode) = (yyvsp[0].interm.intermBlock); }
-#line 5129 "glslang_tab_autogen.cpp"
+#line 5127 "glslang_tab_autogen.cpp"
     break;
 
   case 291: /* statement_no_new_scope: simple_statement  */
-#line 1548 "glslang.y"
+#line 1546 "glslang.y"
                                       {
         context->endStatementWithValue((yyvsp[0].interm.intermNode));
         (yyval.interm.intermNode) = (yyvsp[0].interm.intermNode);
     }
-#line 5138 "glslang_tab_autogen.cpp"
+#line 5136 "glslang_tab_autogen.cpp"
     break;
 
   case 292: /* $@10: %empty  */
-#line 1555 "glslang.y"
+#line 1553 "glslang.y"
       { context->beginNestedScope(); }
-#line 5144 "glslang_tab_autogen.cpp"
+#line 5142 "glslang_tab_autogen.cpp"
     break;
 
   case 293: /* statement_with_scope: $@10 compound_statement_no_new_scope  */
-#line 1555 "glslang.y"
+#line 1553 "glslang.y"
                                                                        { context->endNestedScope(); (yyval.interm.intermNode) = (yyvsp[0].interm.intermBlock); }
-#line 5150 "glslang_tab_autogen.cpp"
+#line 5148 "glslang_tab_autogen.cpp"
     break;
 
   case 294: /* $@11: %empty  */
-#line 1556 "glslang.y"
+#line 1554 "glslang.y"
       { context->beginNestedScope(); }
-#line 5156 "glslang_tab_autogen.cpp"
+#line 5154 "glslang_tab_autogen.cpp"
     break;
 
   case 295: /* statement_with_scope: $@11 simple_statement  */
-#line 1556 "glslang.y"
+#line 1554 "glslang.y"
                                                                        {
         context->endStatementWithValue((yyvsp[0].interm.intermNode));
         context->endNestedScope();
         (yyval.interm.intermNode) = (yyvsp[0].interm.intermNode);
     }
-#line 5166 "glslang_tab_autogen.cpp"
+#line 5164 "glslang_tab_autogen.cpp"
     break;
 
   case 296: /* compound_statement_no_new_scope: LEFT_BRACE RIGHT_BRACE  */
-#line 1565 "glslang.y"
+#line 1563 "glslang.y"
                              {
         (yyval.interm.intermBlock) = new TIntermBlock();
         (yyval.interm.intermBlock)->setLine((yyloc));
     }
-#line 5175 "glslang_tab_autogen.cpp"
+#line 5173 "glslang_tab_autogen.cpp"
     break;
 
   case 297: /* compound_statement_no_new_scope: LEFT_BRACE statement_list RIGHT_BRACE  */
-#line 1569 "glslang.y"
+#line 1567 "glslang.y"
                                             {
         (yyvsp[-1].interm.intermBlock)->setLine((yyloc));
         (yyval.interm.intermBlock) = (yyvsp[-1].interm.intermBlock);
     }
-#line 5184 "glslang_tab_autogen.cpp"
+#line 5182 "glslang_tab_autogen.cpp"
     break;
 
   case 298: /* statement_list: statement  */
-#line 1576 "glslang.y"
+#line 1574 "glslang.y"
                 {
         (yyval.interm.intermBlock) = new TIntermBlock();
         context->appendStatement((yyval.interm.intermBlock), (yyvsp[0].interm.intermNode));
     }
-#line 5193 "glslang_tab_autogen.cpp"
+#line 5191 "glslang_tab_autogen.cpp"
     break;
 
   case 299: /* statement_list: statement_list statement  */
-#line 1580 "glslang.y"
+#line 1578 "glslang.y"
                                {
         (yyval.interm.intermBlock) = (yyvsp[-1].interm.intermBlock);
         context->appendStatement((yyval.interm.intermBlock), (yyvsp[0].interm.intermNode));
     }
-#line 5202 "glslang_tab_autogen.cpp"
+#line 5200 "glslang_tab_autogen.cpp"
     break;
 
   case 300: /* expression_statement: SEMICOLON  */
-#line 1587 "glslang.y"
+#line 1585 "glslang.y"
                  { (yyval.interm.intermNode) = context->addEmptyStatement((yyloc)); }
-#line 5208 "glslang_tab_autogen.cpp"
+#line 5206 "glslang_tab_autogen.cpp"
     break;
 
   case 301: /* expression_statement: expression SEMICOLON  */
-#line 1588 "glslang.y"
+#line 1586 "glslang.y"
                             {
         context->checkIsValidExpressionStatement((yyloc), (yyvsp[-1].interm.intermTypedNode));
         (yyval.interm.intermNode) = (yyvsp[-1].interm.intermTypedNode);
     }
-#line 5217 "glslang_tab_autogen.cpp"
+#line 5215 "glslang_tab_autogen.cpp"
     break;
 
   case 302: /* $@12: %empty  */
-#line 1595 "glslang.y"
+#line 1593 "glslang.y"
                                            {
         context->onIfTrueBlockBegin((yyvsp[-1].interm.intermTypedNode), (yylsp[-3]));
     }
-#line 5225 "glslang_tab_autogen.cpp"
+#line 5223 "glslang_tab_autogen.cpp"
     break;
 
   case 303: /* selection_statement: IF LEFT_PAREN expression RIGHT_PAREN $@12 selection_rest_statement  */
-#line 1597 "glslang.y"
+#line 1595 "glslang.y"
                                {
         (yyval.interm.intermNode) = context->addIfElse((yyvsp[-3].interm.intermTypedNode), (yyvsp[0].interm.nodePair), (yylsp[-5]));
     }
-#line 5233 "glslang_tab_autogen.cpp"
+#line 5231 "glslang_tab_autogen.cpp"
     break;
 
   case 304: /* $@13: %empty  */
-#line 1603 "glslang.y"
+#line 1601 "glslang.y"
                                 {
         context->onIfTrueBlockEnd();
         context->onIfFalseBlockBegin();
     }
-#line 5242 "glslang_tab_autogen.cpp"
+#line 5240 "glslang_tab_autogen.cpp"
     break;
 
   case 305: /* selection_rest_statement: statement_with_scope ELSE $@13 statement_with_scope  */
-#line 1606 "glslang.y"
+#line 1604 "glslang.y"
                            {
         context->onIfFalseBlockEnd();
         (yyval.interm.nodePair).node1 = (yyvsp[-3].interm.intermNode);
         (yyval.interm.nodePair).node2 = (yyvsp[0].interm.intermNode);
     }
-#line 5252 "glslang_tab_autogen.cpp"
+#line 5250 "glslang_tab_autogen.cpp"
     break;
 
   case 306: /* selection_rest_statement: statement_with_scope  */
-#line 1611 "glslang.y"
+#line 1609 "glslang.y"
                            {
         context->onIfTrueBlockEnd();
         (yyval.interm.nodePair).node1 = (yyvsp[0].interm.intermNode);
         (yyval.interm.nodePair).node2 = nullptr;
     }
-#line 5262 "glslang_tab_autogen.cpp"
+#line 5260 "glslang_tab_autogen.cpp"
     break;
 
   case 307: /* $@14: %empty  */
-#line 1621 "glslang.y"
+#line 1619 "glslang.y"
                                                { context->beginSwitch((yylsp[-3]), (yyvsp[-1].interm.intermTypedNode)); }
-#line 5268 "glslang_tab_autogen.cpp"
+#line 5266 "glslang_tab_autogen.cpp"
     break;
 
   case 308: /* switch_statement: SWITCH LEFT_PAREN expression RIGHT_PAREN $@14 compound_statement_no_new_scope  */
-#line 1621 "glslang.y"
+#line 1619 "glslang.y"
                                                                                                                  {
         (yyval.interm.intermSwitch) = context->addSwitch((yyvsp[-3].interm.intermTypedNode), (yyvsp[0].interm.intermBlock), (yylsp[-5]));
     }
-#line 5276 "glslang_tab_autogen.cpp"
+#line 5274 "glslang_tab_autogen.cpp"
     break;
 
   case 309: /* case_label: CASE constant_expression COLON  */
-#line 1627 "glslang.y"
+#line 1625 "glslang.y"
                                      {
         (yyval.interm.intermCase) = context->addCase((yyvsp[-1].interm.intermTypedNode), (yylsp[-2]));
     }
-#line 5284 "glslang_tab_autogen.cpp"
+#line 5282 "glslang_tab_autogen.cpp"
     break;
 
   case 310: /* case_label: DEFAULT COLON  */
-#line 1630 "glslang.y"
+#line 1628 "glslang.y"
                     {
         (yyval.interm.intermCase) = context->addDefault((yylsp[-1]));
     }
-#line 5292 "glslang_tab_autogen.cpp"
+#line 5290 "glslang_tab_autogen.cpp"
     break;
 
   case 311: /* condition: expression  */
-#line 1636 "glslang.y"
+#line 1634 "glslang.y"
                  {
         (yyval.interm.intermNode) = (yyvsp[0].interm.intermTypedNode);
         context->checkIsScalarBool((yyvsp[0].interm.intermTypedNode)->getLine(), (yyvsp[0].interm.intermTypedNode));
     }
-#line 5301 "glslang_tab_autogen.cpp"
+#line 5299 "glslang_tab_autogen.cpp"
     break;
 
   case 312: /* condition: fully_specified_type identifier EQUAL initializer  */
-#line 1640 "glslang.y"
+#line 1638 "glslang.y"
                                                         {
         (yyval.interm.intermNode) = context->addConditionInitializer((yyvsp[-3].interm.type), ImmutableString((yyvsp[-2].lex).string), (yyvsp[0].interm.intermTypedNode), (yylsp[-2]));
     }
-#line 5309 "glslang_tab_autogen.cpp"
+#line 5307 "glslang_tab_autogen.cpp"
     break;
 
   case 313: /* $@15: %empty  */
-#line 1646 "glslang.y"
+#line 1644 "glslang.y"
                        {
         context->symbolTable.push(); context->beginLoop(ELoopWhile, (yylsp[-1]));
         context->onLoopConditionBegin(nullptr, (yylsp[-1]));
     }
-#line 5318 "glslang_tab_autogen.cpp"
+#line 5316 "glslang_tab_autogen.cpp"
     break;
 
   case 314: /* $@16: %empty  */
-#line 1649 "glslang.y"
+#line 1647 "glslang.y"
                 {
         context->onLoopConditionEnd((yyvsp[0].interm.intermNode), (yylsp[0]));
     }
-#line 5326 "glslang_tab_autogen.cpp"
+#line 5324 "glslang_tab_autogen.cpp"
     break;
 
   case 315: /* iteration_statement: WHILE LEFT_PAREN $@15 condition $@16 RIGHT_PAREN statement_no_new_scope  */
-#line 1651 "glslang.y"
+#line 1649 "glslang.y"
                                          {
         context->symbolTable.pop();
         (yyval.interm.intermNode) = context->addLoop(ELoopWhile, 0, (yyvsp[-3].interm.intermNode), 0, (yyvsp[0].interm.intermNode), (yylsp[-6]));
     }
-#line 5335 "glslang_tab_autogen.cpp"
+#line 5333 "glslang_tab_autogen.cpp"
     break;
 
   case 316: /* $@17: %empty  */
-#line 1655 "glslang.y"
+#line 1653 "glslang.y"
          {
         context->beginLoop(ELoopDoWhile, (yylsp[0]));
         context->onDoLoopBegin();
     }
-#line 5344 "glslang_tab_autogen.cpp"
+#line 5342 "glslang_tab_autogen.cpp"
     break;
 
   case 317: /* $@18: %empty  */
-#line 1658 "glslang.y"
+#line 1656 "glslang.y"
                                             {
         context->onDoLoopConditionBegin();
     }
-#line 5352 "glslang_tab_autogen.cpp"
+#line 5350 "glslang_tab_autogen.cpp"
     break;
 
   case 318: /* iteration_statement: DO $@17 statement_with_scope WHILE LEFT_PAREN $@18 expression RIGHT_PAREN SEMICOLON  */
-#line 1660 "glslang.y"
+#line 1658 "glslang.y"
                                        {
         (yyval.interm.intermNode) = context->addLoop(ELoopDoWhile, 0, (yyvsp[-2].interm.intermTypedNode), 0, (yyvsp[-6].interm.intermNode), (yylsp[-5]));
     }
-#line 5360 "glslang_tab_autogen.cpp"
+#line 5358 "glslang_tab_autogen.cpp"
     break;
 
   case 319: /* $@19: %empty  */
-#line 1663 "glslang.y"
+#line 1661 "glslang.y"
                      { context->symbolTable.push(); context->beginLoop(ELoopFor, (yylsp[-1])); }
-#line 5366 "glslang_tab_autogen.cpp"
+#line 5364 "glslang_tab_autogen.cpp"
     break;
 
   case 320: /* $@20: %empty  */
-#line 1663 "glslang.y"
+#line 1661 "glslang.y"
                                                                                                            {
         context->onLoopConditionBegin((yyvsp[0].interm.intermNode), (yylsp[0]));
     }
-#line 5374 "glslang_tab_autogen.cpp"
+#line 5372 "glslang_tab_autogen.cpp"
     break;
 
   case 321: /* iteration_statement: FOR LEFT_PAREN $@19 for_init_statement $@20 for_rest_statement RIGHT_PAREN statement_no_new_scope  */
-#line 1665 "glslang.y"
+#line 1663 "glslang.y"
                                                             {
         context->symbolTable.pop();
         (yyval.interm.intermNode) = context->addLoop(ELoopFor, (yyvsp[-4].interm.intermNode), (yyvsp[-2].interm.nodePair).node1, reinterpret_cast<TIntermTyped*>((yyvsp[-2].interm.nodePair).node2), (yyvsp[0].interm.intermNode), (yylsp[-7]));
     }
-#line 5383 "glslang_tab_autogen.cpp"
+#line 5381 "glslang_tab_autogen.cpp"
     break;
 
   case 322: /* for_init_statement: expression_statement  */
-#line 1672 "glslang.y"
+#line 1670 "glslang.y"
                            {
         context->endStatementWithValue((yyvsp[0].interm.intermNode));
         (yyval.interm.intermNode) = (yyvsp[0].interm.intermNode);
     }
-#line 5392 "glslang_tab_autogen.cpp"
+#line 5390 "glslang_tab_autogen.cpp"
     break;
 
   case 323: /* for_init_statement: declaration_statement  */
-#line 1676 "glslang.y"
+#line 1674 "glslang.y"
                             {
         (yyval.interm.intermNode) = (yyvsp[0].interm.intermNode);
     }
-#line 5400 "glslang_tab_autogen.cpp"
+#line 5398 "glslang_tab_autogen.cpp"
     break;
 
   case 324: /* conditionopt: condition  */
-#line 1682 "glslang.y"
+#line 1680 "glslang.y"
                 {
         (yyval.interm.intermNode) = (yyvsp[0].interm.intermNode);
     }
-#line 5408 "glslang_tab_autogen.cpp"
+#line 5406 "glslang_tab_autogen.cpp"
     break;
 
   case 325: /* conditionopt: %empty  */
-#line 1685 "glslang.y"
+#line 1683 "glslang.y"
                         {
         (yyval.interm.intermNode) = nullptr;
     }
-#line 5416 "glslang_tab_autogen.cpp"
+#line 5414 "glslang_tab_autogen.cpp"
     break;
 
   case 326: /* for_rest_statement: conditionopt SEMICOLON  */
-#line 1691 "glslang.y"
+#line 1689 "glslang.y"
                              {
         context->onLoopConditionEnd((yyvsp[-1].interm.intermNode), (yylsp[-1]));
         context->onLoopContinueEnd(nullptr, (yylsp[-1]));
         (yyval.interm.nodePair).node1 = (yyvsp[-1].interm.intermNode);
         (yyval.interm.nodePair).node2 = 0;
     }
-#line 5427 "glslang_tab_autogen.cpp"
+#line 5425 "glslang_tab_autogen.cpp"
     break;
 
   case 327: /* $@21: %empty  */
-#line 1697 "glslang.y"
+#line 1695 "glslang.y"
                              {
         context->onLoopConditionEnd((yyvsp[-1].interm.intermNode), (yylsp[-1]));
     }
-#line 5435 "glslang_tab_autogen.cpp"
+#line 5433 "glslang_tab_autogen.cpp"
     break;
 
   case 328: /* for_rest_statement: conditionopt SEMICOLON $@21 expression  */
-#line 1699 "glslang.y"
+#line 1697 "glslang.y"
                  {
         context->onLoopContinueEnd((yyvsp[0].interm.intermTypedNode), (yylsp[0]));
         (yyval.interm.nodePair).node1 = (yyvsp[-3].interm.intermNode);
         (yyval.interm.nodePair).node2 = (yyvsp[0].interm.intermTypedNode);
     }
-#line 5445 "glslang_tab_autogen.cpp"
+#line 5443 "glslang_tab_autogen.cpp"
     break;
 
   case 329: /* jump_statement: CONTINUE SEMICOLON  */
-#line 1707 "glslang.y"
+#line 1705 "glslang.y"
                          {
         (yyval.interm.intermNode) = context->addBranch(EOpContinue, (yylsp[-1]));
     }
-#line 5453 "glslang_tab_autogen.cpp"
+#line 5451 "glslang_tab_autogen.cpp"
     break;
 
   case 330: /* jump_statement: BREAK SEMICOLON  */
-#line 1710 "glslang.y"
+#line 1708 "glslang.y"
                       {
         (yyval.interm.intermNode) = context->addBranch(EOpBreak, (yylsp[-1]));
     }
-#line 5461 "glslang_tab_autogen.cpp"
+#line 5459 "glslang_tab_autogen.cpp"
     break;
 
   case 331: /* jump_statement: RETURN SEMICOLON  */
-#line 1713 "glslang.y"
+#line 1711 "glslang.y"
                        {
         (yyval.interm.intermNode) = context->addBranch(EOpReturn, (yylsp[-1]));
     }
-#line 5469 "glslang_tab_autogen.cpp"
+#line 5467 "glslang_tab_autogen.cpp"
     break;
 
   case 332: /* jump_statement: RETURN expression SEMICOLON  */
-#line 1716 "glslang.y"
+#line 1714 "glslang.y"
                                   {
         (yyval.interm.intermNode) = context->addBranch(EOpReturn, (yyvsp[-1].interm.intermTypedNode), (yylsp[-2]));
     }
-#line 5477 "glslang_tab_autogen.cpp"
+#line 5475 "glslang_tab_autogen.cpp"
     break;
 
   case 333: /* jump_statement: DISCARD SEMICOLON  */
-#line 1719 "glslang.y"
+#line 1717 "glslang.y"
                         {
         (yyval.interm.intermNode) = context->addBranch(EOpKill, (yylsp[-1]));
     }
-#line 5485 "glslang_tab_autogen.cpp"
+#line 5483 "glslang_tab_autogen.cpp"
     break;
 
   case 334: /* translation_unit: external_declaration  */
-#line 1727 "glslang.y"
+#line 1725 "glslang.y"
                            {
         (yyval.interm.intermBlock) = new TIntermBlock();
         (yyval.interm.intermBlock)->setLine((yyloc));
         (yyval.interm.intermBlock)->appendStatement((yyvsp[0].interm.intermNode));
         context->setTreeRoot((yyval.interm.intermBlock));
     }
-#line 5496 "glslang_tab_autogen.cpp"
+#line 5494 "glslang_tab_autogen.cpp"
     break;
 
   case 335: /* translation_unit: translation_unit external_declaration  */
-#line 1733 "glslang.y"
+#line 1731 "glslang.y"
                                             {
         (yyval.interm.intermBlock)->appendStatement((yyvsp[0].interm.intermNode));
     }
-#line 5504 "glslang_tab_autogen.cpp"
+#line 5502 "glslang_tab_autogen.cpp"
     break;
 
   case 336: /* external_declaration: function_definition  */
-#line 1739 "glslang.y"
+#line 1737 "glslang.y"
                           {
         (yyval.interm.intermNode) = (yyvsp[0].interm.intermNode);
     }
-#line 5512 "glslang_tab_autogen.cpp"
+#line 5510 "glslang_tab_autogen.cpp"
     break;
 
   case 337: /* external_declaration: declaration  */
-#line 1742 "glslang.y"
+#line 1740 "glslang.y"
                   {
         (yyval.interm.intermNode) = (yyvsp[0].interm.intermNode);
     }
-#line 5520 "glslang_tab_autogen.cpp"
+#line 5518 "glslang_tab_autogen.cpp"
     break;
 
   case 338: /* $@22: %empty  */
-#line 1748 "glslang.y"
+#line 1746 "glslang.y"
                          {
         context->parseFunctionDefinitionHeader((yylsp[0]), (yyvsp[0].interm).function, &((yyvsp[0].interm).intermFunctionPrototype));
     }
-#line 5528 "glslang_tab_autogen.cpp"
+#line 5526 "glslang_tab_autogen.cpp"
     break;
 
   case 339: /* function_definition: function_prototype $@22 compound_statement_no_new_scope  */
-#line 1751 "glslang.y"
+#line 1749 "glslang.y"
                                     {
         (yyval.interm.intermNode) = context->addFunctionDefinition((yyvsp[-2].interm).intermFunctionPrototype, (yyvsp[0].interm.intermBlock), (yylsp[-2]));
     }
-#line 5536 "glslang_tab_autogen.cpp"
+#line 5534 "glslang_tab_autogen.cpp"
     break;
 
 
-#line 5540 "glslang_tab_autogen.cpp"
+#line 5538 "glslang_tab_autogen.cpp"
 
       default: break;
     }
@@ -5734,7 +5732,7 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 1756 "glslang.y"
+#line 1754 "glslang.y"
 
 
 int glslang_parse(TParseContext* context) {
