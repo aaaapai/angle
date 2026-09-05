@@ -3900,6 +3900,19 @@ bool TParseContext::executeInitializer(const TSourceLoc &line,
     ASSERT(initNode != nullptr);
     ASSERT(*initNode == nullptr);
 
+    if (type->getQualifier() == EvqUniform)
+    {
+        type->setTypeId(getTypeId(*type));
+        TVariable *variable = nullptr;
+        if (!declareVariable(line, identifier, type, GeomTessArray::Sized, &variable))
+        {
+            return false;
+        }
+        mIRBuilder.initialize(mVariableToId.at(variable).id);
+        *initNode = nullptr;
+        return true;
+    }
+
     if (type->isUnsizedArray())
     {
         // In case initializer is not an array or type has more dimensions than initializer, this
