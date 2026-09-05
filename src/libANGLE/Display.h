@@ -285,7 +285,6 @@ class Display final : public LabeledObject,
 
     EGLAttrib queryAttrib(const EGLint attribute);
 
-    // Scratch buffer management – now thread-local, no locks
     angle::ScratchBuffer requestScratchBuffer();
     void returnScratchBuffer(angle::ScratchBuffer scratchBuffer);
 
@@ -374,6 +373,10 @@ class Display final : public LabeledObject,
     void initClientAPIString();
     void initializeFrontendFeatures();
 
+    angle::ScratchBuffer requestScratchBufferImpl(std::vector<angle::ScratchBuffer> *bufferVector);
+    void returnScratchBufferImpl(angle::ScratchBuffer scratchBuffer,
+                                 std::vector<angle::ScratchBuffer> *bufferVector);
+
     Error destroyInvalidEglObjects();
 
     DisplayState mState;
@@ -439,8 +442,9 @@ class Display final : public LabeledObject,
 
     angle::FeatureList mFeatures;
 
-    // Removed: mScratchBufferMutex, mScratchBuffers, mZeroFilledBuffers
-    // Now using thread-local caches in Display.cpp
+    angle::SimpleMutex mScratchBufferMutex;
+    std::vector<angle::ScratchBuffer> mScratchBuffers;
+    std::vector<angle::ScratchBuffer> mZeroFilledBuffers;
 
     angle::SimpleMutex mDisplayGlobalMutex;
     angle::SimpleMutex mProgramCacheMutex;
