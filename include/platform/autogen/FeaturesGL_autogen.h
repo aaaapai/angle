@@ -788,6 +788,18 @@ struct FeaturesGL : FeatureSetBase
         &members,
     };
 
+    FeatureInfo finishBeforeBlitFramebufferMultiAttachment = {
+        "finishBeforeBlitFramebufferMultiAttachment",
+        FeatureCategory::OpenGLWorkarounds,
+        &members,
+    };
+
+    FeatureInfo useTexSubImageForHostTwiddledNpotUploads = {
+        "useTexSubImageForHostTwiddledNpotUploads",
+        FeatureCategory::OpenGLWorkarounds,
+        &members,
+    };
+
 };
 
 inline FeaturesGL::FeaturesGL()  = default;

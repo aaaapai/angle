@@ -6612,9 +6612,29 @@ angle::Result ImageHelper::initExternalMemory(ErrorContext *context,
     {
         bindImagePlaneMemoryInfo.planeAspect = kMemoryPlaneAspects[memoryPlane];
 
+        VkMemoryRequirements planeMemoryRequirements = memoryRequirements;
+        if (extraAllocationInfoCount > 1)
+        {
+            VkImagePlaneMemoryRequirementsInfo planeMemoryRequirementsInfo = {};
+            planeMemoryRequirementsInfo.sType =
+                VK_STRUCTURE_TYPE_IMAGE_PLANE_MEMORY_REQUIREMENTS_INFO;
+            planeMemoryRequirementsInfo.planeAspect = kMemoryPlaneAspects[memoryPlane];
+
+            VkImageMemoryRequirementsInfo2 imageMemoryRequirementsInfo = {};
+            imageMemoryRequirementsInfo.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_REQUIREMENTS_INFO_2;
+            imageMemoryRequirementsInfo.pNext = &planeMemoryRequirementsInfo;
+            imageMemoryRequirementsInfo.image = mImage.getHandle();
+
+            VkMemoryRequirements2 planeMemoryRequirements2 = {};
+            planeMemoryRequirements2.sType = VK_STRUCTURE_TYPE_MEMORY_REQUIREMENTS_2;
+            mImage.getMemoryRequirements2(context->getDevice(), imageMemoryRequirementsInfo,
+                                          &planeMemoryRequirements2);
+            planeMemoryRequirements = planeMemoryRequirements2.memoryRequirements;
+        }
+
         ANGLE_VK_TRY(context,
                      AllocateImageMemoryWithRequirements(
-                         context, mMemoryAllocationType, flags, memoryRequirements,
+                         context, mMemoryAllocationType, flags, planeMemoryRequirements,
                          ANGLE_UNSAFE_TODO(extraAllocationInfo[memoryPlane]),
                          bindImagePlaneMemoryInfoPtr, &mImage, &mMemoryTypeIndex, &mDeviceMemory));
     }
@@ -8487,33 +8507,6 @@ void ImageHelper::removeSingleSubresourceStagedUpdates(ContextVk *contextVk,
     }
 }
 
-void ImageHelper::removeSingleStagedClearAfterInvalidate(gl::OwnerLevel levelIndexGL,
-                                                         gl::OwnerLayer layerIndex,
-                                                         uint32_t layerCount)
-{
-    // When this function is called, it's expected that there may be at most one
-    // ClearAfterInvalidate update pending to this subresource, and that's a color clear due to
-    // emulated channels after invalidate.  This function removes that update.
-
-    SubresourceUpdates *levelUpdates = getLevelUpdates(levelIndexGL);
-    if (levelUpdates == nullptr)
-    {
-        return;
-    }
-
-    for (size_t index = 0; index < levelUpdates->size(); ++index)
-    {
-        auto update = levelUpdates->begin() + index;
-        if (update->updateSource == UpdateSource::ClearAfterInvalidate &&
-            update->matchesLayerRange(layerIndex, layerCount, mLayerCount))
-        {
-            // It's a clear, so doesn't need to be released.
-            levelUpdates->erase(update);
-            // There's only one such clear possible.
-            return;
-        }
-    }
-}
 
 void ImageHelper::removeStagedUpdates(ErrorContext *context,
                                       gl::OwnerLevel levelGLStart,
@@ -9991,13 +9984,12 @@ angle::Result ImageHelper::stageResourceClearWithFormat(ContextVk *contextVk,
                                                         const angle::Format &imageFormat,
                                                         const VkClearValue &clearValue)
 {
-    // It's possible that a ClearAfterInvalidate is already staged on this image, drop that.  This
-    // is only possible if the format has an emulated channel.
-    if (intendedFormat.id != imageFormat.id)
-    {
-        removeSingleStagedClearAfterInvalidate(index.getLevelIndex(), index.getLayerIndex(),
-                                               index.getLayerCount());
-    }
+    // A prior clear or update (such as a previous robust clear or a ClearAfterInvalidate on an
+    // emulated format) may already be staged on this subresource if the texture level was
+    // redefined or re-initialized across operations like mipmap generation. Drop any prior
+    // staged updates so that this newly staged clear becomes the sole pending update.
+    removeSingleSubresourceStagedUpdates(contextVk, index.getLevelIndex(), index.getLayerIndex(),
+                                         index.getLayerCount());
 
     // Otherwise robust clears must only be staged if we do not have any prior data for this
     // subresource.
@@ -11133,7 +11125,6 @@ void ImageHelper::pruneSupersededUpdatesForLevelImpl(ContextVk *contextVk,
         const bool isDepth   = (aspectMask & VK_IMAGE_ASPECT_DEPTH_BIT) != 0;
         const bool isStencil = (aspectMask & VK_IMAGE_ASPECT_STENCIL_BIT) != 0;
         ASSERT(isColor || isDepth || isStencil);
-        int aspectIndex = (isColor || isDepth) ? 0 : 1;
 
         gl::OwnerLayer layerIndex;
         uint32_t layerCount = 0;
@@ -11167,7 +11158,10 @@ void ImageHelper::pruneSupersededUpdatesForLevelImpl(ContextVk *contextVk,
         }
 
         // Check if current update region is superseded by the accumulated update region
-        if (boundingBox[aspectIndex].contains(currentUpdateBox))
+        const bool aspect0Superseded =
+            !(isColor || isDepth) || boundingBox[0].contains(currentUpdateBox);
+        const bool aspect1Superseded = !isStencil || boundingBox[1].contains(currentUpdateBox);
+        if (aspect0Superseded && aspect1Superseded)
         {
             // Warn that the app did something useless.  In case of ClearEmulatedChannelsOnly, a
             // clear is staged by ANGLE not the app, so no need to warn in that case.
@@ -11188,13 +11182,18 @@ void ImageHelper::pruneSupersededUpdatesForLevelImpl(ContextVk *contextVk,
         }
         else
         {
-            // Extend boundingBox to best accommodate current update's box.
-            boundingBox[aspectIndex].extend(currentUpdateBox);
-            // If the volume of the current update box is larger than the extended boundingBox
-            // use that as the new boundingBox instead.
-            if (currentUpdateBox.volume() > boundingBox[aspectIndex].volume())
+            const int aspectIndexStart = (isColor || isDepth) ? 0 : 1;
+            const int aspectIndexEnd   = isStencil ? 1 : 0;
+            for (int aspectIndex = aspectIndexStart; aspectIndex <= aspectIndexEnd; ++aspectIndex)
             {
-                boundingBox[aspectIndex] = currentUpdateBox;
+                // Extend boundingBox to best accommodate current update's box.
+                boundingBox[aspectIndex].extend(currentUpdateBox);
+                // If the volume of the current update box is larger than the extended boundingBox
+                // use that as the new boundingBox instead.
+                if (currentUpdateBox.volume() > boundingBox[aspectIndex].volume())
+                {
+                    boundingBox[aspectIndex] = currentUpdateBox;
+                }
             }
             return false;
         }
@@ -12270,14 +12269,10 @@ bool ImageHelper::SubresourceUpdate::matchesLayerRange(gl::OwnerLayer layerIndex
                                                        uint32_t layerCount,
                                                        uint32_t imageLayerCount) const
 {
+    ASSERT(layerCount != VK_REMAINING_ARRAY_LAYERS);
     gl::OwnerLayer updateBaseLayer;
     uint32_t updateLayerCount;
-    getDestSubresource(gl::ImageIndex::kEntireLevel, &updateBaseLayer, &updateLayerCount);
-
-    if (updateLayerCount == VK_REMAINING_ARRAY_LAYERS)
-    {
-        updateLayerCount = imageLayerCount;
-    }
+    getDestSubresource(imageLayerCount, &updateBaseLayer, &updateLayerCount);
 
     return updateBaseLayer == layerIndex && updateLayerCount == layerCount;
 }
