@@ -305,12 +305,9 @@ ios_enable_code_signing = false
 enable_unused_resource_stripping = false
 
 
-# iOS 不支持将 Chromium 自定义 libc++ 作为独立 dylib 嵌入 App Bundle；
-# 使用系统 libc++.1.dylib 可以消除 std::bad_expected_access 等 C++23 符号的运行时缺失。
-use_custom_libcxx = false
-
-# 使用系统 libc++ 时，hardening 保持关闭，避免额外的 ABI 差异
-enable_safe_libcxx = false
+# 保持 Chromium 自带 libc++（base 的 use_custom_libcxx = true）。
+# 关掉它会让 bundled libc++abi 在缺少 -nostdinc++ / -isystem 的情况下继续参与编译，
+# 从而落到 Xcode SDK 的旧 cxxabi.h 上（__ptrauth_cxxabi_* 等宏缺失，编译失败）。
 
 angle_enable_gl = false
 angle_enable_metal = true
