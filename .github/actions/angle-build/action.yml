@@ -114,9 +114,9 @@ runs:
         else
           echo 'expand_directory_allowlist = [ "//build/modules/BUILD.gn" ]' >> .gn
         fi
-        gn gen "out/${{ inputs.out-dir }}" --threads=16
+        gn gen "out/${{ inputs.out-dir }}" --threads=8
         gn args "out/${{ inputs.out-dir }}" --list --short
-        autoninja -C "out/${{ inputs.out-dir }}" -j 16
+        autoninja -C "out/${{ inputs.out-dir }}" -j 8
 
     - name: List build outputs
       if: success()
