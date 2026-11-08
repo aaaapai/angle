@@ -1151,7 +1151,7 @@ def main():
             'src/common/third_party/xxhash/src/LICENSE',
             'src/libANGLE/renderer/vulkan/shaders/src/third_party/ffx_spd/src/LICENSE',
             'src/tests/test_utils/third_party/LICENSE',
-            'src/third_party/libXNVCtrl/LICENSE',
+            'src/third_party/libxnvctrl/LICENSE',
             'src/third_party/volk/src/LICENSE.md',
             'third_party/abseil-cpp/LICENSE',
             'third_party/glslang/LICENSE',

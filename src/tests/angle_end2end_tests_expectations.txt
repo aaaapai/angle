@@ -350,6 +350,7 @@
 523371282 WIN NVIDIA GLES : TransformFeedbackTest.RenderOnceChangeXfbBufferRenderAgain/* = SKIP
 523371282 WIN NVIDIA OPENGL : TransformFeedbackTest.RenderOnceChangeXfbBufferRenderAgain/* = SKIP
 556564149 WIN NVIDIA GLES : GLSLTest_ES3.InterpolantArrayReferencedWithoutIndex/* = SKIP
+579811958 WIN NVIDIA VULKAN : AdvancedBlendMultisampleTest.SharedEdgeKHR/* = SKIP
 
 557268102 LINUX NVIDIA VULKAN : GLSLTest_ES3.LiteralInfinityOutput/* = SKIP
 557268102 LINUX NVIDIA VULKAN : GLSLTest_ES3.LiteralNegativeInfinityOutput/* = SKIP
@@ -776,6 +777,7 @@
 452919815 PIXEL4ORXL GLES : GLSLTest_ES3.VaryingAnonymousStructEquality/* = SKIP
 479224190 PIXEL4ORXL GLES : GLSLTest_ES31.StructArraySamplerWithShortCircuitedSideEffectInIndex/* = SKIP
 573671236 PIXEL4ORXL GLES : GLSLTest_ES3.SamplerInStructAsFunctionArgInCommaCornerCase/* = SKIP
+579500188 PIXEL4ORXL GLES : GLSLTest_ES3.SamplerInStructAsFunctionArgInNestedCalls/* = SKIP
 454827197 PIXEL4ORXL GLES : GLSLConstantFoldingTest_ES31.NamedArrayOfArrayIndex/* = SKIP
 42265301 PIXEL4ORXL GLES : GeometryShaderTest.RedeclareGlIn/* = SKIP
 42265301 PIXEL4ORXL GLES : GeometryShaderTest.RedeclareGlInBeforeInputSize/* = SKIP
