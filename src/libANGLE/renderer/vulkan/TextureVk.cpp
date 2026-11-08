@@ -4062,7 +4062,7 @@ angle::Result TextureVk::syncState(const gl::Context *context,
     localBits.reset(gl::Texture::DIRTY_BIT_BASE_LEVEL);
     localBits.reset(gl::Texture::DIRTY_BIT_MAX_LEVEL);
 
-    bool refreshAllImageViews = false;
+    bool refreshAllReadImageViews = false;
 
     // For AHBs, the ImageViews are created with VkSamplerYcbcrConversionInfo's chromaFilter
     // matching min/magFilters as part of the eglEGLImageTargetTexture2DOES() call. However, the
@@ -4078,7 +4078,7 @@ angle::Result TextureVk::syncState(const gl::Context *context,
         if (mImage->updateChromaFilter(renderer, chromaFilter))
         {
             resetSampler();
-            refreshAllImageViews = true;
+            refreshAllReadImageViews = true;
         }
     }
 
@@ -4088,7 +4088,7 @@ angle::Result TextureVk::syncState(const gl::Context *context,
         localBits.test(gl::Texture::DIRTY_BIT_SWIZZLE_ALPHA) ||
         localBits.test(gl::Texture::DIRTY_BIT_ASTC_DECODE_PRECISION))
     {
-        refreshAllImageViews = true;
+        refreshAllReadImageViews = true;
     }
 
     if (localBits.test(gl::Texture::DIRTY_BIT_SRGB_OVERRIDE) ||
@@ -4117,9 +4117,9 @@ angle::Result TextureVk::syncState(const gl::Context *context,
                                          : ImageMipLevels::EnabledLevels;
     ANGLE_TRY(ensureImageInitialized(contextVk, mipLevels));
     // If needed, drop the read image views.  In either case, ensure read image views are created.
-    if (refreshAllImageViews)
+    if (refreshAllReadImageViews)
     {
-        ANGLE_TRY(refreshImageViews(contextVk));
+        ANGLE_TRY(refreshReadImageViews(contextVk));
     }
     else
     {
@@ -4966,8 +4966,8 @@ vk::ImageOrBufferViewSubresourceSerial TextureVk::getImageViewSubresourceSerialI
     // getMipmapMaxLevel will clamp to the max level if it is smaller than the number of mips.
     uint32_t levelCount = maxLevel - baseLevel + 1;
 
-    return mImageView.getSubresourceSerialForColorspace(baseLevel, levelCount, gl::OwnerLayer(0),
-                                                        vk::LayerMode::All, colorspace);
+    return mImageView.getSubresourceReadSerialForColorspace(
+        baseLevel, levelCount, gl::OwnerLayer(0), vk::LayerMode::All, colorspace);
 }
 
 vk::ImageOrBufferViewSubresourceSerial TextureVk::getBufferViewSerial() const
@@ -4985,7 +4985,7 @@ vk::ImageOrBufferViewSubresourceSerial TextureVk::getStorageImageViewSerial(
     const gl::OwnerLevel baseLevel =
         mState.toOwnerLevel(gl::LevelIndex(static_cast<uint32_t>(binding.level)));
 
-    return mImageView.getSubresourceSerial(baseLevel, 1, nativeLayer, layerMode);
+    return mImageView.getSubresourceWriteSerial(baseLevel, 1, nativeLayer, layerMode);
 }
 
 uint32_t TextureVk::getImageViewLayerCount() const
@@ -5006,7 +5006,7 @@ uint32_t TextureVk::getImageViewLevelCount() const
                : 1;
 }
 
-angle::Result TextureVk::refreshImageViews(ContextVk *contextVk)
+angle::Result TextureVk::refreshReadImageViews(ContextVk *contextVk)
 {
     if (mImage == nullptr)
     {
@@ -5015,34 +5015,14 @@ angle::Result TextureVk::refreshImageViews(ContextVk *contextVk)
     else
     {
         vk::Renderer *renderer = contextVk->getRenderer();
-        mImageView.release(renderer, mImage->getResourceUse());
+        mImageView.releaseReadImageViews(renderer, mImage->getResourceUse());
 
         // Since view has changed, some descriptorSet cache maybe obsolete. So proactively release
         // cache.
         mDescriptorSetCacheManager.releaseKeys(renderer);
-
-        for (auto &renderTargets : mSingleLayerRenderTargets)
-        {
-            for (RenderTargetVector &renderTargetLevels : renderTargets)
-            {
-                for (RenderTargetVk &renderTargetVk : renderTargetLevels)
-                {
-                    renderTargetVk.releaseFramebuffers(contextVk);
-                }
-            }
-        }
-        for (auto &renderTargetPair : mMultiLayerRenderTargets)
-        {
-            renderTargetPair.second->releaseFramebuffers(contextVk);
-        }
     }
 
-    ANGLE_TRY(initReadImageViews(contextVk, getMipLevelCount(ImageMipLevels::EnabledLevels)));
-
-    // Let any Framebuffers know we need to refresh the RenderTarget cache.
-    onStateChange(angle::SubjectMessage::SubjectChanged);
-
-    return angle::Result::Continue;
+    return initReadImageViews(contextVk, getMipLevelCount(ImageMipLevels::EnabledLevels));
 }
 
 angle::Result TextureVk::ensureRenderable(ContextVk *contextVk,
@@ -5113,7 +5093,7 @@ angle::Result TextureVk::ensureRenderableWithFormat(ContextVk *contextVk,
     if (imageWasInitialized)
     {
         ANGLE_TRY(ensureImageInitialized(contextVk, ImageMipLevels::EnabledLevels));
-        ANGLE_TRY(refreshImageViews(contextVk));
+        ANGLE_TRY(refreshReadImageViews(contextVk));
     }
 
     if (updateResultOut != nullptr)

@@ -3765,7 +3765,7 @@ bool ValidateCopyTextureCHROMIUM(const Context *context,
         return false;
     }
 
-    if (source == dest && sourceLevel == destLevel)
+    if (source == dest)
     {
         ANGLE_VALIDATION_ERROR(GL_INVALID_OPERATION, kInvalidSourceTextureSameAsDestTexture);
         return false;
