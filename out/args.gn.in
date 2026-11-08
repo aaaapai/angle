@@ -299,24 +299,29 @@ enable_unused_resource_stripping = true
 
 
 # ==SECTION:platform-ios==
-# -------- iOS：无 GL 后端，有 Metal 后端 --------
 target_os = "ios"
 target_environment = "device"
 ios_enable_code_signing = false
 enable_unused_resource_stripping = false
 
-# iOS 后端覆盖：关闭 GL，开启 Metal
+
+# iOS 不支持将 Chromium 自定义 libc++ 作为独立 dylib 嵌入 App Bundle；
+# 使用系统 libc++.1.dylib 可以消除 std::bad_expected_access 等 C++23 符号的运行时缺失。
+use_custom_libcxx = false
+
+# 使用系统 libc++ 时，hardening 保持关闭，避免额外的 ABI 差异
+enable_safe_libcxx = false
+
 angle_enable_gl = false
 angle_enable_metal = true
 angle_enable_msl = true
-# angle_enable_glsl / angle_enable_essl 保持 base 的 true
-# （Metal 后端输入是 GLSL/ESSL，翻译为 MSL）
 
-# iOS 不 strip framework，保留完整符号（无论 release/debug）
+
+# iOS 不 strip framework，保留完整符号
 enable_stripping = false
 strip_debug_info = false
 
-# iOS ldflags 精简版（覆盖 mode-* 的版本）
+# iOS ldflags
 angle_extra_ldflags = [
   "-fuse-ld=lld",
   "-flto",
@@ -337,6 +342,7 @@ enable_unused_resource_stripping = true
 target_cpu = "arm64"
 arm_use_neon = true
 arm_version = 8
+ios_deployment_target = "12.0"
 
 
 # ==SECTION:arch-arm32==
