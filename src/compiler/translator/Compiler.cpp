@@ -322,6 +322,34 @@ SamplersStaticallyUsedWithTexelFetch PreprocessSamplersStaticallyUsedWithTexelFe
 
     return result;
 }
+
+// Removes the gl_PerVertex fields that are not in accessedFields from the collected varyings
+void FilterGLPerVertexFields(std::vector<ShaderVariable> *varyings,
+                             const PerVertexMemberSet &accessedFields)
+{
+    for (ShaderVariable &varying : *varyings)
+    {
+        if (varying.structOrBlockName == "gl_PerVertex" && !varying.fields.empty())
+        {
+            std::vector<ShaderVariable> filteredFields;
+            for (const ShaderVariable &field : varying.fields)
+            {
+                // Check if the specific field is used.
+                const int perVertexMemberIndex =
+                    GetPerVertexMemberIndex(ImmutableString(field.name));
+                const bool isUsed =
+                    perVertexMemberIndex >= 0 && accessedFields.test(perVertexMemberIndex);
+
+                if (isUsed)
+                {
+                    filteredFields.push_back(field);
+                }
+            }
+            varying.fields = std::move(filteredFields);
+        }
+    }
+}
+
 }  // anonymous namespace
 
 bool IsGLSL150OrNewer(ShShaderOutput output)
@@ -572,6 +600,21 @@ TIntermBlock *TCompiler::compileTreeImpl(angle::Span<const char *const> shaderSt
     {
         mClipDistanceSize = static_cast<uint8_t>(parseContext.getClipDistanceArraySize());
         mCullDistanceSize = static_cast<uint8_t>(parseContext.getCullDistanceArraySize());
+        if (mShaderType == GL_FRAGMENT_SHADER)
+        {
+            // Fragment shaders have no gl_PerVertex input block. gl_ClipDistance and
+            // gl_CullDistance are themselves inputs, so the sizes tracked by parseContext are the
+            // input sizes.
+            mInputClipDistanceSize = mClipDistanceSize;
+            mInputCullDistanceSize = mCullDistanceSize;
+        }
+        else
+        {
+            mInputClipDistanceSize =
+                static_cast<uint8_t>(parseContext.getInputClipDistanceArraySize());
+            mInputCullDistanceSize =
+                static_cast<uint8_t>(parseContext.getInputCullDistanceArraySize());
+        }
         mMetadataFlags[MetadataFlags::HasClipDistance] = parseContext.isClipDistanceUsed();
     }
 
@@ -1512,11 +1555,18 @@ void TCompiler::collectVariables(
     // Variable collection is done from the IR already.
     ASSERT(!mCompileOptions.useIR);
     ASSERT(!mVariablesCollected);
+    PerVertexMembersAccessed perVertexMembersAccessed;
     CollectVariables(root, &mAttributes, &mOutputVariables, &mUniforms, &mInputVaryings,
                      &mOutputVaryings, &mSharedVariables, &mUniformBlocks, &mShaderStorageBlocks,
-                     mResources.HashFunction, &mNameMap, &mSymbolTable, mShaderType,
-                     mExtensionBehavior, mCompileOptions.transformFloatUniformTo16Bits,
+                     &perVertexMembersAccessed, mResources.HashFunction, &mNameMap, &mSymbolTable,
+                     mShaderType, mExtensionBehavior, mCompileOptions.transformFloatUniformTo16Bits,
                      samplersStaticallyUsedWithTexelFetch);
+
+    // The built-in gl_PerVertex block declares every member, but only the members the shader
+    // accesses are reported.
+    FilterGLPerVertexFields(&mInputVaryings, perVertexMembersAccessed.input);
+    FilterGLPerVertexFields(&mOutputVaryings, perVertexMembersAccessed.output);
+
     collectInterfaceBlocks();
     mVariablesCollected = true;
 }
@@ -1553,8 +1603,10 @@ void TCompiler::clearResults()
 
     mNumViews = -1;
 
-    mClipDistanceSize = 0;
-    mCullDistanceSize = 0;
+    mClipDistanceSize      = 0;
+    mCullDistanceSize      = 0;
+    mInputClipDistanceSize = 0;
+    mInputCullDistanceSize = 0;
 
     mGeometryShaderInputPrimitiveType  = EptUndefined;
     mGeometryShaderOutputPrimitiveType = EptUndefined;
