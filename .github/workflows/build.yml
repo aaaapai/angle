@@ -58,7 +58,7 @@ jobs:
 
   ios:
     if: ${{ inputs.platform == 'ios' || inputs.platform == 'all' }}
-    runs-on: macos-15
+    runs-on: macos-14
     steps:
       - uses: actions/checkout@main
         with:
