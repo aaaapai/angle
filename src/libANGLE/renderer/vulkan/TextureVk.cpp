@@ -4106,7 +4106,7 @@ angle::Result TextureVk::syncState(const gl::Context *context,
         
         if (!renderer->getFeatures().supportsImageFormatList.enabled)
         {
-            refreshAllImageViews = true;
+            refreshAllReadImageViews = true;
         }
     }
 
