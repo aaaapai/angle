@@ -137,7 +137,7 @@
                 "value":"resources"
             },
             "gl_MaxVaryingVectors":{
-                "essl_level":"COMMON_BUILTINS",
+                "essl_level":"ESSL1_BUILTINS",
                 "type":{
                     "basic":"Int",
                     "precision":"Medium",
@@ -161,6 +161,7 @@
                     "precision":"Medium",
                     "qualifier":"Const"
                 },
+                "essl_extension":"EXT_blend_func_extended",
                 "value":"resources",
                 "valueKey":"MaxDualSourceDrawBuffers"
             },
@@ -749,6 +750,7 @@
                             "precision":"Medium",
                             "qualifier":"Const"
                         },
+                        "essl_extension":"APPLE_clip_distance",
                         "value":"resources",
                         "suffix": "APPLE"
                     }
@@ -763,6 +765,7 @@
                             "precision":"Medium",
                             "qualifier":"Const"
                         },
+                        "essl_extension":"EXT_clip_cull_distance, ANGLE_clip_cull_distance",
                         "value":"resources"
                     },
                     "gl_MaxCullDistances":{
@@ -772,6 +775,7 @@
                             "precision":"Medium",
                             "qualifier":"Const"
                         },
+                        "essl_extension":"EXT_clip_cull_distance, ANGLE_clip_cull_distance",
                         "value":"resources"
                     },
                     "gl_MaxCombinedClipAndCullDistances":{
@@ -781,6 +785,7 @@
                             "precision":"Medium",
                             "qualifier":"Const"
                         },
+                        "essl_extension":"EXT_clip_cull_distance, ANGLE_clip_cull_distance",
                         "value":"resources"
                     }
                 }
@@ -816,7 +821,7 @@
                 }
             },
             "gl_FragColor":{
-                "essl_level":"COMMON_BUILTINS",
+                "essl_level":"ESSL1_BUILTINS",
                 "type":{
                     "basic":"Float",
                     "precision":"Medium",
@@ -825,7 +830,7 @@
                 }
             },
             "gl_FragData":{
-                "essl_level":"COMMON_BUILTINS",
+                "essl_level":"ESSL1_BUILTINS",
                 "initDynamicType":"TType *{type_name} = new TType(EbtFloat, EbpMedium, EvqFragData, 4); if (spec != SH_WEBGL2_SPEC) {{ {type_name}->makeArray(resources.MaxDrawBuffers); }} else {{ {type_name}->makeArray(1u); }}"
             },
             "gl_FragDepth":{
@@ -862,7 +867,8 @@
             "EXTBlendFuncExtended":{
                 "variables":{
                     "gl_SecondaryFragColorEXT":{
-                        "essl_level":"COMMON_BUILTINS",
+                        "essl_level":"ESSL1_BUILTINS",
+                        "essl_extension":"EXT_blend_func_extended",
                         "type":{
                             "basic":"Float",
                             "precision":"Medium",
@@ -871,7 +877,8 @@
                         }
                     },
                     "gl_SecondaryFragDataEXT":{
-                        "essl_level":"COMMON_BUILTINS",
+                        "essl_level":"ESSL1_BUILTINS",
+                        "essl_extension":"EXT_blend_func_extended",
                         "initDynamicType":"TType *{type_name} = new TType(EbtFloat, EbpMedium, EvqSecondaryFragDataEXT, 4, 1); {type_name}->makeArray(resources.MaxDualSourceDrawBuffers);"
                     }
                 }
@@ -879,7 +886,8 @@
             "EXTFragDepth":{
                 "variables":{
                     "gl_FragDepthEXT":{
-                        "essl_level":"COMMON_BUILTINS",
+                        "essl_level":"ESSL1_BUILTINS",
+                        "essl_extension":"EXT_frag_depth",
                         "type": {
                             "basic":"Float",
                             "precision":"High",
@@ -891,7 +899,8 @@
             "EXTShaderFramebufferFetch":{
                 "variables":{
                     "gl_LastFragData":{
-                        "essl_level":"COMMON_BUILTINS",
+                        "essl_level":"ESSL1_BUILTINS",
+                        "essl_extension":"EXT_shader_framebuffer_fetch, EXT_shader_framebuffer_fetch_non_coherent",
                         "initDynamicType":"TType *{type_name} = new TType(EbtFloat, EbpMedium, EvqLastFragData, 4, 1); {type_name}->makeArray(resources.MaxDrawBuffers);"
                     }
                 }
@@ -900,6 +909,7 @@
                 "variables":{
                     "gl_LastFragColorARM":{
                         "essl_level":"COMMON_BUILTINS",
+                        "essl_extension":"ARM_shader_framebuffer_fetch",
                         "type":{
                             "basic":"Float",
                             "precision":"Medium",
@@ -913,6 +923,7 @@
                 "variables":{
                     "gl_LastFragDepthARM":{
                         "essl_level":"COMMON_BUILTINS",
+                        "essl_extension":"ARM_shader_framebuffer_fetch_depth_stencil",
                         "type":{
                             "comment": "Precision can be Medium on ESSL1 without GL_FRAGMENT_PRECISION_HIGH, but ANGLE always supports that where this extension is exposed",
                             "basic":"Float",
@@ -922,6 +933,7 @@
                     },
                     "gl_LastFragStencilARM":{
                         "essl_level":"COMMON_BUILTINS",
+                        "essl_extension":"ARM_shader_framebuffer_fetch_depth_stencil",
                         "type":{
                             "basic":"Int",
                             "precision":"Low",
@@ -958,6 +970,7 @@
                 "variables":{
                     "gl_ShadingRateEXT":{
                         "essl_level":"ESSL3_1_BUILTINS",
+                        "essl_extension":"EXT_fragment_shading_rate",
                         "type":{
                             "basic":"Int",
                             "precision":"Medium",
@@ -1090,6 +1103,7 @@
                         "variables":{
                             "gl_DrawID":{
                                 "essl_level":"COMMON_BUILTINS",
+                                "essl_extension":"ANGLE_multi_draw",
                                 "type":{
                                     "basic":"Int",
                                     "precision":"High",
@@ -1106,6 +1120,7 @@
                         "variables":{
                             "gl_BaseVertex":{
                                 "essl_level":"ESSL3_BUILTINS",
+                                "essl_extension":"ANGLE_base_vertex_base_instance_shader_builtin",
                                 "type":{
                                     "basic":"Int",
                                     "precision":"High",
@@ -1114,6 +1129,7 @@
                             },
                             "gl_BaseInstance":{
                                 "essl_level":"ESSL3_BUILTINS",
+                                "essl_extension":"ANGLE_base_vertex_base_instance_shader_builtin",
                                 "type":{
                                     "basic":"Int",
                                     "precision":"High",
@@ -1128,6 +1144,7 @@
                 "variables":{
                     "gl_ClipDistance":{
                         "essl_level":"COMMON_BUILTINS",
+                        "essl_extension":"APPLE_clip_distance",
                         "initDynamicType":"TType *{type_name} = new TType(EbtFloat, EbpHigh, EvqClipDistance, 1); {type_name}->makeArray(resources.MaxClipDistances);",
                         "suffix": "APPLE"
                     }
@@ -1137,6 +1154,7 @@
                 "variables":{
                     "gl_PrimitiveShadingRateEXT":{
                         "essl_level":"ESSL3_1_BUILTINS",
+                        "essl_extension":"EXT_fragment_shading_rate_primitive",
                         "type":{
                             "basic":"Int",
                             "precision":"Medium",
@@ -1303,6 +1321,7 @@
             "gl_PrimitiveShadingRateEXT":{
                 "suffix":"GS",
                 "essl_level":"ESSL3_1_BUILTINS",
+                "essl_extension":"EXT_fragment_shading_rate_primitive",
                 "type":{
                     "basic":"Int",
                     "precision":"Medium",
@@ -1566,22 +1585,16 @@
                 "variables":{
                     "gl_ClipDistance":{
                         "essl_level":"ESSL3_BUILTINS",
+                        "essl_extension":"EXT_clip_cull_distance, ANGLE_clip_cull_distance",
                         "initDynamicType":"TType *{type_name} = new TType(EbtFloat, EbpHigh, EvqClipDistance, 1); {type_name}->makeArray(resources.MaxClipDistances);"
                     },
                     "gl_CullDistance":{
                         "essl_level":"ESSL3_BUILTINS",
+                        "essl_extension":"EXT_clip_cull_distance, ANGLE_clip_cull_distance",
                         "initDynamicType":"TType *{type_name} = new TType(EbtFloat, EbpHigh, EvqCullDistance, 1); {type_name}->makeArray(resources.MaxCullDistances);"
                     }
                 }
             }
         }
-    }
-    "gl_MultiTexCoord0": {
-      "essl_level": "COMMON_BUILTINS",
-      "type": {
-          "basic": "Float",
-          "precision": "High",
-          "qualifier": "MultiTexCoord0",
-          "primarySize": 4
     }
 }
