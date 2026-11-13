@@ -26,7 +26,7 @@
 
 // Version number for shader translation API.
 // It is incremented every time the API changes.
-#define ANGLE_SH_VERSION 428
+#define ANGLE_SH_VERSION 432
 
 enum ShShaderSpec
 {
@@ -82,6 +82,14 @@ struct ShCompileOptionsMetal
     int defaultUniformsBindingIndex = 0;
     // Binding index for UBO's argument buffer
     int UBOArgumentBufferBindingIndex = 0;
+
+    // Use sample_compare with explicit gradients for shadow textureGrad functions. When false,
+    // the gradients are converted to an explicit level of detail.
+    bool allowSamplerCompareGradient = false;
+
+    // Write an all-enabled sample mask even for single-sampled rendering when the fragment shader
+    // uses derivatives.
+    bool writeHelperSampleMask = false;
 };
 
 // For ANGLE_shader_pixel_local_storage.
@@ -173,8 +181,9 @@ struct ShCompileOptions
     // If requested, validates the AST after every transformation.  Useful for debugging.
     uint64_t validateAST : 1;
 
-    // Limit the number of output varyings allowed in vertex shaders to work around driver bugs.
-    uint64_t limitOutputVaryingsTo256 : 1;
+    // Limit the number of varying components allowed in vertex shader outputs and fragment shader
+    // inputs to work around driver bugs.
+    uint64_t limitVaryingsAtCompileTime : 1;
 
     // Emits #line directives in HLSL.
     uint64_t lineDirectives : 1;
@@ -342,7 +351,9 @@ struct ShCompileOptions
     // Workaround for a driver bug with nested switches.
     uint64_t wrapSwitchInIfTrue : 1;
 
-    uint64_t unused4 : 1;
+    // Workaround for a driver bug with RelaxedPrecision on integers.  Integer values are emitted
+    // without the RelaxedPrecision decoration.
+    uint64_t avoidRelaxedPrecisionOnIntegers : 1;
 
     // This flag works around a inconsistent behavior in Mac AMD driver where gl_VertexID doesn't
     // include base vertex value. It replaces gl_VertexID with (gl_VertexID + angle_BaseVertex) when
@@ -461,7 +472,9 @@ struct ShCompileOptions
     // Ensure all loops execute side-effects or terminate.
     uint64_t ensureLoopForwardProgress : 1;
 
-    uint64_t unused2 : 1;
+    // Limit the total number of declared variables and expanded struct/interface-block fields per
+    // shader to work around driver bugs.
+    uint64_t limitShaderVariableFieldsAtCompileTime : 1;
 
     uint64_t transformFloatUniformTo16Bits : 1;
 
@@ -1195,12 +1208,6 @@ extern const char kRasterizerDiscardEnabledConstName[];
 
 // Specialization constant to enable depth write in fragment shaders.
 extern const char kDepthWriteEnabledConstName[];
-
-// Specialization constant to enable alpha to coverage.
-extern const char kEmulateAlphaToCoverageConstName[];
-
-// Specialization constant to write helper sample mask output.
-extern const char kWriteHelperSampleMaskConstName[];
 
 // Specialization constant to enable sample mask output.
 extern const char kSampleMaskWriteEnabledConstName[];

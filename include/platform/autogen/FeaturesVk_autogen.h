@@ -872,6 +872,12 @@ struct FeaturesVk : FeatureSetBase
         &members,
     };
 
+    FeatureInfo supportsColorBlendEnableDynamicState = {
+        "supportsColorBlendEnableDynamicState",
+        FeatureCategory::VulkanFeatures,
+        &members,
+    };
+
     FeatureInfo supportsColorWriteMaskDynamicState = {
         "supportsColorWriteMaskDynamicState",
         FeatureCategory::VulkanFeatures,
@@ -1306,6 +1312,12 @@ struct FeaturesVk : FeatureSetBase
 
     FeatureInfo avoidOpSelectWithMismatchingRelaxedPrecision = {
         "avoidOpSelectWithMismatchingRelaxedPrecision",
+        FeatureCategory::VulkanWorkarounds,
+        &members,
+    };
+
+    FeatureInfo avoidRelaxedPrecisionOnIntegers = {
+        "avoidRelaxedPrecisionOnIntegers",
         FeatureCategory::VulkanWorkarounds,
         &members,
     };
@@ -1847,6 +1859,12 @@ struct FeaturesVk : FeatureSetBase
     FeatureInfo allowPipelineBinariesForTesting = {
         "allowPipelineBinariesForTesting",
         FeatureCategory::VulkanFeatures,
+        &members,
+    };
+
+    FeatureInfo disableRGB888RecordableBit = {
+        "disableRGB888RecordableBit",
+        FeatureCategory::VulkanAppWorkarounds,
         &members,
     };
 

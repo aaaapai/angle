@@ -3356,12 +3356,17 @@ VkResult BufferPool::allocateNewBuffer(ErrorContext *context, VkDeviceSize sizeI
     // First ensure we are not exceeding the heapSize to avoid the validation error.
     VK_RESULT_CHECK(sizeInBytes <= heapSize, VK_ERROR_OUT_OF_DEVICE_MEMORY);
 
-    // Double the size until the requirement is met. This also helps reduce fragmentation. Since
-    // this is global pool, we have less worry about memory waste.
-    // If this is the first buffer block allocation from an empty pool, the initial size is used.
-    // However, the preferred size will be used for future blocks in the same pool.
+    // The first block of an empty pool uses the initial size. Each following block is twice the
+    // largest live block, up to the preferred size, so block sizes grow geometrically. Blocks are
+    // appended to mBufferBlocks in non-decreasing size order, so the last block is the largest.
     ASSERT(mInitialSize <= mPreferredSize);
-    VkDeviceSize newSize = mBufferBlocks.empty() ? mInitialSize : mPreferredSize;
+    VkDeviceSize newSize = mInitialSize;
+    if (!mBufferBlocks.empty())
+    {
+        newSize =
+            std::max(newSize, std::min(mBufferBlocks.back()->getMemorySize() * 2, mPreferredSize));
+    }
+    // Double the size until the requirement is met.
     while (newSize < sizeInBytes)
     {
         newSize <<= 1;
@@ -3409,7 +3414,9 @@ VkResult BufferPool::allocateNewBuffer(ErrorContext *context, VkDeviceSize sizeI
     }
 
     mTotalMemorySize += block->getMemorySize();
-    // Append the bufferBlock into the pool
+    // Append the bufferBlock into the pool. Blocks are kept in non-decreasing size order.
+    ASSERT(mBufferBlocks.empty() ||
+           mBufferBlocks.back()->getMemorySize() <= block->getMemorySize());
     mBufferBlocks.push_back(std::move(block));
     context->getPerfCounters().allocateNewBufferBlockCalls++;
 
@@ -3426,7 +3433,7 @@ VkResult BufferPool::allocateBuffer(ErrorContext *context,
     VkDeviceSize offset;
     VkDeviceSize alignedSize = roundUp(sizeInBytes, alignment);
 
-    if (alignedSize >= kMaxBufferSizeForSuballocation)
+    if (alignedSize >= mPreferredSize)
     {
         VkDeviceSize heapSize =
             context->getRenderer()->getMemoryProperties().getHeapSizeForMemoryType(
@@ -3513,6 +3520,9 @@ VkResult BufferPool::allocateBuffer(ErrorContext *context,
         {
             VK_RESULT_TRY(block->allocate(alignedSize, alignment, &allocation, &offset));
             suballocation->init(block.get(), allocation, offset, alignedSize);
+            // Reused empty blocks are at least mSize, so the size order of mBufferBlocks holds.
+            ASSERT(mBufferBlocks.empty() ||
+                   mBufferBlocks.back()->getMemorySize() <= block->getMemorySize());
             mBufferBlocks.push_back(std::move(block));
             mEmptyBufferBlocks.pop_back();
             mNumberOfNewBuffersNeededSinceLastPrune++;
@@ -4180,8 +4190,7 @@ void DynamicDescriptorPool::checkAndDestroyUnusedPool(Renderer *renderer)
 // For ASSERT only
 bool DynamicDescriptorPool::hasCachedDescriptorSet(const DescriptorSetDesc &desc) const
 {
-    DescriptorSetLRUListIterator listIterator;
-    return mDescriptorSetCache.getDescriptorSet(desc, &listIterator);
+    return mDescriptorSetCache.hasCachedDescriptorSet(desc);
 }
 
 // For testing only!
@@ -6546,8 +6555,8 @@ VkResult ImageHelper::initMemory(ErrorContext *context,
     // To allocate memory here, if possible, we use the image memory suballocator which uses VMA.
     ASSERT(excludedFlags < VK_MEMORY_PROPERTY_FLAG_BITS_MAX_ENUM);
     Renderer *renderer = context->getRenderer();
-    bool allocateDedicatedMemory =
-        renderer->getImageMemorySuballocator().needsDedicatedMemory(memoryRequirements->size);
+    bool allocateDedicatedMemory = renderer->getImageMemorySuballocator().needsDedicatedMemory(
+        renderer, memoryRequirements->size);
 
     // First try allocate tile memory if requested
     ASSERT(!mDeviceMemory.valid());
@@ -6603,7 +6612,7 @@ VkResult ImageHelper::initMemory(ErrorContext *context,
             // memory requirements may have changed
             mImage.getMemoryRequirements(renderer->getDevice(), memoryRequirements);
             allocateDedicatedMemory = renderer->getImageMemorySuballocator().needsDedicatedMemory(
-                memoryRequirements->size);
+                renderer, memoryRequirements->size);
         }
     }
 

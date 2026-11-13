@@ -27245,6 +27245,46 @@ void main()
     ASSERT_GL_NO_ERROR();
 }
 
+// Test that a function returning a struct with an array member and missing a final return
+// statement compiles when AvoidComplexExpressionsInStructConstructor is enabled.
+// https://crbug.com/569158181
+TEST_P(GLSLTest_ES3, StructConstructorDefaultReturnWithArrayMember)
+{
+    constexpr char kFS[] = R"(#version 300 es
+precision highp float;
+uniform int u_zero;
+struct S {
+    float a;
+    float b;
+};
+struct T {
+    S s[2];
+};
+
+T makeT()
+{
+    if (u_zero == 0)
+    {
+        T t;
+        t.s[0] = S(1.0, 0.0);
+        t.s[1] = S(0.0, 1.0);
+        return t;
+    }
+}
+
+out vec4 color;
+void main()
+{
+    T t = makeT();
+    color = vec4(t.s[0].a, t.s[0].b, t.s[1].a, t.s[1].b);
+})";
+
+    ANGLE_GL_PROGRAM(program, essl3_shaders::vs::Simple(), kFS);
+    drawQuad(program, essl3_shaders::PositionAttrib(), 0.5f);
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::red);
+    ASSERT_GL_NO_ERROR();
+}
+
 // Test that having dynamic indexing of a vector inside the right hand side of logical or works
 // correctly.
 TEST_P(GLSLTest_ES3, DynamicIndexingOfVectorOnRightSideOfLogicalOr)
@@ -28012,6 +28052,75 @@ void main()
     EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::red);
     ASSERT_GL_NO_ERROR();
 }
+
+// Test that when calling interpolateAt* built-in functions on varyings whose precision is
+// mismatched between shader stages, regardless of whether we apply precision fixer in shader
+// translator, the shaders should compile fine.
+TEST_P(GLSLTest_ES3, InterpolateOnVaryingWithPrecisionMismatch)
+{
+    ANGLE_SKIP_TEST_IF(!EnsureGLExtensionEnabled("GL_OES_shader_multisample_interpolation"));
+    constexpr char kVS[] = R"(#version 300 es
+in highp vec2 position;
+out mediump vec4 v_var;
+void main() {
+v_var = vec4(0.2, 0.25, 0.3, 1.0);
+gl_Position = vec4(position, 0, 1);
+})";
+
+    constexpr char kFS[] = R"(#version 300 es
+#extension GL_OES_shader_multisample_interpolation : require
+precision highp float;
+in highp vec4 v_var;
+out vec4 outColor;
+void main() {
+  outColor = interpolateAtCentroid(v_var)
+           + interpolateAtOffset(v_var, vec2(0.0, 0.0))
+           + interpolateAtSample(v_var, 0);
+})";
+
+    ANGLE_GL_PROGRAM(program, kVS, kFS);
+    ASSERT_GL_NO_ERROR();
+
+    glUseProgram(program);
+    drawQuad(program, "position", 0.5f, 1.0f, true);
+    EXPECT_PIXEL_COLOR_NEAR(0, 0, GLColor(153, 191, 230, 255), 1);
+    ASSERT_GL_NO_ERROR();
+}
+
+// Test that when calling interpolateAt* built-in functions on array type varying whose precision is
+// mismatched between shader stages, regardless of whether we apply precision fixer in shader
+// translator, the shaders should compile fine.
+TEST_P(GLSLTest_ES3, InterpolateOnArrayVaryingWithPrecisionMismatch)
+{
+    ANGLE_SKIP_TEST_IF(!EnsureGLExtensionEnabled("GL_OES_shader_multisample_interpolation"));
+    constexpr char kVS[] = R"(#version 300 es
+in highp vec2 position;
+out mediump vec4 v_var[3];
+void main() {
+v_var[0] = vec4(0.1, 0.1, 0.1, 1.0);
+v_var[1] = vec4(0.2, 0.2, 0.2, 1.0);
+v_var[2] = vec4(0.3, 0.3, 0.3, 1.0);
+gl_Position = vec4(position, 0, 1);
+})";
+
+    constexpr char kFS[] = R"(#version 300 es
+#extension GL_OES_shader_multisample_interpolation : require
+precision highp float;
+in highp vec4 v_var[3];
+out vec4 outColor;
+void main() {
+  outColor = interpolateAtCentroid(v_var[0])
+           + interpolateAtOffset(v_var[1], vec2(0.0, 0.0))
+           + interpolateAtSample(v_var[2], 0);
+})";
+    ANGLE_GL_PROGRAM(program, kVS, kFS);
+    ASSERT_GL_NO_ERROR();
+
+    glUseProgram(program);
+    drawQuad(program, "position", 0.5f, 1.0f, true);
+    EXPECT_PIXEL_COLOR_NEAR(0, 0, GLColor(153, 153, 153, 255), 1);
+    ASSERT_GL_NO_ERROR();
+}
 }  // anonymous namespace
 
 ANGLE_INSTANTIATE_TEST_ES2_AND_ES3_AND_ES31_AND_ES32(
@@ -28060,6 +28169,7 @@ ANGLE_INSTANTIATE_TEST_ES3_AND(
     ES3_D3D11().enable(Feature::RetainShaderDebugInfo),
     ES3_METAL().enable(Feature::RetainShaderDebugInfo),
     ES3_VULKAN().enable(Feature::AvoidOpSelectWithMismatchingRelaxedPrecision),
+    ES3_VULKAN().enable(Feature::VaryingsRequireMatchingPrecisionInSpirv),
     ES3_VULKAN().enable(Feature::ForceInitShaderVariables),
     ES3_VULKAN().disable(Feature::SupportsSPIRV14),
     ES3_VULKAN().enable(Feature::EmulatedPrerotation90),
