@@ -31,7 +31,7 @@ jobs:
       - name: Build host translator with MSL
         run: |
           export PATH=`pwd`/depot_tools:$PATH
-          gn gen out/l3 --args='is_debug=false angle_enable_metal=true angle_enable_msl=true'
+          gn gen out/l3 --args='is_debug=false angle_enable_msl=true'
           autoninja -C out/l3 -j 8 angle_shader_translator
       - name: L1 translator assertions
         run: |
