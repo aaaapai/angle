@@ -82,6 +82,8 @@ struct ShCompileOptionsMetal
     int defaultUniformsBindingIndex = 0;
     // Binding index for UBO's argument buffer
     int UBOArgumentBufferBindingIndex = 0;
+    // Binding index for SSBO's argument buffer
+    int SSBOArgumentBufferBindingIndex = 0;
 };
 
 // For ANGLE_shader_pixel_local_storage.

@@ -548,6 +548,7 @@ void ProgramExecutableMtl::saveShaderInternalInfo(gl::BinaryOutputStream *stream
     for (gl::ShaderType shaderType : gl::AllShaderTypes())
     {
         stream->writeInt<int>(mMslShaderTranslateInfo[shaderType].hasUBOArgumentBuffer);
+        stream->writeInt<int>(mMslShaderTranslateInfo[shaderType].hasSSBOArgumentBuffer);
         for (const mtl::SamplerBinding &binding :
              mMslShaderTranslateInfo[shaderType].actualSamplerBindings)
         {
@@ -601,7 +602,8 @@ void ProgramExecutableMtl::loadShaderInternalInfo(gl::BinaryInputStream *stream)
 {
     for (gl::ShaderType shaderType : gl::AllShaderTypes())
     {
-        mMslShaderTranslateInfo[shaderType].hasUBOArgumentBuffer = stream->readInt<int>() != 0;
+        mMslShaderTranslateInfo[shaderType].hasUBOArgumentBuffer  = stream->readInt<int>() != 0;
+        mMslShaderTranslateInfo[shaderType].hasSSBOArgumentBuffer = stream->readInt<int>() != 0;
         for (mtl::SamplerBinding &binding :
              mMslShaderTranslateInfo[shaderType].actualSamplerBindings)
         {
@@ -616,6 +618,10 @@ void ProgramExecutableMtl::loadShaderInternalInfo(gl::BinaryInputStream *stream)
         for (uint32_t &uboBinding : mMslShaderTranslateInfo[shaderType].actualUBOBindings)
         {
             uboBinding = stream->readInt<uint32_t>();
+        }
+        for (uint32_t &ssboBinding : mMslShaderTranslateInfo[shaderType].actualSSBOBindings)
+        {
+            ssboBinding = stream->readInt<uint32_t>();
         }
         mMslShaderTranslateInfo[shaderType].hasInvariant = stream->readBool();
     }

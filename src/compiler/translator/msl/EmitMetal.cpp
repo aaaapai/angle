@@ -204,6 +204,7 @@ class GenMetalTraverser : public TIntermTraverser
     size_t mMainUniformBufferIndex         = 0;
     size_t mDriverUniformsBindingIndex     = 0;
     size_t mUBOArgumentBufferBindingIndex  = 0;
+    size_t mSSBOArgumentBufferBindingIndex = 0;
     bool mRasterOrderGroupsSupported       = false;
 };
 }  // anonymous namespace
@@ -231,6 +232,7 @@ GenMetalTraverser::GenMetalTraverser(const TCompiler &compiler,
       mMainUniformBufferIndex(compileOptions.metal.defaultUniformsBindingIndex),
       mDriverUniformsBindingIndex(compileOptions.metal.driverUniformsBindingIndex),
       mUBOArgumentBufferBindingIndex(compileOptions.metal.UBOArgumentBufferBindingIndex),
+      mSSBOArgumentBufferBindingIndex(compileOptions.metal.SSBOArgumentBufferBindingIndex),
       mRasterOrderGroupsSupported(compileOptions.pls.fragmentSyncType ==
                                   ShFragmentSynchronizationType::RasterOrderGroups_Metal)
 {}
@@ -2205,7 +2207,7 @@ void GenMetalTraverser::emitFunctionParameter(const TFunction &func, const TVari
             }
             else if (mPipelineStructs.uniformBuffers.matches(*structure))
             {
-                mOut << " [[buffer(" << mUBOArgumentBufferBindingIndex << ")]]";
+                mOut << " [[buffer(" << mSSBOArgumentBufferBindingIndex << ")]]";
                 reflection->hasUBOs = true;
             }
             else if (mPipelineStructs.userUniforms.matches(*structure))

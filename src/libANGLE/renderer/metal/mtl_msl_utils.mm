@@ -140,7 +140,8 @@ void TranslatedShaderInfo::reset()
 {
     metalShaderSource    = nullptr;
     metalLibrary         = nil;
-    hasUBOArgumentBuffer = false;
+    hasUBOArgumentBuffer  = false;
+    hasSSBOArgumentBuffer = false;
     hasIsnanOrIsinf      = false;
     hasInvariant         = false;
     for (mtl::SamplerBinding &binding : actualSamplerBindings)
@@ -153,6 +154,10 @@ void TranslatedShaderInfo::reset()
         rwTextureBinding = -1;
     }
     for (uint32_t &binding : actualUBOBindings)
+    {
+        binding = mtl::kMaxShaderBuffers;
+    }
+    for (uint32_t &binding : actualSSBOBindings)
     {
         binding = mtl::kMaxShaderBuffers;
     }
@@ -606,6 +611,17 @@ angle::Result MTLGetMSL(const angle::FeaturesMtl &features,
             uboOriginalBindings[block.name] = bufferIdx;
         }
     }
+
+    std::unordered_map<std::string, uint32_t> ssboOriginalBindings;
+    for (uint32_t bufferIdx = 0; bufferIdx < executable.getShaderStorageBlocks().size();
+         ++bufferIdx)
+    {
+        const gl::InterfaceBlock &block = executable.getShaderStorageBlocks()[bufferIdx];
+        if (!ssboOriginalBindings.count(block.name))
+        {
+            ssboOriginalBindings[block.name] = bufferIdx;
+        }
+    }
     // Retrieve original sampler bindings produced by front end.
     OriginalSamplerBindingMap originalSamplerBindings;
     const std::vector<gl::SamplerBinding> &samplerBindings = executable.getSamplerBindings();
@@ -676,20 +692,26 @@ angle::Result MTLGetMSL(const angle::FeaturesMtl &features,
             &shadersState[type]->translatorMetalReflection;
         if (reflection->hasUBOs)
         {
-            (*mslShaderInfoOut)[type].hasUBOArgumentBuffer = true;
+            // The uniformBuffers pipeline struct is generated for GLSL buffer blocks (SSBOs), not
+            // for uniform blocks, so resolve these bindings against the storage-block list.
+            (*mslShaderInfoOut)[type].hasSSBOArgumentBuffer = true;
 
-            for (auto &uboBinding : reflection->getUniformBufferBindings())
+            for (auto &ssboBinding : reflection->getUniformBufferBindings())
             {
-                const std::string &uboName         = uboBinding.first;
-                const sh::UBOBindingInfo &bindInfo = uboBinding.second;
-                const uint32_t uboBindIndex        = static_cast<uint32_t>(bindInfo.bindIndex);
-                const uint32_t uboArraySize        = static_cast<uint32_t>(bindInfo.arraySize);
-                const uint32_t originalBinding     = uboOriginalBindings.at(uboName);
-                uint32_t currentSlot               = static_cast<uint>(uboBindIndex);
-                for (uint32_t i = 0; i < uboArraySize; ++i)
+                const std::string &ssboName        = ssboBinding.first;
+                const sh::UBOBindingInfo &bindInfo = ssboBinding.second;
+                const uint32_t ssboBindIndex       = static_cast<uint32_t>(bindInfo.bindIndex);
+                const uint32_t ssboArraySize       = static_cast<uint32_t>(bindInfo.arraySize);
+                const auto originalIt              = ssboOriginalBindings.find(ssboName);
+                if (originalIt == ssboOriginalBindings.end())
                 {
-                    // Use consecutive slot for member in array
-                    (*mslShaderInfoOut)[type].actualUBOBindings[originalBinding + i] =
+                    continue;
+                }
+                const uint32_t originalBinding = originalIt->second;
+                uint32_t currentSlot           = ssboBindIndex;
+                for (uint32_t i = 0; i < ssboArraySize; ++i)
+                {
+                    (*mslShaderInfoOut)[type].actualSSBOBindings[originalBinding + i] =
                         currentSlot + i;
                 }
             }

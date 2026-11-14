@@ -158,6 +158,8 @@ constexpr uint32_t kDefaultUniformsBindingIndex = kDefaultAttribsBindingIndex + 
 constexpr uint32_t kTransformFeedbackBindingIndex = kDefaultUniformsBindingIndex + 1;
 // Binding index for UBO's argument buffer
 constexpr uint32_t kUBOArgumentBufferBindingIndex = kTransformFeedbackBindingIndex + 4;
+// SSBOs use a second argument buffer so their device pointers cannot alias the UBO argument buffer.
+constexpr uint32_t kSSBOArgumentBufferBindingIndex = kUBOArgumentBufferBindingIndex + 1;
 
 constexpr uint32_t kStencilMaskAll = 0xff;  // Only 8 bits stencil is supported
 
