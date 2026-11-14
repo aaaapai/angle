@@ -1,0 +1,62 @@
+name: MTL31 TEST
+
+on:
+  push:
+    branches: [develop, metal-only, 'mtl31/**']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@main
+        with:
+          fetch-depth: 1
+      - name: L0 static audit
+        run: bash scripts/mtl31_audit.sh
+
+  l1-l3-translator:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@main
+        with:
+          fetch-depth: 1
+      - name: Setup depot_tools
+        run: |
+          git clone --depth 1 https://chromium.googlesource.com/chromium/tools/depot_tools.git
+          export PATH=`pwd`/depot_tools:$PATH
+          python3 scripts/bootstrap.py
+          gclient sync --no-history --shallow --reset --force
+      - name: Build host translator with MSL
+        run: |
+          export PATH=`pwd`/depot_tools:$PATH
+          gn gen out/l3 --args='is_debug=false angle_enable_metal=true angle_enable_msl=true'
+          autoninja -C out/l3 -j 8 angle_shader_translator
+      - name: L1 translator assertions
+        run: |
+          set -euo pipefail
+          bin=out/l3/angle_shader_translator
+          corpus=src/tests/mtl31_shaders
+          run_positive() {
+            "$bin" -s=e31 -b=m -o "$corpus/positive/$1" > "/tmp/$1.metal"
+          }
+          run_positive compute_empty.comp
+          grep -q 'kernel void main0' /tmp/compute_empty.comp.metal
+          run_positive compute_builtins.comp
+          grep -q 'thread_position_in_grid' /tmp/compute_builtins.comp.metal
+          run_positive shared_barrier.comp
+          grep -q 'threadgroup_barrier' /tmp/shared_barrier.comp.metal
+          run_positive ssbo_readwrite.comp
+          grep -q 'device' /tmp/ssbo_readwrite.comp.metal
+          if "$bin" -s=e31 -b=m -o "$corpus/negative/memory_barrier.comp" > /tmp/negative.metal 2>&1; then
+            echo 'negative memoryBarrier case unexpectedly succeeded'
+            exit 1
+          fi
+          grep -q 'MTL31-MSLLIMIT' /tmp/negative.metal
+      - name: L3 Metal 2.1 compile
+        run: |
+          set -euo pipefail
+          for shader in compute_empty.comp compute_builtins.comp shared_barrier.comp ssbo_readwrite.comp; do
+            xcrun -sdk macosx metal -c -std=metal2.1 "/tmp/$shader.metal" -o "/tmp/$shader.air"
+          done
