@@ -1034,7 +1034,7 @@
                 }
             },
             "gl_InstanceIndex":{
-                "essl_level":"ESSL_INTERNAL_BACKEND_BUILTINS",
+                "essl_level":"COMMON_BUILTINS",
                 "type":{
                     "basic":"Int",
                     "precision":"High",
@@ -1051,7 +1051,7 @@
                 }
             },
             "gl_VertexIndex":{
-                "essl_level":"ESSL_INTERNAL_BACKEND_BUILTINS",
+                "essl_level":"COMMON_BUILTINS",
                 "type":{
                     "basic":"Int",
                     "precision":"High",
@@ -1062,7 +1062,7 @@
             "gl_Layer":{
                 "suffix":"VS",
                 "comment":"gl_Layer exists in other shader stages in ESSL, but not in vertex shader so far. Used internally for mulitview emulation",
-                "essl_level":"ESSL_INTERNAL_BACKEND_BUILTINS",
+                "essl_level":"COMMON_BUILTINS",
                 "type":{
                     "basic":"Int",
                     "precision":"High",
@@ -1575,13 +1575,5 @@
                 }
             }
         }
-    }
-    "gl_MultiTexCoord0": {
-      "essl_level": "COMMON_BUILTINS",
-      "type": {
-          "basic": "Float",
-          "precision": "High",
-          "qualifier": "MultiTexCoord0",
-          "primarySize": 4
     }
 }

@@ -801,7 +801,7 @@ struct GraphicsPipelineFragmentOutputVulkanStructs
 
 ANGLE_ENABLE_STRUCT_PADDING_WARNINGS
 
-using GraphicsPipelineDynamicStateList = angle::FixedVector<VkDynamicState, 36>;
+using GraphicsPipelineDynamicStateList = angle::FixedVector<VkDynamicState, 37>;
 
 enum class PipelineRobustness
 {
@@ -1017,11 +1017,6 @@ class GraphicsPipelineDesc final
     void setRenderPassColorAttachmentFormat(size_t colorIndexGL, angle::FormatID formatID);
 
     // Blend states
-    void setSingleBlend(uint32_t colorIndexGL,
-                        bool enabled,
-                        VkBlendOp op,
-                        VkBlendFactor srcFactor,
-                        VkBlendFactor dstFactor);
     void updateBlendEnabled(GraphicsPipelineTransitionBits *transition,
                             gl::DrawBufferMask blendEnabledMask);
     void updateBlendFuncs(GraphicsPipelineTransitionBits *transition,
@@ -2923,8 +2918,14 @@ class DescriptorSetCache final : angle::NonCopyable
 
     void clear() { mPayload.clear(); }
 
+    bool hasCachedDescriptorSet(const vk::DescriptorSetDesc &desc) const
+    {
+        return mPayload.find(desc) != mPayload.end();
+    }
+
     bool getDescriptorSet(const vk::DescriptorSetDesc &desc, T *descriptorSetOut) const
     {
+        ASSERT(descriptorSetOut);
         auto iter = mPayload.find(desc);
         if (iter != mPayload.end())
         {
@@ -2951,16 +2952,7 @@ class DescriptorSetCache final : angle::NonCopyable
         return false;
     }
 
-    bool eraseDescriptorSet(const vk::DescriptorSetDesc &desc)
-    {
-        auto iter = mPayload.find(desc);
-        if (iter != mPayload.end())
-        {
-            mPayload.erase(iter);
-            return true;
-        }
-        return false;
-    }
+    bool eraseDescriptorSet(const vk::DescriptorSetDesc &desc) { return mPayload.erase(desc) != 0; }
 
     size_t getTotalCacheSize() const { return mPayload.size(); }
 

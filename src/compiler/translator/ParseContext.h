@@ -694,7 +694,7 @@ class TParseContext : angle::NonCopyable
                          const TType *type,
                          GeomTessArray sized,
                          TVariable **variable);
-    void addAndCheckOutputVaryings(const TVariable &variable, const TSourceLoc &line);
+    void addAndCheckVaryings(const TVariable &variable, const TSourceLoc &line);
 
     void checkNestingLevel(const TSourceLoc &line);
     bool checkCase(const TSourceLoc &line, int64_t caseValue, const char *caseOrDefault);
@@ -844,6 +844,9 @@ class TParseContext : angle::NonCopyable
     bool checkVariableSize(const TSourceLoc &line,
                            const ImmutableString &identifier,
                            const TType *type);
+    bool checkVariableFieldCount(const TSourceLoc &line,
+                                 const ImmutableString &identifier,
+                                 const TType *type);
     void checkVaryingLocations(const TSourceLoc &line, const TVariable *variable);
     void checkFragmentOutputLocations(const TSourceLoc &line, const TVariable *variable);
     void checkVariableLocations(const TSourceLoc &line, const TVariable *variable);
@@ -984,8 +987,8 @@ class TParseContext : angle::NonCopyable
     // Current count of declared uniform blocks.
     unsigned int mNumUniformBlocks;
 
-    // Current count of declared output varying components.
-    unsigned int mNumOutputVaryingComponents;
+    // Current count of declared varying components (vertex outputs or fragment inputs).
+    unsigned int mNumVaryingComponents;
 
     // Keeps track of whether any of the built-ins that can be redeclared (see
     // IsRedeclarableBuiltIn()) has been marked as invariant/precise before the possible
@@ -1011,6 +1014,11 @@ class TParseContext : angle::NonCopyable
     angle::base::CheckedNumeric<size_t> mTotalPrivateVariablesSize;
     // Tracks if a type has been validated as safe in checkVariableSize.
     TMap<TType, size_t> mValidatedVariableTypeSizes;
+    // Keeps track of the total number of declared variables and expanded struct/interface-block
+    // fields in the shader.
+    angle::base::CheckedNumeric<size_t> mTotalVariableFields;
+    // Caches the recursively expanded field count of each struct or interface block collection.
+    TMap<const TFieldListCollection *, size_t> mValidatedFieldCollectionCounts;
 
     // Track state related to control flow, used for various validation:
     //

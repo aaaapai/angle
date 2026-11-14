@@ -489,7 +489,7 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
                                        gl::Texture **textureOut);
     void updateColorMasks();
     void updateBlendEnabled();
-    void updateBlendFuncsAndEquations();
+    void updateBlendFuncsAndEquationsOnFramebufferChange();
 
     void handleError(VkResult errorCode,
                      const char *file,
@@ -752,6 +752,7 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
 
     VkIndexType getVkIndexType(gl::DrawElementsType glIndexType) const;
     size_t getVkIndexTypeSize(gl::DrawElementsType glIndexType) const;
+    bool shouldConvertUint8VkIndexType(gl::DrawElementsType glIndexType) const;
 
     bool isRobustResourceInitEnabled() const;
     bool hasRobustAccess() const { return mState.hasRobustAccess(); }
@@ -1024,6 +1025,7 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
         // - In VK_EXT_extended_dynamic_state3
         DIRTY_BIT_DYNAMIC_ALPHA_TO_COVERAGE_ENABLE,
         DIRTY_BIT_DYNAMIC_ALPHA_TO_ONE_ENABLE,
+        DIRTY_BIT_DYNAMIC_COLOR_BLEND_ENABLE,
         DIRTY_BIT_DYNAMIC_COLOR_WRITE_MASK,
         DIRTY_BIT_DYNAMIC_DEPTH_CLAMP_ENABLE,
         DIRTY_BIT_DYNAMIC_DEPTH_CLIP_NEGATIVE_ONE_TO_ONE,
@@ -1131,6 +1133,8 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
     static_assert(DIRTY_BIT_DYNAMIC_ALPHA_TO_COVERAGE_ENABLE > DIRTY_BIT_RENDER_PASS,
                   "Render pass using dirty bit must be handled after the render pass dirty bit");
     static_assert(DIRTY_BIT_DYNAMIC_ALPHA_TO_ONE_ENABLE > DIRTY_BIT_RENDER_PASS,
+                  "Render pass using dirty bit must be handled after the render pass dirty bit");
+    static_assert(DIRTY_BIT_DYNAMIC_COLOR_BLEND_ENABLE > DIRTY_BIT_RENDER_PASS,
                   "Render pass using dirty bit must be handled after the render pass dirty bit");
     static_assert(DIRTY_BIT_DYNAMIC_COLOR_WRITE_MASK > DIRTY_BIT_RENDER_PASS,
                   "Render pass using dirty bit must be handled after the render pass dirty bit");
@@ -1364,6 +1368,8 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
         DirtyBits dirtyBitMask);
     angle::Result handleDirtyGraphicsDynamicAlphaToOneEnable(DirtyBits::Iterator *dirtyBitsIterator,
                                                              DirtyBits dirtyBitMask);
+    angle::Result handleDirtyGraphicsDynamicColorBlendEnable(DirtyBits::Iterator *dirtyBitsIterator,
+                                                             DirtyBits dirtyBitMask);
     angle::Result handleDirtyGraphicsDynamicColorWriteMask(DirtyBits::Iterator *dirtyBitsIterator,
                                                            DirtyBits dirtyBitMask);
     angle::Result handleDirtyGraphicsDynamicDepthClampEnable(DirtyBits::Iterator *dirtyBitsIterator,
@@ -1537,6 +1543,7 @@ class ContextVk : public ContextImpl, public vk::Context, public MultisampleText
     gl::PrimitiveMode mCurrentDrawMode;
     uint32_t mCurrentRasterizationSamples;
     gl::DrawBufferMask mMissingOutputsMask;
+    gl::DrawBufferMask mDirtyColorBlendEnables;
     gl::DrawBufferMask mDirtyColorWriteMasks;
 
     WindowSurfaceVk *mCurrentWindowSurface;

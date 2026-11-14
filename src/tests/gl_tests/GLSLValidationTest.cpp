@@ -3300,6 +3300,91 @@ void main() {
                   "'s' : Size of declared variable exceeds implementation-defined limit");
 }
 
+class WebGL2GLSLValidationTest_LimitShaderVariableFields : public WebGL2GLSLValidationTest
+{};
+
+// Validate that uniform blocks with nested structs whose cumulative expanded field count exceeds
+// the per-shader limit are rejected when LimitShaderVariableFieldsAtCompileTime is enabled, while
+// those within the limit are accepted.
+TEST_P(WebGL2GLSLValidationTest_LimitShaderVariableFields,
+       NestedStructsInUniformBlocksExceedFieldLimit)
+{
+    ANGLE_SKIP_TEST_IF(
+        !getEGLWindow()->isFeatureEnabled(Feature::LimitShaderVariableFieldsAtCompileTime));
+
+    constexpr char kValidVS[] = R"(#version 300 es
+precision highp float;
+
+struct S0 {
+    float f0; float f1; float f2; float f3;
+    float f4; float f5; float f6; float f7;
+    float f8; float f9; float f10; float f11;
+    float f12; float f13; float f14; float f15;
+};
+
+struct S1 {
+    S0 f0; S0 f1; S0 f2; S0 f3;
+    S0 f4; S0 f5; S0 f6; S0 f7;
+    S0 f8; S0 f9; S0 f10; S0 f11;
+    S0 f12; S0 f13; S0 f14; S0 f15;
+};
+
+struct S2 {
+    S1 f0; S1 f1; S1 f2; S1 f3;
+    S1 f4; S1 f5; S1 f6; S1 f7;
+    S1 f8; S1 f9; S1 f10; S1 f11;
+    S1 f12; S1 f13; S1 f14; S1 f15;
+};
+
+layout(std140) uniform B0 { S2 g0; S2 g1; S2 g2; } b0;
+layout(std140) uniform B1 { S2 g3; S2 g4; S2 g5; } b1;
+out float linkedValue;
+
+void main() {
+    linkedValue = b0.g0.f0.f0.f0 + b1.g3.f0.f0.f0;
+    gl_Position = vec4(linkedValue, 0.0, 0.0, 1.0);
+})";
+
+    validateSuccess(GL_VERTEX_SHADER, kValidVS);
+
+    constexpr char kExcessiveVS[] = R"(#version 300 es
+precision highp float;
+
+struct S0 {
+    float f0; float f1; float f2; float f3;
+    float f4; float f5; float f6; float f7;
+    float f8; float f9; float f10; float f11;
+    float f12; float f13; float f14; float f15;
+};
+
+struct S1 {
+    S0 f0; S0 f1; S0 f2; S0 f3;
+    S0 f4; S0 f5; S0 f6; S0 f7;
+    S0 f8; S0 f9; S0 f10; S0 f11;
+    S0 f12; S0 f13; S0 f14; S0 f15;
+};
+
+struct S2 {
+    S1 f0; S1 f1; S1 f2; S1 f3;
+    S1 f4; S1 f5; S1 f6; S1 f7;
+    S1 f8; S1 f9; S1 f10; S1 f11;
+    S1 f12; S1 f13; S1 f14; S1 f15;
+};
+
+layout(std140) uniform B0 { S2 g0; S2 g1; S2 g2; } b0;
+layout(std140) uniform B1 { S2 g3; S2 g4; S2 g5; } b1;
+layout(std140) uniform B2 { S2 g6; S2 g7; S2 g8; } b2;
+out float linkedValue;
+
+void main() {
+    linkedValue = b0.g0.f0.f0.f0 + b1.g3.f0.f0.f0 + b2.g6.f0.f0.f0;
+    gl_Position = vec4(linkedValue, 0.0, 0.0, 1.0);
+})";
+
+    validateError(GL_VERTEX_SHADER, kExcessiveVS,
+                  "'B2' : Number of declared variable fields exceeds implementation-defined limit");
+}
+
 // Test that too large color outputs are rejected
 TEST_P(WebGL2GLSLValidationTest, LargeColorOutput)
 {
@@ -11161,16 +11246,15 @@ void main() { big[0][0] = 1.0; col = vec4(big[0][0]); })";
     validateError(GL_FRAGMENT_SHADER, kFS, "version");
 }
 
-class GLSLValidationTest_ES3_LimitOutputVaryings : public GLSLValidationTest_ES3
+class GLSLValidationTest_ES3_LimitVaryings : public GLSLValidationTest_ES3
 {};
 
 // Regression test for crbug.com/529991907.
 // Verify that compiling a shader with up to 256 output varying components
 // succeeds, and exceeding 256 components is rejected at compile time.
-TEST_P(GLSLValidationTest_ES3_LimitOutputVaryings, TooManyDeclaredVertexOutputComponents)
+TEST_P(GLSLValidationTest_ES3_LimitVaryings, TooManyDeclaredVertexOutputComponents)
 {
-    ANGLE_SKIP_TEST_IF(
-        !getEGLWindow()->isFeatureEnabled(Feature::LimitOutputVaryingsTo256AtCompileTime));
+    ANGLE_SKIP_TEST_IF(!getEGLWindow()->isFeatureEnabled(Feature::LimitVaryingsAtCompileTime));
 
     constexpr int kMaxVectors = 256 / 4;
 
@@ -11192,6 +11276,59 @@ TEST_P(GLSLValidationTest_ES3_LimitOutputVaryings, TooManyDeclaredVertexOutputCo
     vsInvalid << "void main() { gl_Position = vec4(0.0); }\n";
     validateError(GL_VERTEX_SHADER, vsInvalid.str().c_str(),
                   "Too many declared shader output varying components for this device");
+}
+
+// Regression test for crbug.com/569367111.
+// Verify that compiling a fragment shader with up to 256 input varying
+// components succeeds, and exceeding 256 components is rejected at compile
+// time.
+TEST_P(GLSLValidationTest_ES3_LimitVaryings, TooManyDeclaredFragmentInputComponents)
+{
+    ANGLE_SKIP_TEST_IF(!getEGLWindow()->isFeatureEnabled(Feature::LimitVaryingsAtCompileTime));
+
+    constexpr int kMaxVectors = 256 / 4;
+
+    std::stringstream fsValid;
+    fsValid << "#version 300 es\n";
+    fsValid << "precision highp float;\n";
+    for (int i = 0; i < kMaxVectors; ++i)
+    {
+        fsValid << "in highp vec4 v" << i << ";\n";
+    }
+    fsValid << "out highp vec4 fragColor;\n";
+    fsValid << "void main() { fragColor = vec4(0.0); }\n";
+    validateSuccess(GL_FRAGMENT_SHADER, fsValid.str().c_str());
+
+    std::stringstream fsInvalid;
+    fsInvalid << "#version 300 es\n";
+    fsInvalid << "precision highp float;\n";
+    for (int i = 0; i < kMaxVectors + 1; ++i)
+    {
+        fsInvalid << "in highp vec4 v" << i << ";\n";
+    }
+    fsInvalid << "out highp vec4 fragColor;\n";
+    fsInvalid << "void main() { fragColor = vec4(0.0); }\n";
+    validateError(GL_FRAGMENT_SHADER, fsInvalid.str().c_str(),
+                  "Too many declared shader input varying components for this device");
+
+    // Also verify that large active input arrays (as in crbug.com/569367111)
+    // exceeding 256 components are rejected at compile time.
+    constexpr char kLargeArraysFS[] = R"(#version 300 es
+precision mediump float;
+in mediump vec4 a0[4095];
+in mediump vec4 a1[4095];
+in mediump vec4 a2[4095];
+in mediump vec4 a3[4095];
+in mediump vec4 a4[909];
+flat in mediump vec4 a5;
+in mediump vec4 a6;
+layout(location = 0) out mediump vec4 color;
+void main() {
+    int i = int(gl_FragCoord.x) % 4095;
+    color = a0[i] + a1[i] + a2[i] + a3[i] + a4[i % 909] + a5 + a6;
+})";
+    validateError(GL_FRAGMENT_SHADER, kLargeArraysFS,
+                  "Too many declared shader input varying components for this device");
 }
 
 class GLSLValidationTest_ES2_PixelLocalStorage : public GLSLValidationTest_ES3
@@ -12139,10 +12276,15 @@ ANGLE_INSTANTIATE_TEST_ES2(WebGLGLSLValidationTest);
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(WebGL2GLSLValidationTest);
 ANGLE_INSTANTIATE_TEST_ES3(WebGL2GLSLValidationTest);
 
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GLSLValidationTest_ES3_LimitOutputVaryings);
-ANGLE_INSTANTIATE_TEST(GLSLValidationTest_ES3_LimitOutputVaryings,
-                       ES3_OPENGL().enable(Feature::LimitOutputVaryingsTo256AtCompileTime),
-                       ES3_OPENGLES().enable(Feature::LimitOutputVaryingsTo256AtCompileTime));
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GLSLValidationTest_ES3_LimitVaryings);
+ANGLE_INSTANTIATE_TEST(GLSLValidationTest_ES3_LimitVaryings,
+                       ES3_OPENGL().enable(Feature::LimitVaryingsAtCompileTime),
+                       ES3_OPENGLES().enable(Feature::LimitVaryingsAtCompileTime));
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(WebGL2GLSLValidationTest_LimitShaderVariableFields);
+ANGLE_INSTANTIATE_TEST(WebGL2GLSLValidationTest_LimitShaderVariableFields,
+                       ES3_OPENGL().enable(Feature::LimitShaderVariableFieldsAtCompileTime),
+                       ES3_OPENGLES().enable(Feature::LimitShaderVariableFieldsAtCompileTime));
 
 ANGLE_INSTANTIATE_TEST_ES2_AND(WebGLGLSLValidationExtensionDisableTest,
                                ES2_OPENGL().enable(Feature::AllowExtensionDisableAfterNonPpTokens));

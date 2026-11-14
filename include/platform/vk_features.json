@@ -1117,6 +1117,14 @@
             "issue": "http://anglebug.com/575891833"
         },
         {
+            "name": "supports_color_blend_enable_dynamic_state",
+            "category": "Features",
+            "description": [
+                "VkDevice supports the colorBlendEnable feature of VK_EXT_extended_dynamic_state3 extension"
+            ],
+            "issue": "http://anglebug.com/575891833"
+        },
+        {
             "name": "supports_color_write_mask_dynamic_state",
             "category": "Features",
             "description": [
@@ -1702,6 +1710,15 @@
                 "RelaxedPrecision decoration causes a crash"
             ],
             "issue": "http://anglebug.com/41493495"
+        },
+        {
+            "name": "avoid_RelaxedPrecision_on_integers",
+            "category": "Workarounds",
+            "description": [
+                "Don't decorate integers with RelaxedPrecision, as some drivers sign-extend ",
+                "a mediump uint used as the value of an atomic operation"
+            ],
+            "issue": "https://anglebug.com/573853134"
         },
         {
             "name": "wrap_switch_in_if_true",
@@ -2418,6 +2435,15 @@
                 "Allow preferPipelineBinaries where VK_KHR_pipeline_binary is supported, for testing."
             ],
             "issue": "http://anglebug.com/481364092"
+        },
+        {
+            "name": "disable_RGB888_recordable_bit",
+            "category": "AppWorkarounds",
+            "description": [
+                "Work around an app that incorrectly requests an EGLConfig with EGL_ALPHA_SIZE=0 and ",
+                "EGL_RECORDABLE_ANDROID=1 despite relying on alpha blending. Disable EGL_RECORDABLE_ANDROID ",
+                "for RGB8 to prevent the app from selecting an RGB8 config."
+            ]
         }
     ]
 }

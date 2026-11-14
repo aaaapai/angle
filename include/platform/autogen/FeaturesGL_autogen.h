@@ -752,8 +752,14 @@ struct FeaturesGL : FeatureSetBase
         &members,
     };
 
-    FeatureInfo limitOutputVaryingsTo256AtCompileTime = {
-        "limitOutputVaryingsTo256AtCompileTime",
+    FeatureInfo limitVaryingsAtCompileTime = {
+        "limitVaryingsAtCompileTime",
+        FeatureCategory::OpenGLWorkarounds,
+        &members,
+    };
+
+    FeatureInfo limitShaderVariableFieldsAtCompileTime = {
+        "limitShaderVariableFieldsAtCompileTime",
         FeatureCategory::OpenGLWorkarounds,
         &members,
     };
@@ -820,6 +826,24 @@ struct FeaturesGL : FeatureSetBase
 
     FeatureInfo disablePixelLocalStorage = {
         "disablePixelLocalStorage",
+        FeatureCategory::OpenGLWorkarounds,
+        &members,
+    };
+
+    FeatureInfo readPixelsViaSingleAttachmentFramebuffer = {
+        "readPixelsViaSingleAttachmentFramebuffer",
+        FeatureCategory::OpenGLWorkarounds,
+        &members,
+    };
+
+    FeatureInfo rejectRenderbufferStorageWrappingDriverSize = {
+        "rejectRenderbufferStorageWrappingDriverSize",
+        FeatureCategory::OpenGLWorkarounds,
+        &members,
+    };
+
+    FeatureInfo limitMaxTextureImageUnitsTo13 = {
+        "limitMaxTextureImageUnitsTo13",
         FeatureCategory::OpenGLWorkarounds,
         &members,
     };

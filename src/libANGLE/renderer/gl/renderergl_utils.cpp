@@ -2155,6 +2155,12 @@ void GenerateCaps(const FunctionsGL *functions,
     {
         limitations->roundUp3DTextureSizeToPOTForLimit = true;
     }
+
+    if (features.limitMaxTextureImageUnitsTo13.enabled)
+    {
+        caps->maxShaderTextureImageUnits[gl::ShaderType::Fragment] =
+            std::min(caps->maxShaderTextureImageUnits[gl::ShaderType::Fragment], 13);
+    }
 }
 
 bool GetSystemInfoVendorIDAndDeviceID(const FunctionsGL *functions,
@@ -2759,9 +2765,13 @@ void InitializeFeatures(const FunctionsGL *functions, angle::FeaturesGL *feature
     // IMG GL drivers crash while compiling shaders with more than the limit of uniform blocks.
     ANGLE_FEATURE_CONDITION(features, validateMaxPerStageUniformBlocksAtCompileTime, isPowerVR);
 
-    // Some drivers have compilation issues when shaders declare too many output varyings.
-    // crbug.com/529991907
-    ANGLE_FEATURE_CONDITION(features, limitOutputVaryingsTo256AtCompileTime, isPowerVR);
+    // Some drivers have compilation issues when shaders declare too many varyings.
+    // crbug.com/529991907, crbug.com/569367111
+    ANGLE_FEATURE_CONDITION(features, limitVaryingsAtCompileTime, isPowerVR);
+
+    // PowerVR GL drivers use 16-bit integers to index and serialize global variable and struct
+    // member info maps, wrapping at 65536 entries. crbug.com/583945831
+    ANGLE_FEATURE_CONDITION(features, limitShaderVariableFieldsAtCompileTime, isPowerVR);
 
     // crbug.com/529509587 -- IMG GLSL frontend OOB-writes during semantic analysis of a struct
     // constructor whose array-typed member receives a constant array-constructor argument with a
@@ -2774,10 +2784,23 @@ void InitializeFeatures(const FunctionsGL *functions, angle::FeaturesGL *feature
                             isPowerVR && IsAndroid());
 
     // crbug.com/553172761
-    ANGLE_FEATURE_CONDITION(features, useTexSubImageForClientDataNpotUploads,
-                            false /* isPowerVR */);
+    ANGLE_FEATURE_CONDITION(features, useTexSubImageForClientDataNpotUploads, isPowerVR);
 
     ANGLE_FEATURE_CONDITION(features, recreateFboOnAttachmentRespecification, isPowerVR);
+
+    // https://crbug.com/549347571 -- IMG drivers may return incorrect data when reading pixels back
+    // from a framebuffer that has multiple color attachments.
+    ANGLE_FEATURE_CONDITION(features, readPixelsViaSingleAttachmentFramebuffer, isPowerVR);
+
+    // Reject renderbuffer allocations with GL_OUT_OF_MEMORY if they would cause
+    // integer wraparound during size computation inside the driver.
+    // https://crbug.com/546644426
+    ANGLE_FEATURE_CONDITION(features, rejectRenderbufferStorageWrappingDriverSize, isPowerVR);
+
+    // Clamp GL_MAX_TEXTURE_IMAGE_UNITS to 13 so programs exceeding 13 active fragment samplers
+    // fail linking before reaching the IMG driver.
+    // https://crbug.com/577781532
+    ANGLE_FEATURE_CONDITION(features, limitMaxTextureImageUnitsTo13, isPowerVR);
 
     // Mac Intel drivers are unable to allocate buffers larger than ~1gb
     ANGLE_FEATURE_CONDITION(features, limitMaxBufferSizeTo1gb, isApple && isIntel);
