@@ -90,13 +90,8 @@ angle_enable_trace = false
 
 angle_extra_cflags = [
   "-Wno-error=unused-variable",
-  "-Wno-unused-variable",
   "-Wno-error=extra-semi-stmt",
-  "-Wno-extra-semi-stmt",
-  "-Wno-error=unsafe-buffer-usage",
-  "-Wno-unused-function",
-  "-Wno-unused-but-set-variable",
-  "-Wno-unused-command-line-argument",
+  "-Wno-error=unsafe-buffer-usage",,
   "-Wno-error",
   "-O3",
   "-fno-semantic-interposition",
@@ -116,19 +111,13 @@ angle_extra_cflags = [
   "-D_FILE_OFFSET_BITS=64",
   "-D__USE_BSD",
   "-D_ALLBSD_SOURCE",
-  "-DUNSAFE_BUFFERS_BUILD",
   #@POLLY@
 ]
 
 angle_extra_cflags_cc = [
   "-Wno-error=unused-variable",
-  "-Wno-unused-variable",
   "-Wno-error=extra-semi-stmt",
-  "-Wno-extra-semi-stmt",
   "-Wno-error=unsafe-buffer-usage",
-  "-Wno-unused-function",
-  "-Wno-unused-but-set-variable",
-  "-Wno-unused-command-line-argument",
   "-Wno-error",
   "-O3",
   "-fno-semantic-interposition",
@@ -182,14 +171,8 @@ angle_enable_trace = true
 
 angle_extra_cflags = [
   "-Wno-error=unused-variable",
-  "-Wno-unused-variable",
   "-Wno-error=extra-semi-stmt",
-  "-Wno-extra-semi-stmt",
   "-Wno-error=unsafe-buffer-usage",
-  "-Wno-unsafe-buffer-usage",
-  "-Wno-unused-function",
-  "-Wno-unused-but-set-variable",
-  "-Wno-unused-command-line-argument",
   "-Wno-error",
   "-g",
   "-O1",
@@ -202,14 +185,8 @@ angle_extra_cflags = [
 angle_extra_cflags_cc = [
   "-g",
   "-Wno-error=unused-variable",
-  "-Wno-unused-variable",
   "-Wno-error=extra-semi-stmt",
-  "-Wno-extra-semi-stmt",
   "-Wno-error=unsafe-buffer-usage",
-  "-Wno-unsafe-buffer-usage",
-  "-Wno-unused-function",
-  "-Wno-unused-but-set-variable",
-  "-Wno-unused-command-line-argument",
   "-Wno-error",
   "-O1",
   "-D_FILE_OFFSET_BITS=64",
@@ -226,7 +203,7 @@ angle_extra_ldflags = [
 
 
 # ==SECTION:mode-fastdebug==
-# -------- fastdebug（仅 android-arm64）--------
+# -------- fastdebug--------
 is_debug = true
 symbol_level = 2
 dcheck_always_on = true
@@ -245,16 +222,33 @@ angle_enable_trace = true
 angle_always_log_info = true
 angle_enable_unwind_backtrace_support = true
 
+# --- Vulkan 错误与内存可观测性 ---
+angle_enable_vulkan_validation_layers = true    # 编译并启用 Vulkan 验证层
+angle_enable_vulkan_api_dump_layer = true       # 编译 API 转储层（运行时可开关）
+angle_enable_unwind_backtrace_support = true    # 错误附带调用栈
+
+# --- 跟踪与日志：全量开启，不走 logcat ---
+angle_enable_trace = true                       # 记录每条 GLES/EGL API 命令
+angle_enable_trace_events = true                # 启用 Perfetto/platform trace events
+angle_enable_trace_android_logcat = false       # 明确切断 logcat 路径
+angle_always_log_info = true                    # 输出 INFO 级上下文，淹没关键错误也接受
+
+# --- 帧捕获（RenderDoc 依赖 Vulkan 验证层）---
+angle_enable_renderdoc = true                   # 编译 RenderDoc 捕获支持
+
+# --- 内存分配追踪 ---
+angle_enable_memory_alloc_logging = true        # 启用内存分配/释放日志
+# angle_use_partition_alloc 保持 base 中的 false：独立 ANGLE 构建不链接 Chromium PartitionAlloc
+
+# --- 调试辅助 ---
+angle_has_frame_capture = true
+angle_force_context_check_every_call = true
+angle_enable_perf_counter_output = true
+
 angle_extra_cflags = [
   "-Wno-error=unused-variable",
-  "-Wno-unused-variable",
   "-Wno-error=extra-semi-stmt",
-  "-Wno-extra-semi-stmt",
   "-Wno-error=unsafe-buffer-usage",
-  "-Wno-unsafe-buffer-usage",
-  "-Wno-unused-function",
-  "-Wno-unused-but-set-variable",
-  "-Wno-unused-command-line-argument",
   "-Wno-error",
   "-g",
   "-O2",
@@ -267,14 +261,8 @@ angle_extra_cflags = [
 angle_extra_cflags_cc = [
   "-g",
   "-Wno-error=unused-variable",
-  "-Wno-unused-variable",
   "-Wno-error=extra-semi-stmt",
-  "-Wno-extra-semi-stmt",
   "-Wno-error=unsafe-buffer-usage",
-  "-Wno-unsafe-buffer-usage",
-  "-Wno-unused-function",
-  "-Wno-unused-but-set-variable",
-  "-Wno-unused-command-line-argument",
   "-Wno-error",
   "-O2",
   "-D_FILE_OFFSET_BITS=64",
