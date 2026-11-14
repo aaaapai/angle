@@ -2127,7 +2127,7 @@ angle::Result WindowSurfaceVk::queryAndAdjustSurfaceCaps(
     //
     // The IsAndroid() check limits this override to the platform where the lag has been
     // observed.  Removing it makes the override unconditional for all platforms.
-    if (mIsSurfaceSizedBySwapchain || IsAndroid())
+    if (mIsSurfaceSizedBySwapchain)
     {
         gl::Extents windowExtents;
         ANGLE_TRY(getCurrentWindowSize(context, &windowExtents));
@@ -2179,50 +2179,48 @@ angle::Result WindowSurfaceVk::prepareSwapchainForAcquireNextImage(vk::ErrorCont
 
     if (isSwapchainValid)
     {
-        // This device generates neither VK_ERROR_OUT_OF_DATE_KHR nor VK_SUBOPTIMAL_KHR.  Check for
-        // whether the size and/or rotation have changed since the swapchain was created.
         uint32_t curSurfaceWidth  = mWidth;
         uint32_t curSurfaceHeight = mHeight;
 
-        // On Android, rotation can cause the minImageCount to change
-        if (surfaceCaps.currentTransform == mPreTransform &&
-            surfaceCaps.currentExtent.width == curSurfaceWidth &&
-            surfaceCaps.currentExtent.height == curSurfaceHeight && minImageCount == mMinImageCount)
+        gl::Extents nativeExtents;
+        ANGLE_TRY(getCurrentWindowSize(context, &nativeExtents));
+        const uint32_t nativeWidth =
+            static_cast<uint32_t>(std::max<EGLint>(nativeExtents.width, 1));
+        const uint32_t nativeHeight =
+            static_cast<uint32_t>(std::max<EGLint>(nativeExtents.height, 1));
+
+        const bool appRendersAtNativeSize =
+            mAppViewportWidth != 0 && mAppViewportHeight != 0 &&
+            mAppViewportWidth == nativeWidth && mAppViewportHeight == nativeHeight;
+
+        const uint32_t desiredWidth =
+            appRendersAtNativeSize ? nativeWidth : surfaceCaps.currentExtent.width;
+        const uint32_t desiredHeight =
+            appRendersAtNativeSize ? nativeHeight : surfaceCaps.currentExtent.height;
+
+        if (surfaceCaps.currentTransform == mPreTransform && desiredWidth == curSurfaceWidth &&
+            desiredHeight == curSurfaceHeight && minImageCount == mMinImageCount)
         {
             return angle::Result::Continue;
         }
 
-        if (renderer->getFeatures().avoidInvisibleWindowSwapchainRecreate.enabled)
-        {
-            bool isWindowVisible = false;
-            ANGLE_TRY(getWindowVisibility(context, &isWindowVisible));
-            if (!isWindowVisible)
-            {
-                return angle::Result::Continue;
-            }
-        }
-
-        // Validation: report the exact reason the swapchain is being invalidated.  If this line
-        // does not appear after calling ANativeWindow_setBuffersGeometry, the size/transform/
-        // minImageCount comparison above did not detect a change.
-        INFO() << "Swapchain size changed: " << mWidth << "x" << mHeight << " -> "
-               << surfaceCaps.currentExtent.width << "x" << surfaceCaps.currentExtent.height
-               << " (transform " << std::hex << mPreTransform << " -> "
-               << surfaceCaps.currentTransform << std::dec << ", minImageCount " << mMinImageCount
-               << " -> " << minImageCount << ")";
+        INFO() << "Swapchain size change: " << curSurfaceWidth << "x" << curSurfaceHeight
+               << " -> " << desiredWidth << "x" << desiredHeight
+               << " (native=" << nativeWidth << "x" << nativeHeight
+               << ", caps=" << surfaceCaps.currentExtent.width << "x"
+               << surfaceCaps.currentExtent.height
+               << ", appViewport=" << mAppViewportWidth << "x" << mAppViewportHeight << ")";
 
         invalidateSwapchain(renderer);
-    }
-    ASSERT(mSwapchain == VK_NULL_HANDLE);
 
+        {
+            std::lock_guard<angle::SimpleMutex> lock(mSizeMutex);
+            mWidth  = desiredWidth;
+            mHeight = desiredHeight;
+        }
+    }
+    else
     {
-        // Lock protects individual |mWidth| and |mHeight| writes from this thread and reads from
-        // other threads.  The acquire memory order of the mutex lock will prevent |mSizeState|
-        // relaxed atomic assignment to be moved before the lock.  When other thread reads that
-        // |mSizeState| is resolved, the mutex will be already locked, preventing reading old
-        // |mWidth| and |mHeight| values.  Similar goal may be archived by using atomics instead of
-        // the mutex.  The mutex is used for code simplicity and to avoid non relaxed atomic stores
-        // on each frame.
         std::lock_guard<angle::SimpleMutex> lock(mSizeMutex);
         mWidth  = surfaceCaps.currentExtent.width;
         mHeight = surfaceCaps.currentExtent.height;

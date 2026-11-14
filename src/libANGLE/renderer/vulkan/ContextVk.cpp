@@ -5179,6 +5179,14 @@ void ContextVk::updateViewport(FramebufferVk *framebufferVk,
     vk::ClampViewport(&mViewport);
 
     mGraphicsDirtyBits.set(DIRTY_BIT_DYNAMIC_VIEWPORT);
+
+    // Notify the current window surface of the application's intended viewport size.  On Android
+    // this is used to decide whether the swapchain should follow the ANativeWindow buffer size
+    // or the driver-reported currentExtent.
+    if (mCurrentWindowSurface != nullptr && mState.getDrawFramebuffer()->isDefault())
+    {
+        mCurrentWindowSurface->setApplicationViewportSize(viewport.width, viewport.height);
+    }
 }
 
 void ContextVk::updateFrontFace()

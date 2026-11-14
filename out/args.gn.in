@@ -51,6 +51,7 @@ build_angle_deqp_tests = false
 angle_expose_non_conformant_extensions_and_versions = true
 angle_ir = false
 angle_standalone = false
+angle_enable_explicit_context = true
 
 angle_enable_vulkan = true
 angle_enable_vulkan_validation_layers = false
