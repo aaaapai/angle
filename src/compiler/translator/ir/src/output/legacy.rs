@@ -2830,6 +2830,7 @@ impl ast::Target for Generator<'_> {
 
     fn built_in(
         &mut self,
+        _ir_meta: &IRMeta,
         block_result: &mut *mut TIntermBlock,
         result: Option<RegisterId>,
         built_in_op: BuiltInOpCode,
@@ -2995,33 +2996,36 @@ impl ast::Target for Generator<'_> {
                 BuiltInOpCode::Saturate => {
                     (Some(ffi::built_in_saturate(self.legacy_compiler, &args)), None)
                 }
+                BuiltInOpCode::ConvertFromUniformLayout => {
+                    panic!("Internal error: Unexpected WGSL opcode for legacy AST generator")
+                }
                 BuiltInOpCode::AtomicCounterAdd => {
-    (Some(ffi::built_in_atomiccounteradd(self.legacy_compiler, &args)), None)
-}
-BuiltInOpCode::AtomicCounterSubtract => {
-    (Some(ffi::built_in_atomiccountersubtract(self.legacy_compiler, &args)), None)
-}
-BuiltInOpCode::AtomicCounterMin => {
-    (Some(ffi::built_in_atomiccountermin(self.legacy_compiler, &args)), None)
-}
-BuiltInOpCode::AtomicCounterMax => {
-    (Some(ffi::built_in_atomiccountermax(self.legacy_compiler, &args)), None)
-}
-BuiltInOpCode::AtomicCounterAnd => {
-    (Some(ffi::built_in_atomiccounterand(self.legacy_compiler, &args)), None)
-}
-BuiltInOpCode::AtomicCounterOr => {
-    (Some(ffi::built_in_atomiccounteror(self.legacy_compiler, &args)), None)
-}
-BuiltInOpCode::AtomicCounterXor => {
-    (Some(ffi::built_in_atomiccounterxor(self.legacy_compiler, &args)), None)
-}
-BuiltInOpCode::AtomicCounterExchange => {
-    (Some(ffi::built_in_atomiccounterexchange(self.legacy_compiler, &args)), None)
-}
-BuiltInOpCode::AtomicCounterCompSwap => {
-    (Some(ffi::built_in_atomiccountercompswap(self.legacy_compiler, &args)), None)
-}
+                    (Some(ffi::built_in_atomiccounteradd(self.legacy_compiler, &args)), None)
+                }
+                BuiltInOpCode::AtomicCounterSubtract => {
+                    (Some(ffi::built_in_atomiccountersubtract(self.legacy_compiler, &args)), None)
+                }
+                BuiltInOpCode::AtomicCounterMin => {
+                    (Some(ffi::built_in_atomiccountermin(self.legacy_compiler, &args)), None)
+                }
+                BuiltInOpCode::AtomicCounterMax => {
+                    (Some(ffi::built_in_atomiccountermax(self.legacy_compiler, &args)), None)
+                }
+                BuiltInOpCode::AtomicCounterAnd => {
+                    (Some(ffi::built_in_atomiccounterand(self.legacy_compiler, &args)), None)
+                }
+                BuiltInOpCode::AtomicCounterOr => {
+                    (Some(ffi::built_in_atomiccounteror(self.legacy_compiler, &args)), None)
+                }
+                BuiltInOpCode::AtomicCounterXor => {
+                    (Some(ffi::built_in_atomiccounterxor(self.legacy_compiler, &args)), None)
+                }
+                BuiltInOpCode::AtomicCounterExchange => {
+                    (Some(ffi::built_in_atomiccounterexchange(self.legacy_compiler, &args)), None)
+                }
+                BuiltInOpCode::AtomicCounterCompSwap => {
+                    (Some(ffi::built_in_atomiccountercompswap(self.legacy_compiler, &args)), None)
+                }
 
             }
         };
