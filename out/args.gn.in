@@ -91,7 +91,7 @@ angle_enable_trace = false
 angle_extra_cflags = [
   "-Wno-error=unused-variable",
   "-Wno-error=extra-semi-stmt",
-  "-Wno-error=unsafe-buffer-usage",,
+  "-Wno-error=unsafe-buffer-usage",
   "-Wno-error",
   "-O3",
   "-fno-semantic-interposition",
@@ -297,7 +297,13 @@ enable_unused_resource_stripping = false
 # 关掉它会让 bundled libc++abi 在缺少 -nostdinc++ / -isystem 的情况下继续参与编译，
 # 从而落到 Xcode SDK 的旧 cxxabi.h 上（__ptrauth_cxxabi_* 等宏缺失，编译失败）。
 
+# iOS 仅保留 Metal 后端。
+# GL/Vulkan 全部关闭；GLSL/ESSL 不能关，Metal 后端用它们作为输入翻译成 MSL。
+angle_enable_vulkan = false
+angle_enable_vulkan_validation_layers = false
+angle_enable_vulkan_shared_ring_buffer_cmd_alloc = false
 angle_enable_gl = false
+angle_enable_gl_desktop_backend = false
 angle_enable_metal = true
 angle_enable_msl = true
 
