@@ -37,7 +37,7 @@ jobs:
           bin=out/l1-linux/angle_shader_translator
           corpus=src/tests/mtl31_shaders
           run_positive() {
-            "$bin" -s=e31 -b=m "$corpus/positive/$1" -o "/tmp/$1.metal"
+            "$bin" -s=e31 -b=m -o "$corpus/positive/$1" > "/tmp/$1.metal"
           }
           run_positive compute_empty.comp
           grep -q 'kernel void main0' /tmp/compute_empty.comp.metal
@@ -47,7 +47,7 @@ jobs:
           grep -q 'threadgroup_barrier' /tmp/shared_barrier.comp.metal
           run_positive ssbo_readwrite.comp
           grep -q 'device' /tmp/ssbo_readwrite.comp.metal
-          if "$bin" -s=e31 -b=m "$corpus/negative/memory_barrier.comp" -o /tmp/negative.metal; then
+          if "$bin" -s=e31 -b=m -o "$corpus/negative/memory_barrier.comp" > /tmp/negative.metal 2>&1; then
             echo 'negative memoryBarrier case unexpectedly succeeded'
             exit 1
           fi
@@ -77,10 +77,10 @@ jobs:
           bin=out/l3/angle_shader_translator
           corpus=src/tests/mtl31_shaders
           for shader in compute_empty.comp compute_builtins.comp shared_barrier.comp ssbo_readwrite.comp; do
-            "$bin" -s=e31 -b=m "$corpus/positive/$shader" -o "/tmp/$shader.metal"
+            "$bin" -s=e31 -b=m -o "$corpus/positive/$shader" > "/tmp/$shader.metal"
             xcrun -sdk macosx metal -c -std=metal2.1 "/tmp/$shader.metal" -o "/tmp/$shader.air"
           done
-          if "$bin" -s=e31 -b=m "$corpus/negative/memory_barrier.comp" -o /tmp/negative.metal; then
+          if "$bin" -s=e31 -b=m -o "$corpus/negative/memory_barrier.comp" > /tmp/negative.metal 2>&1; then
             echo 'negative memoryBarrier case unexpectedly succeeded'
             exit 1
           fi
