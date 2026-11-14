@@ -329,11 +329,12 @@ angle_extra_ldflags = [
 # ==SECTION:platform-linux==
 target_os = "linux"
 angle_use_wayland = true
-ozone_platform = "wayland"
-ozone_auto_platforms = false
-use_x11 = false
+ozone_auto_platforms = true
+angle_use_x11 = true
 enable_unused_resource_stripping = true
-
+angle_enable_cl = true
+angle_enable_wgpu = true
+use_ozone = false
 
 # ==SECTION:arch-arm64==
 target_cpu = "arm64"
