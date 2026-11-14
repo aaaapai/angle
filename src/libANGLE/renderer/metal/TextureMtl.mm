@@ -2154,6 +2154,7 @@ bool GetCopyImageIndex(gl::TextureType type,
     switch (type)
     {
         case gl::TextureType::_2D:
+        case gl::TextureType::_2DMultisample:
             *indexOut = gl::ImageIndex::Make2D(static_cast<GLint>(level.get()));
             return true;
         case gl::TextureType::_2DArray:
@@ -2212,7 +2213,7 @@ angle::Result TextureMtl::copyTextureSubData(const gl::Context *context,
 
     ANGLE_CHECK(contextMtl, srcType == dstType, gl::err::kInternalError, GL_INVALID_OPERATION);
     ANGLE_CHECK(contextMtl, srcDepth >= 1, gl::err::kInternalError, GL_INVALID_OPERATION);
-    if (srcType == gl::TextureType::_2D)
+    if (srcType == gl::TextureType::_2D || srcType == gl::TextureType::_2DMultisample)
     {
         ANGLE_CHECK(contextMtl, srcZ.get() == 0 && dstZ.get() == 0 && srcDepth == 1,
                     gl::err::kInternalError, GL_INVALID_OPERATION);

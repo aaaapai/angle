@@ -80,6 +80,7 @@ angle::Result RenderbufferMtl::copyTextureSubData(const gl::Context *context,
     switch (srcTexture->getType())
     {
         case gl::TextureType::_2D:
+        case gl::TextureType::_2DMultisample:
             srcIndex = gl::ImageIndex::Make2D(static_cast<GLint>(srcLevel.get()));
             break;
         case gl::TextureType::_2DArray:
