@@ -108,6 +108,36 @@ class TextureMtl : public TextureImpl
     angle::Result copyCompressedTexture(const gl::Context *context,
                                         const gl::Texture *source) override;
 
+    angle::Result copyRenderbufferSubData(const gl::Context *context,
+                                          const gl::Renderbuffer *srcBuffer,
+                                          GLint srcX,
+                                          GLint srcY,
+                                          gl::LevelIndex dstLevel,
+                                          GLint dstX,
+                                          GLint dstY,
+                                          gl::LayerIndex dstZ,
+                                          GLsizei srcWidth,
+                                          GLsizei srcHeight) override;
+    angle::Result copyTextureSubData(const gl::Context *context,
+                                     const gl::Texture *srcTexture,
+                                     gl::LevelIndex srcLevel,
+                                     GLint srcX,
+                                     GLint srcY,
+                                     gl::LayerIndex srcZ,
+                                     gl::LevelIndex dstLevel,
+                                     GLint dstX,
+                                     GLint dstY,
+                                     gl::LayerIndex dstZ,
+                                     GLsizei srcWidth,
+                                     GLsizei srcHeight,
+                                     GLsizei srcDepth) override;
+
+    // Returns the native 2D image for a GL level, creating the level view if needed.  Used by the
+    // renderbuffer copy paths, which cannot access TextureMtl's private image storage.
+    angle::Result getImageForCopy(const gl::Context *context,
+                                  gl::LevelIndex level,
+                                  mtl::TextureRef *imageOut);
+
     angle::Result setStorage(const gl::Context *context,
                              gl::TextureType type,
                              size_t levels,

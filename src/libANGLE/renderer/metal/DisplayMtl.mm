@@ -1000,6 +1000,10 @@ void DisplayMtl::initializeExtensions() const
     mNativeExtensions.mapbufferOES                  = true;
     mNativeExtensions.mapBufferRangeEXT             = true;
     mNativeExtensions.textureStorageEXT             = true;
+    // MTL31-PARTIAL: MTL31-EXT-copyimage - same-format copies are native blits.  GLES-legal
+    // different-format combinations cannot be expressed by a Metal blit and are declared as a
+    // known limitation instead of being emulated.
+    mNativeExtensions.copyImageEXT                  = true;
     mNativeExtensions.clipControlEXT                = true;
     mNativeExtensions.drawBuffersEXT                = true;
     mNativeExtensions.drawBuffersIndexedEXT         = true;

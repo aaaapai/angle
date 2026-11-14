@@ -47,6 +47,27 @@ class RenderbufferMtl : public RenderbufferImpl
                                      GLenum binding,
                                      const gl::ImageIndex &imageIndex) override;
 
+    angle::Result copyRenderbufferSubData(const gl::Context *context,
+                                          const gl::Renderbuffer *srcBuffer,
+                                          GLint srcX,
+                                          GLint srcY,
+                                          GLint dstX,
+                                          GLint dstY,
+                                          GLsizei srcWidth,
+                                          GLsizei srcHeight) override;
+    angle::Result copyTextureSubData(const gl::Context *context,
+                                     const gl::Texture *srcTexture,
+                                     gl::LevelIndex srcLevel,
+                                     GLint srcX,
+                                     GLint srcY,
+                                     gl::LayerIndex srcZ,
+                                     GLint dstX,
+                                     GLint dstY,
+                                     GLsizei srcWidth,
+                                     GLsizei srcHeight) override;
+
+    const mtl::TextureRef &getTexture() const { return mTexture; }
+
   private:
     angle::Result setStorageImpl(const gl::Context *context,
                                  GLsizei samples,

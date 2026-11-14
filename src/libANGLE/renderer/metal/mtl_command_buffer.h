@@ -704,6 +704,18 @@ class BlitCommandEncoder final : public CommandEncoder
                                     uint32_t sliceCount,
                                     uint32_t levelCount);
 
+    // Region copy for EXT_copy_image.  Both textures must already be level views (native level 0)
+    // and have identical pixel formats, which is a Metal blit requirement.
+    BlitCommandEncoder &copyTextureRegion(const TextureRef &src,
+                                          uint32_t srcSlice,
+                                          MipmapNativeLevel srcLevel,
+                                          MTLOrigin srcOrigin,
+                                          MTLSize srcSize,
+                                          const TextureRef &dst,
+                                          uint32_t dstSlice,
+                                          MipmapNativeLevel dstLevel,
+                                          MTLOrigin dstOrigin);
+
     BlitCommandEncoder &fillBuffer(const BufferRef &buffer, NSRange range, uint8_t value);
 
     BlitCommandEncoder &generateMipmapsForTexture(const TextureRef &texture);

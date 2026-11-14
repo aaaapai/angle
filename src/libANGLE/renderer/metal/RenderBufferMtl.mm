@@ -8,6 +8,7 @@
 //
 
 #include "libANGLE/renderer/metal/RenderBufferMtl.h"
+#include "libANGLE/renderer/metal/TextureMtl.h"
 
 #include "libANGLE/ErrorStrings.h"
 #include "libANGLE/renderer/metal/ContextMtl.h"
@@ -31,6 +32,65 @@ void RenderbufferMtl::releaseTexture()
 {
     mTexture           = nullptr;
     mImplicitMSTexture = nullptr;
+}
+
+angle::Result RenderbufferMtl::copyRenderbufferSubData(const gl::Context *context,
+                                                       const gl::Renderbuffer *srcBuffer,
+                                                       GLint srcX,
+                                                       GLint srcY,
+                                                       GLint dstX,
+                                                       GLint dstY,
+                                                       GLsizei srcWidth,
+                                                       GLsizei srcHeight)
+{
+    // MTL31-PARTIAL: MTL31-EXT-copyimage - same-format 2D copies only; Metal blit requires
+    // identical pixel formats.
+    ContextMtl *contextMtl          = mtl::GetImpl(context);
+    RenderbufferMtl *srcMtl         = mtl::GetImpl(srcBuffer);
+    const mtl::TextureRef &srcImage = srcMtl->getTexture();
+    const mtl::TextureRef &dstImage = getTexture();
+    ANGLE_CHECK(contextMtl, srcImage && dstImage, gl::err::kInternalError, GL_INVALID_OPERATION);
+    ANGLE_CHECK(contextMtl, srcImage->pixelFormat() == dstImage->pixelFormat(),
+                gl::err::kInternalError, GL_INVALID_OPERATION);
+    ANGLE_CHECK(contextMtl, srcImage->samples() == dstImage->samples(), gl::err::kInternalError,
+                GL_INVALID_OPERATION);
+
+    mtl::BlitCommandEncoder *encoder = contextMtl->getBlitCommandEncoder();
+    encoder->copyTextureRegion(srcImage, 0, mtl::kZeroNativeMipLevel, MTLOriginMake(srcX, srcY, 0),
+                               MTLSizeMake(srcWidth, srcHeight, 1), dstImage, 0,
+                               mtl::kZeroNativeMipLevel, MTLOriginMake(dstX, dstY, 0));
+    return angle::Result::Continue;
+}
+
+angle::Result RenderbufferMtl::copyTextureSubData(const gl::Context *context,
+                                                  const gl::Texture *srcTexture,
+                                                  gl::LevelIndex srcLevel,
+                                                  GLint srcX,
+                                                  GLint srcY,
+                                                  gl::LayerIndex srcZ,
+                                                  GLint dstX,
+                                                  GLint dstY,
+                                                  GLsizei srcWidth,
+                                                  GLsizei srcHeight)
+{
+    ContextMtl *contextMtl = mtl::GetImpl(context);
+    TextureMtl *srcMtl     = mtl::GetImpl(srcTexture);
+    ANGLE_CHECK(contextMtl, srcZ.get() == 0, gl::err::kInternalError, GL_INVALID_OPERATION);
+
+    mtl::TextureRef srcImage;
+    ANGLE_TRY(srcMtl->getImageForCopy(context, srcLevel, &srcImage));
+    const mtl::TextureRef &dstImage = getTexture();
+    ANGLE_CHECK(contextMtl, srcImage && dstImage, gl::err::kInternalError, GL_INVALID_OPERATION);
+    ANGLE_CHECK(contextMtl, srcImage->pixelFormat() == dstImage->pixelFormat(),
+                gl::err::kInternalError, GL_INVALID_OPERATION);
+    ANGLE_CHECK(contextMtl, srcImage->samples() == dstImage->samples(), gl::err::kInternalError,
+                GL_INVALID_OPERATION);
+
+    mtl::BlitCommandEncoder *encoder = contextMtl->getBlitCommandEncoder();
+    encoder->copyTextureRegion(srcImage, 0, mtl::kZeroNativeMipLevel, MTLOriginMake(srcX, srcY, 0),
+                               MTLSizeMake(srcWidth, srcHeight, 1), dstImage, 0,
+                               mtl::kZeroNativeMipLevel, MTLOriginMake(dstX, dstY, 0));
+    return angle::Result::Continue;
 }
 
 angle::Result RenderbufferMtl::setStorageImpl(const gl::Context *context,

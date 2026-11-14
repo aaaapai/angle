@@ -2588,6 +2588,37 @@ BlitCommandEncoder &BlitCommandEncoder::copyTexture(const TextureRef &src,
     return *this;
 }
 
+BlitCommandEncoder &BlitCommandEncoder::copyTextureRegion(const TextureRef &src,
+                                                          uint32_t srcSlice,
+                                                          MipmapNativeLevel srcLevel,
+                                                          MTLOrigin srcOrigin,
+                                                          MTLSize srcSize,
+                                                          const TextureRef &dst,
+                                                          uint32_t dstSlice,
+                                                          MipmapNativeLevel dstLevel,
+                                                          MTLOrigin dstOrigin)
+{
+    if (!src || !dst)
+    {
+        return *this;
+    }
+
+    cmdBuffer().setReadDependency(src, /*isRenderCommand=*/false);
+    cmdBuffer().setWriteDependency(dst, /*isRenderCommand=*/false);
+
+    [get() copyFromTexture:src->get()
+               sourceSlice:srcSlice
+               sourceLevel:srcLevel.get()
+              sourceOrigin:srcOrigin
+                sourceSize:srcSize
+                 toTexture:dst->get()
+          destinationSlice:dstSlice
+          destinationLevel:dstLevel.get()
+         destinationOrigin:dstOrigin];
+
+    return *this;
+}
+
 BlitCommandEncoder &BlitCommandEncoder::fillBuffer(const BufferRef &buffer,
                                                    NSRange range,
                                                    uint8_t value)
