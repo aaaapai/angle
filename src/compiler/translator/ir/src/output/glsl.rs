@@ -1193,6 +1193,7 @@ impl ast::Target for Generator {
 
     fn built_in(
         &mut self,
+        _ir_meta: &IRMeta,
         block_result: &mut String,
         result: Option<RegisterId>,
         built_in_op: BuiltInOpCode,
@@ -1258,7 +1259,8 @@ BuiltInOpCode::AtomicCounterCompSwap => "atomicCounterCompSwap",
             | BuiltInOpCode::SamplePosition
             | BuiltInOpCode::InterpolateAtCenter
             | BuiltInOpCode::LoopForwardProgress
-            | BuiltInOpCode::Saturate => {
+            | BuiltInOpCode::Saturate
+            | BuiltInOpCode::ConvertFromUniformLayout => {
                 panic!("Internal error: Unexpected non-GLSL opcode for GLSL generator")
             }
         };
