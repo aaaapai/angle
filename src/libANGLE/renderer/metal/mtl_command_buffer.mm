@@ -2784,6 +2784,16 @@ ComputeCommandEncoder &ComputeCommandEncoder::setRWTexture(gl::ShaderType shader
     return setTextureForWrite(texture, index);
 }
 
+ComputeCommandEncoder &ComputeCommandEncoder::useResource(const BufferRef &resource,
+                                                          MTLResourceUsage usage)
+{
+    if (resource)
+    {
+        [get() useResource:resource->get() usage:usage];
+    }
+    return *this;
+}
+
 ComputeCommandEncoder &ComputeCommandEncoder::setBuffer(gl::ShaderType shaderType,
                                                         const BufferRef &buffer,
                                                         size_t offset,

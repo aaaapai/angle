@@ -283,7 +283,11 @@ angle::Result ProgramMtl::linkJobImpl(mtl::Context *context,
     linkResources(resources);
 
     ANGLE_TRY(executableMtl->initDefaultUniformBlocks(context, mState.getAttachedShaders()));
-    executableMtl->linkUpdateHasFlatAttributes(mState.getAttachedShader(gl::ShaderType::Vertex));
+    if (mState.getAttachedShader(gl::ShaderType::Vertex))
+    {
+        executableMtl->linkUpdateHasFlatAttributes(
+            mState.getAttachedShader(gl::ShaderType::Vertex));
+    }
 
     gl::ShaderMap<std::string> shaderSources;
     mtl::MSLGetShaderSource(mState, resources, &shaderSources);
@@ -309,13 +313,12 @@ angle::Result ProgramMtl::compileMslShaderLibs(
     bool asyncCompile = displayMtl->getFeatures().enableParallelMtlLibraryCompilation.enabled;
     mtl::LibraryCache &libraryCache = displayMtl->getLibraryCache();
 
-    for (gl::ShaderType shaderType : gl::kAllGLES2ShaderTypes)
-    {
+    auto compileStage = [&](gl::ShaderType shaderType) -> angle::Result {
         mtl::TranslatedShaderInfo *translateInfo =
             &executableMtl->mMslShaderTranslateInfo[shaderType];
         std::map<std::string, std::string> macros = GetDefaultSubstitutionDictionary();
         const bool disableFastMath                = translateInfo->hasIsnanOrIsinf;
-        const bool usesInvariance = translateInfo->hasInvariant;
+        const bool usesInvariance                 = translateInfo->hasInvariant;
 
         // Check if the shader is already in the cache and use it instead of spawning a new thread
         translateInfo->metalLibrary = libraryCache.get(translateInfo->metalShaderSource, macros,
@@ -331,6 +334,16 @@ angle::Result ProgramMtl::compileMslShaderLibs(
             {
                 ANGLE_TRY(CreateMslShaderLib(context, infoLog, translateInfo, macros));
             }
+        }
+        return angle::Result::Continue;
+    };
+
+    for (gl::ShaderType shaderType :
+         {gl::ShaderType::Vertex, gl::ShaderType::Fragment, gl::ShaderType::Compute})
+    {
+        if (mState.getAttachedShader(shaderType))
+        {
+            ANGLE_TRY(compileStage(shaderType));
         }
     }
 

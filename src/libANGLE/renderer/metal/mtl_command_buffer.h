@@ -766,6 +766,7 @@ class ComputeCommandEncoder final : public CommandEncoder
     ComputeCommandEncoder &setRWTexture(gl::ShaderType shaderType,
                                         const TextureRef &texture,
                                         uint32_t index);
+    ComputeCommandEncoder &useResource(const BufferRef &resource, MTLResourceUsage usage);
 
     ComputeCommandEncoder &dispatch(const MTLSize &threadGroupsPerGrid,
                                     const MTLSize &threadsPerGroup);

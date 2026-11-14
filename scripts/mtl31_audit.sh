@@ -142,7 +142,8 @@ if [[ -n "${registry}" && -f "${registry}" ]]; then
         if ! grep -q "\`${id}\`" "${registry}"; then
             missing_ids+="${id}"$'\n'
         fi
-    done < <(grep -rhoE 'MTL31-[A-Za-z0-9-]+' "${metal_dir}" "${msl_dir}" 2>/dev/null | sort -u)
+    done < <(grep -rhoE 'MTL31-[A-Z][A-Z0-9]*-[A-Za-z0-9][A-Za-z0-9-]*' "${metal_dir}" \
+                 "${msl_dir}" 2>/dev/null | sort -u)
     if [[ -z "${missing_ids}" ]]; then
         pass "8. every source MTL31 marker has a registry entry"
     else
@@ -172,6 +173,19 @@ if [[ -z "${ignored_results}" ]]; then
 else
     warn "9b. review explicitly discarded return values"
     printf '%s\n' "${ignored_results}" | sed 's/^/         /'
+fi
+
+# Check 10: the 0x3004 regression guard.  conformant must be min(supported, 3.0); a hard-coded
+# 3.2 makes GetClientVersion() raise every backwards-compatible request above supported and
+# Context::initialize() rejects it with EGL_BAD_ATTRIBUTE.
+conformant_fn=$(sed -n '/^gl::Version DisplayMtl::getMaxConformantESVersion/,/^}/p' \
+                    "${metal_dir}/DisplayMtl.mm")
+if printf '%s' "${conformant_fn}" | grep -q 'std::min(getMaxSupportedESVersion' &&
+    ! printf '%s' "${conformant_fn}" | grep -q 'gl::Version(3, 2)'; then
+    pass "10. conformant <= supported (0x3004 regression guard)"
+else
+    fail "10. getMaxConformantESVersion violates conformant <= supported"
+    printf '%s\n' "${conformant_fn}" | sed 's/^/         /'
 fi
 
 printf '\n%d failure(s), %d warning(s)\n' "${failures}" "${warnings}"

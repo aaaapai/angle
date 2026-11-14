@@ -885,6 +885,39 @@ void DisplayMtl::ensureCapsInitialized() const
     mNativeCaps.maxShaderTextureImageUnits[gl::ShaderType::Fragment] = mtl::kMaxShaderSamplers;
     mNativeCaps.maxShaderTextureImageUnits[gl::ShaderType::Vertex]   = mtl::kMaxShaderSamplers;
 
+    // MTL31-FEATURE: MTL31-COMPUTE-dispatch
+    // Metal exposes the per-axis threadgroup size and the threadgroup-memory length directly.
+    // There is no device-level query for the invocation cap or the grid-dimension cap: the
+    // protocol limit on threads per threadgroup is 1024, and ES 3.1 requires at least 65535
+    // workgroups per dimension, so both are conservative values rather than invented device
+    // capabilities.
+    {
+        const MTLSize maxThreadsPerThreadgroup = [mMetalDevice maxThreadsPerThreadgroup];
+        const auto clampToGLint                = [](NSUInteger value) {
+            return static_cast<GLint>(std::min<NSUInteger>(
+                value, static_cast<NSUInteger>(std::numeric_limits<GLint>::max())));
+        };
+        constexpr uint64_t kMaxThreadsPerThreadgroup = 1024;
+
+        mNativeCaps.maxComputeWorkGroupSize = {clampToGLint(maxThreadsPerThreadgroup.width),
+                                               clampToGLint(maxThreadsPerThreadgroup.height),
+                                               clampToGLint(maxThreadsPerThreadgroup.depth)};
+
+        const uint64_t invocationProduct = static_cast<uint64_t>(maxThreadsPerThreadgroup.width) *
+                                           static_cast<uint64_t>(maxThreadsPerThreadgroup.height) *
+                                           static_cast<uint64_t>(maxThreadsPerThreadgroup.depth);
+        mNativeCaps.maxComputeWorkGroupInvocations =
+            static_cast<GLint>(std::min<uint64_t>(invocationProduct, kMaxThreadsPerThreadgroup));
+
+        mNativeCaps.maxComputeSharedMemorySize =
+            clampToGLint([mMetalDevice maxThreadgroupMemoryLength]);
+        mNativeCaps.maxComputeWorkGroupCount = {65535, 65535, 65535};
+    }
+
+    mNativeCaps.maxShaderUniformComponents[gl::ShaderType::Compute] = maxDefaultUniformComponents;
+    mNativeCaps.maxShaderUniformBlocks[gl::ShaderType::Compute]     = mtl::kMaxShaderUBOs;
+    mNativeCaps.maxShaderTextureImageUnits[gl::ShaderType::Compute] = mtl::kMaxShaderSamplers;
+
     // No info from Metal given, use default GLES3 spec values:
     mNativeCaps.minProgramTexelOffset = -8;
     mNativeCaps.maxProgramTexelOffset = 7;
@@ -918,7 +951,7 @@ void DisplayMtl::ensureCapsInitialized() const
     // UBO plus default uniform limits
     const uint32_t maxCombinedUniformComponents =
         maxDefaultUniformComponents + mtl::kMaxUBOSize * mtl::kMaxShaderUBOs / 4;
-    for (gl::ShaderType shaderType : gl::kAllGraphicsShaderTypes)
+    for (gl::ShaderType shaderType : gl::AllShaderTypes())
     {
         mNativeCaps.maxCombinedShaderUniformComponents[shaderType] = maxCombinedUniformComponents;
     }
@@ -1240,6 +1273,13 @@ void DisplayMtl::initializeFeatures()
     {
         return;
     }
+
+    // MTL31-PARTIAL: MTL31-VERSION-early-activation - ES 3.1 is enabled before the full core
+    // feature set lands so the Metal compute path can be validated on real devices.  The version
+    // gate still requires the ES 3.1 compute limits, 3.0 requests still stay at 3.0, and every
+    // unimplemented core feature must fail visibly instead of reporting success.  Roll back with
+    // ANGLE_FEATURE_OVERRIDES_DISABLED=enableEs31.
+    ANGLE_FEATURE_CONDITION((&mFeatures), enableEs31, true);
 
     ANGLE_FEATURE_CONDITION((&mFeatures), allowGenMultipleMipsPerPass, true);
 

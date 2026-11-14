@@ -17,6 +17,7 @@
 #include "common/unsafe_buffers.h"
 #include "image_util/loadimage.h"
 #include "libANGLE/Display.h"
+#include "libANGLE/ErrorStrings.h"
 #include "libANGLE/Query.h"
 #include "libANGLE/TransformFeedback.h"
 #include "libANGLE/renderer/metal/BufferMtl.h"
@@ -1575,9 +1576,32 @@ angle::Result ContextMtl::dispatchCompute(const gl::Context *context,
                                           GLuint numGroupsY,
                                           GLuint numGroupsZ)
 {
-    // NOTE(hqle): ES 3.0
-    UNIMPLEMENTED();
-    return angle::Result::Stop;
+    // MTL31-FEATURE: MTL31-COMPUTE-dispatch
+    ASSERT(mExecutable);
+    if (!mExecutable)
+    {
+        ANGLE_CHECK(context, false, gl::err::kInternalError, GL_INVALID_OPERATION);
+    }
+
+    if (mDirtyBits.test(DIRTY_BIT_TEXTURES))
+    {
+        ANGLE_TRY(handleDirtyActiveTextures(context));
+        mDirtyBits.reset(DIRTY_BIT_TEXTURES);
+    }
+
+    const gl::ProgramExecutable *executable = mState.getProgramExecutable();
+    ANGLE_CHECK(context, executable != nullptr, gl::err::kInternalError, GL_INVALID_OPERATION);
+    const sh::WorkGroupSize &localSize = executable->getComputeShaderLocalSize();
+    ANGLE_CHECK(context, localSize[0] > 0 && localSize[1] > 0 && localSize[2] > 0,
+                gl::err::kInternalError, GL_INVALID_OPERATION);
+
+    mtl::ComputeCommandEncoder *cmdEncoder = getComputeCommandEncoder();
+    ANGLE_TRY(mExecutable->setupCompute(context, cmdEncoder));
+
+    cmdEncoder->dispatch(MTLSizeMake(numGroupsX, numGroupsY, numGroupsZ),
+                         MTLSizeMake(localSize[0], localSize[1], localSize[2]));
+
+    return checkCommandBufferError();
 }
 angle::Result ContextMtl::dispatchComputeIndirect(const gl::Context *context, GLintptr indirect)
 {

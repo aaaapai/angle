@@ -189,6 +189,11 @@ class ProgramExecutableMtl : public ProgramExecutableImpl
                             bool forceTexturesSetting,
                             bool uniformBuffersDirty);
 
+    // Binds the compute pipeline and every resource the compute shader uses.  The caller owns the
+    // encoder and must have ended any render/blit encoding that conflicts with it.
+    angle::Result setupCompute(const gl::Context *glContext,
+                               mtl::ComputeCommandEncoder *cmdEncoder);
+
   private:
     friend class ProgramMtl;
 
@@ -233,15 +238,30 @@ class ProgramExecutableMtl : public ProgramExecutableImpl
                                        gl::ShaderType shaderType,
                                        const mtl::RenderPipelineDesc &renderPipelineDesc,
                                        id<MTLFunction> *shaderOut);
+    angle::Result getComputeShader(ContextMtl *context, id<MTLFunction> *shaderOut);
 
+    template <typename Encoder>
+    angle::Result commitUniformsImpl(ContextMtl *context,
+                                     Encoder *cmdEncoder,
+                                     gl::ShaderType shaderType);
     angle::Result commitUniforms(ContextMtl *context, mtl::RenderCommandEncoder *cmdEncoder);
+    angle::Result commitUniforms(ContextMtl *context, mtl::ComputeCommandEncoder *cmdEncoder);
+    template <typename Encoder>
+    angle::Result updateTexturesImpl(const gl::Context *glContext,
+                                     Encoder *cmdEncoder,
+                                     gl::ShaderType shaderType,
+                                     bool forceUpdate);
     angle::Result updateTextures(const gl::Context *glContext,
                                  mtl::RenderCommandEncoder *cmdEncoder,
+                                 bool forceUpdate);
+    angle::Result updateTextures(const gl::Context *glContext,
+                                 mtl::ComputeCommandEncoder *cmdEncoder,
                                  bool forceUpdate);
 
     angle::Result updateUniformBuffers(ContextMtl *context,
                                        mtl::RenderCommandEncoder *cmdEncoder,
                                        const mtl::RenderPipelineDesc &pipelineDesc);
+    angle::Result updateUniformBuffers(ContextMtl *context, mtl::ComputeCommandEncoder *cmdEncoder);
     angle::Result updateXfbBuffers(ContextMtl *context,
                                    mtl::RenderCommandEncoder *cmdEncoder,
                                    const mtl::RenderPipelineDesc &pipelineDesc);
@@ -274,6 +294,8 @@ class ProgramExecutableMtl : public ProgramExecutableImpl
     mtl::RenderPipelineRasterStateMap<ProgramShaderObjVariantMtl> mVertexShaderVariants;
     // - Fragment shader: Combinations of sample coverage mask and depth write enabled states.
     std::array<ProgramShaderObjVariantMtl, kFragmentShaderVariants> mFragmentShaderVariants;
+    // - Compute shader: one variant per program.
+    ProgramShaderObjVariantMtl mComputeShaderVariant;
 
     // Cached references of current shader variants.
     gl::ShaderMap<ProgramShaderObjVariantMtl *> mCurrentShaderVariants;

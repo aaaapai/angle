@@ -629,8 +629,16 @@ angle::Result MTLGetMSL(const angle::FeaturesMtl &features,
         originalSamplerBindings[mappedSamplerName].push_back(
             {textureIndex, static_cast<uint32_t>(samplerBinding.textureUnitsCount)});
     }
-    for (gl::ShaderType type : {gl::ShaderType::Vertex, gl::ShaderType::Fragment})
+    for (gl::ShaderType type :
+         {gl::ShaderType::Vertex, gl::ShaderType::Fragment, gl::ShaderType::Compute})
     {
+        // A program only contains the stages that were attached; the compute path has no
+        // vertex/fragment shader to post-process.
+        if (!shadersState[type])
+        {
+            continue;
+        }
+
         std::string source;
         if (type == gl::ShaderType::Vertex)
         {
@@ -652,11 +660,15 @@ angle::Result MTLGetMSL(const angle::FeaturesMtl &features,
                 }
             }
         }
-        else
+        else if (type == gl::ShaderType::Fragment)
         {
-            ASSERT(type == gl::ShaderType::Fragment);
             const bool defineAlpha0 = features.emulateAlphaToCoverage.enabled;
             source = UpdateFragmentShaderOutputs(shaderSources[type], executable, defineAlpha0);
+        }
+        else
+        {
+            ASSERT(type == gl::ShaderType::Compute);
+            source = shaderSources[type];
         }
         (*mslShaderInfoOut)[type].metalShaderSource =
             std::make_shared<const std::string>(std::move(source));
