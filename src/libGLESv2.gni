@@ -94,7 +94,6 @@ libangle_common_sources =
       "src/common/base/anglebase/sha1.cc",
       "src/common/base/anglebase/trace_event/trace_categories.cc",
       "src/common/debug.cpp",
-      "src/common/log_stub.cpp",
       "src/common/entry_points_enum_autogen.cpp",
       "src/common/event_tracer.cpp",
       "src/common/mathutil.cpp",
@@ -120,6 +119,11 @@ xxhash_sources = [
   "src/common/third_party/xxhash/src/xxhash.c",
   "src/common/third_party/xxhash/src/xxhash.h",
 ]
+
+if (is_android) {
+  # __android_log_* stubs are only referenced by the Android logging path.
+  libangle_common_sources += [ "src/common/log_stub.cpp" ]
+}
 
 if (is_android && angle_enable_unwind_backtrace_support) {
   libangle_common_sources += [ "src/common/backtrace_utils_android.cpp" ]
