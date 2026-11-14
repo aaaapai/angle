@@ -946,6 +946,11 @@ angle::Result ProgramExecutableMtl::setupDraw(const gl::Context *glContext,
         ANGLE_TRY(updateUniformBuffers(context, cmdEncoder, pipelineDesc));
     }
 
+    for (gl::ShaderType shaderType : gl::kAllGLES2ShaderTypes)
+    {
+        ANGLE_TRY(updateShaderStorageBuffers(context, cmdEncoder, shaderType));
+    }
+
     if (pipelineDescChanged)
     {
         ANGLE_TRY(updateXfbBuffers(context, cmdEncoder, pipelineDesc));
@@ -1073,6 +1078,12 @@ angle::Result ProgramExecutableMtl::getSpecializedShader(
                                   mtl::kUBOArgumentBufferBindingIndex,
                                   &shaderVariant->uboArgBufferEncoder);
     }
+    if (translatedMslInfo->hasSSBOArgumentBuffer)
+    {
+        InitArgumentBufferEncoder(context, shaderVariant->metalShader,
+                                  mtl::kSSBOArgumentBufferBindingIndex,
+                                  &shaderVariant->ssboArgBufferEncoder);
+    }
 
     *shaderOut = shaderVariant->metalShader;
 
@@ -1100,6 +1111,12 @@ angle::Result ProgramExecutableMtl::getComputeShader(ContextMtl *context,
         InitArgumentBufferEncoder(context, mComputeShaderVariant.metalShader,
                                   mtl::kUBOArgumentBufferBindingIndex,
                                   &mComputeShaderVariant.uboArgBufferEncoder);
+    }
+    if (translatedMslInfo->hasSSBOArgumentBuffer)
+    {
+        InitArgumentBufferEncoder(context, mComputeShaderVariant.metalShader,
+                                  mtl::kSSBOArgumentBufferBindingIndex,
+                                  &mComputeShaderVariant.ssboArgBufferEncoder);
     }
 
     *shaderOut = mComputeShaderVariant.metalShader;
@@ -1133,6 +1150,7 @@ angle::Result ProgramExecutableMtl::setupCompute(const gl::Context *glContext,
     ANGLE_TRY(commitUniforms(context, cmdEncoder));
     ANGLE_TRY(updateTextures(glContext, cmdEncoder, /*forceUpdate=*/true));
     ANGLE_TRY(updateUniformBuffers(context, cmdEncoder));
+    ANGLE_TRY(updateShaderStorageBuffers(context, cmdEncoder));
 
     return angle::Result::Continue;
 }
@@ -1462,6 +1480,91 @@ angle::Result ProgramExecutableMtl::updateUniformBuffers(ContextMtl *context,
     }
 
     return angle::Result::Continue;
+}
+
+template <typename Encoder>
+angle::Result ProgramExecutableMtl::updateShaderStorageBuffersImpl(
+    ContextMtl *context,
+    Encoder *cmdEncoder,
+    gl::ShaderType shaderType,
+    ProgramShaderObjVariantMtl *variant)
+{
+    const std::vector<gl::InterfaceBlock> &blocks = mExecutable->getShaderStorageBlocks();
+    if (blocks.empty() || variant == nullptr || variant->translatedSrcInfo == nullptr ||
+        !variant->translatedSrcInfo->hasSSBOArgumentBuffer)
+    {
+        return angle::Result::Continue;
+    }
+
+    const mtl::TranslatedShaderInfo &shaderInfo    = *variant->translatedSrcInfo;
+    ProgramArgumentBufferEncoderMtl &bufferEncoder = variant->ssboArgBufferEncoder;
+    if (!bufferEncoder.metalArgBufferEncoder)
+    {
+        return angle::Result::Continue;
+    }
+
+    const gl::State &glState = context->getState();
+    mtl::BufferSlice argumentBuffer;
+    bufferEncoder.bufferPool.releaseInFlightBuffers(context);
+    ANGLE_TRY(bufferEncoder.bufferPool.allocate(
+        context, bufferEncoder.metalArgBufferEncoder.get().encodedLength, &argumentBuffer));
+
+    ANGLE_UNUSED_VARIABLE(argumentBuffer.buffer()->mapNoSync(context));
+    [bufferEncoder.metalArgBufferEncoder setArgumentBuffer:argumentBuffer.buffer()->get()
+                                                    offset:argumentBuffer.offset()];
+
+    for (uint32_t blockIndex = 0; blockIndex < blocks.size(); ++blockIndex)
+    {
+        const gl::InterfaceBlock &block = blocks[blockIndex];
+        if (!block.activeShaders().test(shaderType))
+        {
+            continue;
+        }
+
+        const GLuint binding = mExecutable->getShaderStorageBlockBinding(blockIndex);
+        const gl::OffsetBindingPointer<gl::Buffer> &bufferBinding =
+            glState.getIndexedShaderStorageBuffer(binding);
+        if (bufferBinding.get() == nullptr)
+        {
+            continue;
+        }
+
+        const uint32_t actualIndex = shaderInfo.actualSSBOBindings[blockIndex];
+        if (actualIndex >= mtl::kMaxShaderBuffers)
+        {
+            continue;
+        }
+
+        BufferMtl *bufferMtl = mtl::GetImpl(bufferBinding.get());
+        ANGLE_CHECK(context, bufferMtl != nullptr, gl::err::kInternalError, GL_INVALID_OPERATION);
+        [bufferEncoder.metalArgBufferEncoder setBuffer:bufferMtl->getCurrentBuffer()->get()
+                                                offset:bufferBinding.getOffset()
+                                               atIndex:actualIndex];
+    }
+
+    argumentBuffer.buffer()->unmapAndFlushSubset(
+        context, argumentBuffer.offset(), bufferEncoder.metalArgBufferEncoder.get().encodedLength);
+
+    cmdEncoder->setBuffer(shaderType, argumentBuffer.buffer(), argumentBuffer.offset(),
+                          mtl::kSSBOArgumentBufferBindingIndex);
+    return angle::Result::Continue;
+}
+
+angle::Result ProgramExecutableMtl::updateShaderStorageBuffers(
+    ContextMtl *context,
+    mtl::ComputeCommandEncoder *cmdEncoder)
+{
+    return updateShaderStorageBuffersImpl(context, cmdEncoder, gl::ShaderType::Compute,
+                                          &mComputeShaderVariant);
+}
+
+angle::Result ProgramExecutableMtl::updateShaderStorageBuffers(
+    ContextMtl *context,
+    mtl::RenderCommandEncoder *cmdEncoder,
+    gl::ShaderType shaderType)
+{
+    return updateShaderStorageBuffersImpl(context, cmdEncoder, shaderType,
+                                          mCurrentShaderVariants[shaderType]);
 }
 
 angle::Result ProgramExecutableMtl::legalizeUniformBufferOffsets(ContextMtl *context)

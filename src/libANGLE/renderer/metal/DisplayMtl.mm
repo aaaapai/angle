@@ -927,11 +927,20 @@ void DisplayMtl::ensureCapsInitialized() const
     mNativeCaps.minProgramTexelOffset = -8;
     mNativeCaps.maxProgramTexelOffset = 7;
 
-    // NOTE(hqle): support storage buffer.
-    const uint32_t maxPerStageStorageBuffers                     = 0;
+    // SSBOs use an argument buffer, so the per-stage binding count is not limited by the Metal
+    // buffer-slot count.  Report the ES 3.1 minimums and clamp the block size to the device buffer
+    // limit.
+    const uint32_t maxPerStageStorageBuffers                     = 8;
     mNativeCaps.maxShaderStorageBlocks[gl::ShaderType::Vertex]   = maxPerStageStorageBuffers;
     mNativeCaps.maxShaderStorageBlocks[gl::ShaderType::Fragment] = maxPerStageStorageBuffers;
-    mNativeCaps.maxCombinedShaderStorageBlocks                   = maxPerStageStorageBuffers;
+    mNativeCaps.maxShaderStorageBlocks[gl::ShaderType::Compute]  = maxPerStageStorageBuffers;
+    mNativeCaps.maxCombinedShaderStorageBlocks                   = 24;
+    mNativeCaps.maxShaderStorageBufferBindings                   = 8;
+    mNativeCaps.maxShaderStorageBlockSize = static_cast<GLint64>([mMetalDevice maxBufferLength]);
+    mNativeCaps.shaderStorageBufferOffsetAlignment = supportsAppleGPUFamily(1) ? 16 : 256;
+    mNativeCaps.maxCombinedShaderOutputResources =
+        std::max<GLint>(mNativeCaps.maxCombinedShaderOutputResources,
+                        static_cast<GLint>(maxPerStageStorageBuffers));
 
     // Fill in additional limits for UBOs and SSBOs.
     mNativeCaps.maxUniformBufferBindings = mNativeCaps.maxCombinedUniformBlocks;

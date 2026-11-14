@@ -94,6 +94,7 @@ struct ProgramShaderObjVariantMtl
     // UBO's argument buffer encoder. Used when number of UBOs used exceeds number of allowed
     // discrete slots, and thus needs to encode all into one argument buffer.
     ProgramArgumentBufferEncoderMtl uboArgBufferEncoder;
+    ProgramArgumentBufferEncoderMtl ssboArgBufferEncoder;
 
     // Store reference to the TranslatedShaderInfo to easy querying mapped textures/UBO/XFB
     // bindings.
@@ -262,6 +263,16 @@ class ProgramExecutableMtl : public ProgramExecutableImpl
                                        mtl::RenderCommandEncoder *cmdEncoder,
                                        const mtl::RenderPipelineDesc &pipelineDesc);
     angle::Result updateUniformBuffers(ContextMtl *context, mtl::ComputeCommandEncoder *cmdEncoder);
+    angle::Result updateShaderStorageBuffers(ContextMtl *context,
+                                             mtl::ComputeCommandEncoder *cmdEncoder);
+    angle::Result updateShaderStorageBuffers(ContextMtl *context,
+                                             mtl::RenderCommandEncoder *cmdEncoder,
+                                             gl::ShaderType shaderType);
+    template <typename Encoder>
+    angle::Result updateShaderStorageBuffersImpl(ContextMtl *context,
+                                                 Encoder *cmdEncoder,
+                                                 gl::ShaderType shaderType,
+                                                 ProgramShaderObjVariantMtl *variant);
     angle::Result updateXfbBuffers(ContextMtl *context,
                                    mtl::RenderCommandEncoder *cmdEncoder,
                                    const mtl::RenderPipelineDesc &pipelineDesc);
