@@ -91,7 +91,7 @@ angle_enable_trace = false
 angle_extra_cflags = [
   "-Wno-error=unused-variable",
   "-Wno-error=extra-semi-stmt",
-  "-Wno-error=unsafe-buffer-usage",,
+  "-Wno-error=unsafe-buffer-usage",
   "-Wno-error",
   "-O3",
   "-fno-semantic-interposition",
