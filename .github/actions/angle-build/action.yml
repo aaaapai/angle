@@ -15,18 +15,6 @@ inputs:
     description: 'Glob of files/directories to upload, relative to the out-dir'
     required: false
     default: '*.so'
-  build-target:
-    description: 'Optional single ninja target; empty builds everything'
-    required: false
-    default: ''
-  extra-gn-args:
-    description: 'Extra GN arguments appended to args.gn before generation'
-    required: false
-    default: ''
-  pre-build-command:
-    description: 'Optional command run after gclient sync and before GN generation'
-    required: false
-    default: ''
 
 runs:
   using: 'composite'
@@ -106,13 +94,6 @@ runs:
         install: 'yes'
         job-summary: 'CCache Statistics'
 
-    - name: Pre-build command
-      if: ${{ inputs.pre-build-command != '' }}
-      shell: bash
-      run: |
-        export PATH=`pwd`/depot_tools:$PATH
-        ${{ inputs.pre-build-command }}
-
     - name: Generate args.gn
       shell: bash
       run: |
@@ -126,23 +107,10 @@ runs:
       shell: bash
       run: |
         export PATH=`pwd`/depot_tools:$PATH
-        ccache -z
-        cp .gn .gn.bak 2>/dev/null || true
-        if grep -q 'expand_directory_allowlist' .gn 2>/dev/null; then
-          sed -i 's|]|,\n  "//build/modules/BUILD.gn"\n]|' .gn
-        else
-          echo 'expand_directory_allowlist = [ "//build/modules/BUILD.gn" ]' >> .gn
-        fi
-        if [ -n "${{ inputs.extra-gn-args }}" ]; then
-          printf '%s\n' "${{ inputs.extra-gn-args }}" >> "out/${{ inputs.out-dir }}/args.gn"
-        fi
         gn gen "out/${{ inputs.out-dir }}" --threads=8
         gn args "out/${{ inputs.out-dir }}" --list --short
-        if [ -n "${{ inputs.build-target }}" ]; then
-          autoninja -C "out/${{ inputs.out-dir }}" -j 8 "${{ inputs.build-target }}"
-        else
-          autoninja -C "out/${{ inputs.out-dir }}" -j 8
-        fi
+        ccache -z
+        autoninja -C "out/${{ inputs.out-dir }}" -j 8
 
     - name: List build outputs
       if: success()
