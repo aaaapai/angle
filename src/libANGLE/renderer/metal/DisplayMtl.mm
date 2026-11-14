@@ -441,7 +441,7 @@ gl::Version DisplayMtl::getMaxSupportedESVersion() const
 
 gl::Version DisplayMtl::getMaxConformantESVersion() const
 {
-    return gl::Version(3, 2);
+    return std::min(getMaxSupportedESVersion(), gl::Version(3, 0));
 }
 
 EGLSyncImpl *ThreadSafeDisplayMtl::createSync()
