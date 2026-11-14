@@ -561,6 +561,16 @@ class RenderCommandEncoder final : public CommandEncoder
                                                                      int32_t baseVertex,
                                                                      uint32_t baseInstance);
 
+    RenderCommandEncoder &drawIndirect(MTLPrimitiveType primitiveType,
+                                       const BufferRef &indirectBuffer,
+                                       size_t indirectBufferOffset);
+    RenderCommandEncoder &drawIndexedIndirect(MTLPrimitiveType primitiveType,
+                                              MTLIndexType indexType,
+                                              const BufferRef &indexBuffer,
+                                              size_t bufferOffset,
+                                              const BufferRef &indirectBuffer,
+                                              size_t indirectBufferOffset);
+
     RenderCommandEncoder &setVisibilityResultMode(MTLVisibilityResultMode mode, size_t offset);
     MTLVisibilityResultMode getVisibilityResultMode() const;
 

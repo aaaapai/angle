@@ -954,18 +954,94 @@ angle::Result ContextMtl::drawArraysIndirect(const gl::Context *context,
                                              gl::PrimitiveMode mode,
                                              const void *indirect)
 {
-    // NOTE(hqle): ES 3.0
-    UNIMPLEMENTED();
-    return angle::Result::Stop;
+    // MTL31-FEATURE: MTL31-INDIRECT-draw
+    if (mCullAllPolygons && gl::IsPolygonMode(mode))
+    {
+        return angle::Result::Continue;
+    }
+    ANGLE_CHECK(context,
+                mode != gl::PrimitiveMode::TriangleFan && mode != gl::PrimitiveMode::LineLoop,
+                gl::err::kInternalError, GL_INVALID_OPERATION);
+    // The setup path derives driver uniforms and client-attribute bounds from a CPU-side count,
+    // which an indirect command does not provide.  Reject the combinations that would need it
+    // instead of submitting a wrong range.
+    ANGLE_CHECK(context,
+                !mState.isTransformFeedbackActiveUnpaused() && !context->hasAnyActiveClientAttrib(),
+                gl::err::kInternalError, GL_INVALID_OPERATION);
+
+    gl::Buffer *indirectBuffer = mState.getTargetBuffer(gl::BufferBinding::DrawIndirect);
+    ANGLE_CHECK(context, indirectBuffer != nullptr, gl::err::kInternalError, GL_INVALID_OPERATION);
+    BufferMtl *indirectBufferMtl = mtl::GetImpl(indirectBuffer);
+    ANGLE_CHECK(context, indirectBufferMtl != nullptr, gl::err::kInternalError,
+                GL_INVALID_OPERATION);
+
+    const uint64_t offset = reinterpret_cast<uintptr_t>(indirect);
+    ANGLE_CHECK(context,
+                offset <= indirectBufferMtl->size() &&
+                    indirectBufferMtl->size() - offset >= 4 * sizeof(uint32_t),
+                gl::err::kInternalError, GL_INVALID_VALUE);
+
+    ANGLE_TRY(resyncDrawFramebufferIfNeeded(context));
+    bool isNoOp = false;
+    ANGLE_TRY(
+        setupDraw(context, 0, 1, 0, gl::DrawElementsType::InvalidEnum, nullptr, false, &isNoOp));
+    if (!isNoOp)
+    {
+        mRenderEncoder.drawIndirect(mtl::GetPrimitiveType(mode),
+                                    indirectBufferMtl->getCurrentBuffer(),
+                                    static_cast<size_t>(offset));
+    }
+    return angle::Result::Continue;
 }
+
 angle::Result ContextMtl::drawElementsIndirect(const gl::Context *context,
                                                gl::PrimitiveMode mode,
                                                gl::DrawElementsType type,
                                                const void *indirect)
 {
-    // NOTE(hqle): ES 3.0
-    UNIMPLEMENTED();
-    return angle::Result::Stop;
+    // MTL31-FEATURE: MTL31-INDIRECT-draw
+    if (mCullAllPolygons && gl::IsPolygonMode(mode))
+    {
+        return angle::Result::Continue;
+    }
+    ANGLE_CHECK(context,
+                mode != gl::PrimitiveMode::TriangleFan && mode != gl::PrimitiveMode::LineLoop,
+                gl::err::kInternalError, GL_INVALID_OPERATION);
+    // The setup path derives driver uniforms and client-attribute bounds from a CPU-side count,
+    // which an indirect command does not provide.  Reject the combinations that would need it
+    // instead of submitting a wrong range.
+    ANGLE_CHECK(context,
+                !mState.isTransformFeedbackActiveUnpaused() && !context->hasAnyActiveClientAttrib(),
+                gl::err::kInternalError, GL_INVALID_OPERATION);
+
+    gl::Buffer *indexBuffer = mState.getVertexArray()->getElementArrayBuffer();
+    ANGLE_CHECK(context, indexBuffer != nullptr, gl::err::kInternalError, GL_INVALID_OPERATION);
+    BufferMtl *indexBufferMtl = mtl::GetImpl(indexBuffer);
+    ANGLE_CHECK(context, indexBufferMtl != nullptr, gl::err::kInternalError, GL_INVALID_OPERATION);
+
+    gl::Buffer *indirectBuffer = mState.getTargetBuffer(gl::BufferBinding::DrawIndirect);
+    ANGLE_CHECK(context, indirectBuffer != nullptr, gl::err::kInternalError, GL_INVALID_OPERATION);
+    BufferMtl *indirectBufferMtl = mtl::GetImpl(indirectBuffer);
+    ANGLE_CHECK(context, indirectBufferMtl != nullptr, gl::err::kInternalError,
+                GL_INVALID_OPERATION);
+
+    const uint64_t offset = reinterpret_cast<uintptr_t>(indirect);
+    ANGLE_CHECK(context,
+                offset <= indirectBufferMtl->size() &&
+                    indirectBufferMtl->size() - offset >= 5 * sizeof(uint32_t),
+                gl::err::kInternalError, GL_INVALID_VALUE);
+
+    ANGLE_TRY(resyncDrawFramebufferIfNeeded(context));
+    bool isNoOp = false;
+    ANGLE_TRY(setupDraw(context, 0, 1, 0, type, nullptr, false, &isNoOp));
+    if (!isNoOp)
+    {
+        mRenderEncoder.drawIndexedIndirect(mtl::GetPrimitiveType(mode), mtl::GetIndexType(type),
+                                           indexBufferMtl->getCurrentBuffer(), 0,
+                                           indirectBufferMtl->getCurrentBuffer(),
+                                           static_cast<size_t>(offset));
+    }
+    return angle::Result::Continue;
 }
 
 angle::Result ContextMtl::multiDrawArrays(const gl::Context *context,

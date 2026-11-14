@@ -743,6 +743,11 @@ void DisplayMtl::ensureCapsInitialized() const
     // Reset
     mNativeCaps = gl::Caps();
 
+    // MTL31-EXT-multidraw: multi-draw-indirect is emulated by the shared renderer helper (EX-1),
+    // so the context-level emulation suppression must be disabled or Context.cpp hides the
+    // extension even though the backend provides it.
+    mNativeLimitations.multidrawEmulated = false;
+
     // Fill extension and texture caps
     initializeExtensions();
     initializeTextureCaps();
