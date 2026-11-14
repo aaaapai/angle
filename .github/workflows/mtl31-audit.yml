@@ -52,3 +52,35 @@ jobs:
             exit 1
           fi
           grep -q 'MTL31-MSLLIMIT' /tmp/negative.metal
+
+  l3-msl:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@main
+        with:
+          fetch-depth: 1
+      - name: Setup depot_tools
+        run: |
+          sudo rm -rf /Users/runner/Library/Android/sdk
+          git clone --depth 1 https://chromium.googlesource.com/chromium/tools/depot_tools.git
+          export PATH=`pwd`/depot_tools:$PATH
+          python3 scripts/bootstrap.py
+          gclient sync --no-history --shallow --reset --force
+      - name: Build host translator with MSL
+        run: |
+          export PATH=`pwd`/depot_tools:$PATH
+          gn gen out/l3 --args='is_debug=false angle_enable_msl=true'
+          autoninja -C out/l3 -j 8 angle_shader_translator
+      - name: Compile generated MSL with Metal 2.1
+        run: |
+          set -euo pipefail
+          bin=out/l3/angle_shader_translator
+          corpus=src/tests/mtl31_shaders
+          for shader in compute_empty.comp compute_builtins.comp shared_barrier.comp ssbo_readwrite.comp; do
+            "$bin" -s=e31 -b=m "$corpus/positive/$shader" -o "/tmp/$shader.metal"
+            xcrun -sdk macosx metal -c -std=metal2.1 "/tmp/$shader.metal" -o "/tmp/$shader.air"
+          done
+          if "$bin" -s=e31 -b=m "$corpus/negative/memory_barrier.comp" -o /tmp/negative.metal; then
+            echo 'negative memoryBarrier case unexpectedly succeeded'
+            exit 1
+          fi
