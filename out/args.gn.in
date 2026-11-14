@@ -311,6 +311,8 @@ enable_unused_resource_stripping = false
 
 angle_enable_gl = false
 angle_enable_metal = true
+# The Metal backend compiles GLSL to MSL at runtime; without the MSL translator it cannot
+# create a shader library.  Apple-only: other platform sections leave it disabled.
 angle_enable_msl = true
 
 
