@@ -11,10 +11,13 @@
 
 #include "common/system_utils.h"
 
+#include <cstdint>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <dlfcn.h>
 #include <string>
+#include <string_view>
 #include <charconv>
 #include <format>
 
@@ -30,19 +33,24 @@ static void* vulkan_load_from_env() {
     if (vulkan_ptr_env && turnipEnv && std::string(turnipEnv) == "true") {
         std::string msg = std::format("[ANGLE] Use VULKAN_PTR = {}\n", vulkan_ptr_env);
         print_message(msg);
-        unsigned long value = 0;
-        auto [ptr, ec] = std::from_chars(vulkan_ptr_env,
-                                         vulkan_ptr_env + std::strlen(vulkan_ptr_env),
-                                         value, 16);
-        if (ec != std::errc() || value == 0) {
+
+        // Accept both "0x7f..." and "7f..." forms.  std::from_chars with
+        // base 16 does not understand a "0x" prefix, so strip it manually.
+        const char* p = vulkan_ptr_env;
+        if (std::strlen(p) > 2 && p[0] == '0' && (p[1] == 'x' || p[1] == 'X')) {
+            p += 2;
+        }
+
+        unsigned long long value = 0;
+        auto [end, ec] = std::from_chars(p, p + std::strlen(p), value, 16);
+        if (ec != std::errc() || value == 0 || end != p + std::strlen(p)) {
             print_message("[ANGLE] VULKAN_PTR parse failed\n");
             return nullptr;
         }
-        return reinterpret_cast<void*>(value);
+        return reinterpret_cast<void*>(static_cast<uintptr_t>(value));
     }
-    
-    return nullptr;
 
+    return nullptr;
 }
 
 static void* vulkan_load_from_pojavexec() {
@@ -67,55 +75,22 @@ static void* vulkan_load_from_pojavexec() {
         }
     }
 
+    if (lib_handle == nullptr) {
+        print_message("[ANGLE] Failed to dlopen libpojavexec / libpgw.\n");
+        return nullptr;
+    }
+
     void *(*load_vulkan_func)() = reinterpret_cast<void*(*)()>(dlsym(lib_handle, "maybe_load_vulkan"));
     if (load_vulkan_func) {
        return load_vulkan_func();
     }
 
+    print_message("[ANGLE] libpojavexec / libpgw does not export maybe_load_vulkan.\n");
     return nullptr;
 }
 
-static void* vulkan_load_from_special_path() {
-    // 首先检查环境变量 VULKAN_PTR
-    const char* vulkan_ptr_env = std::getenv("VULKAN_PTR");
-    const char* turnipEnv = std::getenv("ANGLE_LOAD_TURNIP");
-    if (vulkan_ptr_env && turnipEnv) {
-        printf("[ANGLE] Use VULKAN_PTR = %s\n", vulkan_ptr_env);
-        return (void*)std::strtoul(vulkan_ptr_env, NULL, 0x10);
-    }
+extern "C" void* load_vulkan_with_driver_helper();
 
-    if (!turnipEnv || (std::string(turnipEnv) != "false")) {
-        return nullptr;
-    }
-
-    printf("[ANGLE] Try to dlopen libpojavexec.\n");
-    void* lib_handle = dlopen("libpojavexec.so", RTLD_NOLOAD);
-    if (lib_handle == nullptr) {
-      printf("[ANGLE] Failed to dlopen libpojavexec, now try again.\n");
-      lib_handle = dlopen("libpojavexec.so", RTLD_LOCAL|RTLD_LAZY);
-      if (lib_handle == nullptr) {
-          print_message("[ANGLE] Failed to dlopen libpojavexec.Are you using Pojav Glow Worm? Now try to dlopen libpgw.\n");
-          lib_handle = dlopen("libpgw.so", RTLD_NOLOAD);
-          if (lib_handle == nullptr) {
-            print_message("[ANGLE] Failed to dlopen libpgw.Now try again.\n");
-            lib_handle = dlopen("libpgw.so", RTLD_LOCAL|RTLD_LAZY);
-          }
-      }
-    }
-    
-    // 获取 load_vulkan 函数
-    void *(*load_vulkan_func)() = reinterpret_cast<void*(*)()>(dlsym(lib_handle, "maybe_load_vulkan"));
-    if (load_vulkan_func) {
-        // 调用 load_vulkan 函数
-        vulkan_ptr_env = std::getenv("VULKAN_PTR");
-        if (vulkan_ptr_env) {
-          printf("[ANGLE] Use VULKAN_PTR = %s\n", vulkan_ptr_env);
-        }
-        return load_vulkan_func();
-    }
-
-    return nullptr;
-}
 #endif
 
 
@@ -126,12 +101,13 @@ namespace vk
 void *OpenLibVulkan()
 {
 #if !defined(ANGLE_PLATFORM_APPLE)
-    // Turnip in Pojav Backend seems to be not able to be loaded twice.
-    void* vulkan_load_result = vulkan_load_from_special_path();
+    void* vulkan_load_result = load_vulkan_with_driver_helper();
     if (vulkan_load_result == nullptr) {
+        print_message("[ANGLE] driver_helper unavailable, falling back to VULKAN_PTR env.\n");
         vulkan_load_result = vulkan_load_from_env();
     }
     if (vulkan_load_result == nullptr) {
+        print_message("[ANGLE] VULKAN_PTR env unavailable, falling back to pojavexec.\n");
         vulkan_load_result = vulkan_load_from_pojavexec();
     }
     if (vulkan_load_result != nullptr) {

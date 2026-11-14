@@ -55,7 +55,6 @@ angle_standalone = false
 angle_enable_vulkan = true
 angle_enable_vulkan_validation_layers = false
 angle_enable_vulkan_shared_ring_buffer_cmd_alloc = true
-angle_enable_d3d9 = false
 angle_enable_d3d11 = false
 angle_enable_null = false
 angle_enable_wgpu = false

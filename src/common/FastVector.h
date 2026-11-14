@@ -20,6 +20,8 @@
 #include <cstring>
 #include <initializer_list>
 #include <iterator>
+#include <ranges>
+#include <span>
 #include <type_traits>
 
 namespace angle
@@ -585,10 +587,12 @@ ANGLE_NOINLINE void FastVector<T, N, Storage>::increase_capacity(size_t capacity
 
     if (mSize > 0)
     {
-        // Optimized copy for trivially copyable types using memcpy.
+        // Optimized copy for trivially copyable types using span-based range copy
+        // (avoids the unsafe-buffer-usage libc-call warning on std::memcpy).
         if constexpr (std::is_trivially_copyable_v<value_type>)
         {
-            std::memcpy(newData, mData, mSize * sizeof(value_type));
+            std::ranges::copy(std::span<const value_type>(mData, mSize),
+                              std::span<value_type>(newData, mSize).begin());
         }
         else
         {

@@ -11,6 +11,7 @@
 //
 
 #include "libGLESv2/entry_points_gles_3_0_autogen.h"
+#include "libGLESv2/entry_points_gles_ext_autogen.h"
 
 extern "C" {
 
@@ -22,12 +23,10 @@ ANGLE_EXPORT void GL_APIENTRY GL_DrawBuffer(GLenum buf)
     GL_DrawBuffers(1, &drawBuffer);
 }
 
-// The Metal/Vulkan backends have no polygon mode. Accept and ignore it; the
-// callers only use it for wireframe toggles.
+// Also desktopgl-only function.
 ANGLE_EXPORT void GL_APIENTRY GL_PolygonMode(GLenum face, GLenum mode)
 {
-    (void)face;
-    (void)mode;
+    GL_PolygonModeNV(face, mode);
 }
 
 }  // extern "C"
