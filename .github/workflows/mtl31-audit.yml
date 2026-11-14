@@ -2,8 +2,9 @@ name: MTL31 AUDIT
 
 on:
   push:
-    branches: [develop, metal-only]
+    branches: [develop, metal-only, 'mtl31/**']
   pull_request:
+  workflow_dispatch:
 
 jobs:
   audit:
