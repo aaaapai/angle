@@ -733,6 +733,16 @@ class ComputeCommandEncoder final : public CommandEncoder
     ComputeCommandEncoder &setBufferForWrite(const BufferRef &buffer,
                                              size_t offset,
                                              uint32_t index);
+    // Shader-type overloads exist so resource-binding helpers that are shared with the render
+    // encoders can stay agnostic about which encoder they hold.  Compute has exactly one stage.
+    ComputeCommandEncoder &setBuffer(gl::ShaderType shaderType,
+                                     const BufferRef &buffer,
+                                     size_t offset,
+                                     uint32_t index);
+    ComputeCommandEncoder &setBytes(gl::ShaderType shaderType,
+                                    const void *bytes,
+                                    size_t size,
+                                    uint32_t index);
     ComputeCommandEncoder &setBytes(const void *bytes, size_t size, uint32_t index);
     template <typename T>
     ComputeCommandEncoder &setData(const T &data, uint32_t index)
@@ -743,11 +753,25 @@ class ComputeCommandEncoder final : public CommandEncoder
                                            float lodMinClamp,
                                            float lodMaxClamp,
                                            uint32_t index);
+    ComputeCommandEncoder &setSamplerState(gl::ShaderType shaderType,
+                                           id<MTLSamplerState> state,
+                                           float lodMinClamp,
+                                           float lodMaxClamp,
+                                           uint32_t index);
     ComputeCommandEncoder &setTexture(const TextureRef &texture, uint32_t index);
+    ComputeCommandEncoder &setTexture(gl::ShaderType shaderType,
+                                      const TextureRef &texture,
+                                      uint32_t index);
     ComputeCommandEncoder &setTextureForWrite(const TextureRef &texture, uint32_t index);
+    ComputeCommandEncoder &setRWTexture(gl::ShaderType shaderType,
+                                        const TextureRef &texture,
+                                        uint32_t index);
 
     ComputeCommandEncoder &dispatch(const MTLSize &threadGroupsPerGrid,
                                     const MTLSize &threadsPerGroup);
+    ComputeCommandEncoder &dispatchIndirect(const BufferRef &indirectBuffer,
+                                            size_t indirectBufferOffset,
+                                            const MTLSize &threadsPerGroup);
 
     ComputeCommandEncoder &dispatchNonUniform(const MTLSize &threadsPerGrid,
                                               const MTLSize &threadsPerGroup);

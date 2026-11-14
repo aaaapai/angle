@@ -688,7 +688,6 @@ static const char *GetOperatorString(TOperator op,
         case TOperator::EOpUsubBorrow:
         case TOperator::EOpUmulExtended:
         case TOperator::EOpImulExtended:
-        case TOperator::EOpBarrier:
         case TOperator::EOpMemoryBarrier:
         case TOperator::EOpMemoryBarrierAtomicCounter:
         case TOperator::EOpMemoryBarrierBuffer:
@@ -888,6 +887,41 @@ void GenMetalTraverser::emitPostQualifier(const EmitVariableDeclarationConfig &e
             if (evdConfig.isMainParameter)
             {
                 mOut << " [[sample_mask]]";
+            }
+            break;
+
+        case TQualifier::EvqGlobalInvocationID:
+            if (evdConfig.isMainParameter)
+            {
+                mOut << " [[thread_position_in_grid]]";
+            }
+            break;
+
+        case TQualifier::EvqLocalInvocationID:
+            if (evdConfig.isMainParameter)
+            {
+                mOut << " [[thread_position_in_threadgroup]]";
+            }
+            break;
+
+        case TQualifier::EvqWorkGroupID:
+            if (evdConfig.isMainParameter)
+            {
+                mOut << " [[threadgroup_position_in_grid]]";
+            }
+            break;
+
+        case TQualifier::EvqNumWorkGroups:
+            if (evdConfig.isMainParameter)
+            {
+                mOut << " [[threadgroups_per_grid]]";
+            }
+            break;
+
+        case TQualifier::EvqLocalInvocationIndex:
+            if (evdConfig.isMainParameter)
+            {
+                mOut << " [[thread_index_in_threadgroup]]";
             }
             break;
 
@@ -1534,6 +1568,19 @@ void GenMetalTraverser::emitOrdinaryVariableDeclaration(
     etConfig.evdConfig = &evdConfig;
 
     const TType &type = decl.type();
+
+    // Only non-pointer, non-reference declarations reach this path with an explicit space; the
+    // pointer/reference prefixes are emitted by emitBareTypeName.
+    if (!evdConfig.isPointer && !evdConfig.isReference)
+    {
+        if (const AddressSpace *space = mSymbolEnv.isAddressSpace(decl.isVariable()
+                                                                      ? VarField(decl.variable())
+                                                                      : VarField(decl.field())))
+        {
+            mOut << toString(*space) << " ";
+        }
+    }
+
     if (type.getQualifier() == TQualifier::EvqClipDistance)
     {
         // Clip distance output uses float[n] type instead of metal::array.
@@ -1606,6 +1653,16 @@ void GenMetalTraverser::visitSymbol(TIntermSymbol *symbolNode)
     const TVariable &var = symbolNode->variable();
     const TType &type    = var.getType();
     ASSERT(var.symbolType() != SymbolType::Empty);
+
+    if (type.getQualifier() == TQualifier::EvqWorkGroupSize)
+    {
+        // gl_WorkGroupSize is a compile-time constant in ESSL 3.10.  It must stay a constant
+        // expression in MSL too (it may size arrays), so it is emitted from the local size that
+        // the front end already recorded instead of from the runtime threads_per_threadgroup
+        // attribute.
+        mOut << kWorkGroupSizeConstName;
+        return;
+    }
 
     if (type.getBasicType() == TBasicType::EbtVoid)
     {
@@ -2086,7 +2143,7 @@ void GenMetalTraverser::emitFunctionReturn(const TFunction &func)
     if (isMain)
     {
         const TStructure *structure = returnType.getStruct();
-        if (mPipelineStructs.fragmentOut.matches(*structure))
+        if (structure && mPipelineStructs.fragmentOut.matches(*structure))
         {
             if (mCompiler.isEarlyFragmentTestsSpecified())
             {
@@ -2094,11 +2151,16 @@ void GenMetalTraverser::emitFunctionReturn(const TFunction &func)
             }
             mOut << "fragment ";
         }
-        else if (mPipelineStructs.vertexOut.matches(*structure))
+        else if (structure && mPipelineStructs.vertexOut.matches(*structure))
         {
-            ASSERT(structure != nullptr);
             mOut << "vertex __VERTEX_OUT(";
             isVertexMain = true;
+        }
+        else if (mCompiler.getShaderType() == GL_COMPUTE_SHADER)
+        {
+            // Compute entry points are kernels and always return void; the surrounding
+            // parameters carry the invocation built-ins.
+            mOut << "kernel ";
         }
         else
         {
@@ -2353,6 +2415,14 @@ bool GenMetalTraverser::visitAggregate(Visit, TIntermAggregate *aggregateNode)
 
             default:
             {
+                if (op == TOperator::EOpBarrier)
+                {
+                    // ESSL barrier() orders shared-memory accesses within a workgroup.  The MSL
+                    // intrinsic takes the memory flags explicitly; there is no 1:1 name mapping.
+                    mOut << "metal::threadgroup_barrier(metal::mem_flags::mem_threadgroup)";
+                    return false;
+                }
+
                 auto getArgType = [&](size_t index) -> const TType * {
                     if (index < args.size())
                     {

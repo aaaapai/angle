@@ -469,7 +469,7 @@ class PipelineFunctionEnv
                 newFunc                        = &func;
                 mPipelineMainLocalVar.external = vertexIDMetalVar;
             }
-            else if (isMain && (mPipeline.type == Pipeline::Type::InvocationFragmentGlobals))
+            else if (isMain && (mPipeline.type == Pipeline::Type::InvocationGlobals))
             {
                 std::vector<const TVariable *> variables;
                 for (const TField *field : mPipelineStruct.external->fields())
@@ -831,7 +831,7 @@ class UpdatePipelineFunctions : private TIntermRebuild
                     &AsType(mSymbolEnv, *new TType(TBasicType::EbtInt), *vertexIDMetal));
                 newBody->appendStatement(assignNode);
             }
-            else if (mPipeline.type == Pipeline::Type::InvocationFragmentGlobals)
+            else if (mPipeline.type == Pipeline::Type::InvocationGlobals)
             {
                 // Populate struct instance with references to global pipeline variables.
                 for (const TField *field : mPipelineStruct.external->fields())
@@ -1027,6 +1027,13 @@ bool RewritePipeline(TCompiler &compiler,
     auto pipelineMainLocalVar =
         CreatePipelineMainLocalVar(symbolTable, pipeline, psi.pipelineStruct);
 
+    if (pipeline.type == Pipeline::Type::ComputeShared && pipelineMainLocalVar.internal)
+    {
+        // The shared pipeline instance lives in threadgroup memory.  Helper functions receive it
+        // as a threadgroup reference, so the allocation itself is only declared in main.
+        symbolEnv.markAddressSpace(*pipelineMainLocalVar.internal, AddressSpace::Threadgroup);
+    }
+
     if (!UpdatePipelineFunctions::ThreadPipeline(
             compiler, root, pipeline, pipelineFunctions, psi.pipelineStruct, pipelineMainLocalVar,
             idGen, symbolEnv, psi.funcOriginalToModified, psi.funcModifiedToOriginal))
@@ -1085,8 +1092,9 @@ bool sh::RewritePipelines(TCompiler &compiler,
         {Pipeline::Type::FragmentOut, outStructs.fragmentOut, nullptr, &outputVaryings},
         {Pipeline::Type::InvocationVertexGlobals, outStructs.invocationVertexGlobals, nullptr,
          nullptr},
-        {Pipeline::Type::InvocationFragmentGlobals, outStructs.invocationFragmentGlobals, nullptr,
+        {Pipeline::Type::InvocationGlobals, outStructs.invocationGlobals, nullptr,
          &inputVaryings},
+        {Pipeline::Type::ComputeShared, outStructs.computeShared, nullptr, nullptr},
         {Pipeline::Type::UniformBuffer, outStructs.uniformBuffers, nullptr, nullptr},
     };
 
@@ -1097,9 +1105,12 @@ bool sh::RewritePipelines(TCompiler &compiler,
               info.pipelineType == Pipeline::Type::VertexOut ||
               info.pipelineType == Pipeline::Type::InvocationVertexGlobals)) ||
             (compiler.getShaderType() != GL_FRAGMENT_SHADER &&
+             compiler.getShaderType() != GL_COMPUTE_SHADER &&
              (info.pipelineType == Pipeline::Type::FragmentIn ||
               info.pipelineType == Pipeline::Type::FragmentOut ||
-              info.pipelineType == Pipeline::Type::InvocationFragmentGlobals)))
+              info.pipelineType == Pipeline::Type::InvocationGlobals)) ||
+            (compiler.getShaderType() != GL_COMPUTE_SHADER &&
+             info.pipelineType == Pipeline::Type::ComputeShared))
             continue;
 
         Pipeline pipeline{info.pipelineType, info.globalInstanceVar};

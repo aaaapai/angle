@@ -2776,10 +2776,66 @@ ComputeCommandEncoder &ComputeCommandEncoder::setTextureForWrite(const TextureRe
     return setTexture(texture, index);
 }
 
+ComputeCommandEncoder &ComputeCommandEncoder::setRWTexture(gl::ShaderType shaderType,
+                                                           const TextureRef &texture,
+                                                           uint32_t index)
+{
+    ASSERT(shaderType == gl::ShaderType::Compute);
+    return setTextureForWrite(texture, index);
+}
+
+ComputeCommandEncoder &ComputeCommandEncoder::setBuffer(gl::ShaderType shaderType,
+                                                        const BufferRef &buffer,
+                                                        size_t offset,
+                                                        uint32_t index)
+{
+    ASSERT(shaderType == gl::ShaderType::Compute);
+    return setBuffer(buffer, offset, index);
+}
+
+ComputeCommandEncoder &ComputeCommandEncoder::setBytes(gl::ShaderType shaderType,
+                                                       const void *bytes,
+                                                       size_t size,
+                                                       uint32_t index)
+{
+    ASSERT(shaderType == gl::ShaderType::Compute);
+    return setBytes(bytes, size, index);
+}
+
+ComputeCommandEncoder &ComputeCommandEncoder::setSamplerState(gl::ShaderType shaderType,
+                                                              id<MTLSamplerState> state,
+                                                              float lodMinClamp,
+                                                              float lodMaxClamp,
+                                                              uint32_t index)
+{
+    ASSERT(shaderType == gl::ShaderType::Compute);
+    return setSamplerState(state, lodMinClamp, lodMaxClamp, index);
+}
+
+ComputeCommandEncoder &ComputeCommandEncoder::setTexture(gl::ShaderType shaderType,
+                                                         const TextureRef &texture,
+                                                         uint32_t index)
+{
+    ASSERT(shaderType == gl::ShaderType::Compute);
+    return setTexture(texture, index);
+}
+
 ComputeCommandEncoder &ComputeCommandEncoder::dispatch(const MTLSize &threadGroupsPerGrid,
                                                        const MTLSize &threadsPerGroup)
 {
     [get() dispatchThreadgroups:threadGroupsPerGrid threadsPerThreadgroup:threadsPerGroup];
+    return *this;
+}
+
+ComputeCommandEncoder &ComputeCommandEncoder::dispatchIndirect(const BufferRef &indirectBuffer,
+                                                               size_t indirectBufferOffset,
+                                                               const MTLSize &threadsPerGroup)
+{
+    ASSERT(indirectBuffer);
+    cmdBuffer().setReadDependency(indirectBuffer, /*isRenderCommand=*/false);
+    [get() dispatchThreadgroupsWithIndirectBuffer:indirectBuffer->get()
+                             indirectBufferOffset:indirectBufferOffset
+                            threadsPerThreadgroup:threadsPerGroup];
     return *this;
 }
 

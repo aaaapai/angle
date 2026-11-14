@@ -60,6 +60,45 @@ namespace
 constexpr Name kFlippedPointCoordName("flippedPointCoord", SymbolType::AngleInternal);
 constexpr Name kFlippedFragCoordName("flippedFragCoord", SymbolType::AngleInternal);
 
+// The ESSL memory-ordering barriers have no Metal 2 equivalent: MSL 2.x has no
+// atomic_thread_fence, and using threadgroup_barrier would change the memory-ordering semantics.
+// Reject them at translation time so the caller sees a compile error instead of silently wrong
+// synchronization (red line #13: no approximation).
+class MSL31LimitChecker : public TIntermTraverser
+{
+  public:
+    explicit MSL31LimitChecker(TInfoSinkBase &out)
+        : TIntermTraverser(true, false, false), mOut(out)
+    {}
+
+    bool visitAggregate(Visit, TIntermAggregate *node) override
+    {
+        switch (node->getOp())
+        {
+            case TOperator::EOpMemoryBarrier:
+            case TOperator::EOpMemoryBarrierAtomicCounter:
+            case TOperator::EOpMemoryBarrierBuffer:
+            case TOperator::EOpMemoryBarrierShared:
+            case TOperator::EOpGroupMemoryBarrier:
+                mOut << "ERROR: 0:" << node->getLine().first_line
+                     << ": MTL31-MSLLIMIT[MTL31-BARRIER-msl-fence]: memoryBarrier()/"
+                        "groupMemoryBarrier() has no Metal 2 mapping (no atomic_thread_fence); "
+                        "the shader must not be approximated\n";
+                mFailed = true;
+                break;
+            default:
+                break;
+        }
+        return true;
+    }
+
+    bool failed() const { return mFailed; }
+
+  private:
+    TInfoSinkBase &mOut;
+    bool mFailed = false;
+};
+
 class DeclareStructTypesTraverser : public TIntermTraverser
 {
   public:
@@ -96,7 +135,8 @@ class DeclareStructTypesTraverser : public TIntermTraverser
                                                 std::move(emptyReplacement));
             }
         }
-        // TODO: REMOVE, used to remove 'unsued' warning
+        // The stream is only needed while visiting global declarations; dropping it here also
+        // makes an accidental later use fail instead of silently emitting misordered output.
         mOutputMSL = nullptr;
 
         return false;
@@ -859,7 +899,6 @@ static inline MetalShaderType metalShaderTypeFromGLSL(sh::GLenum shaderType)
         case GL_FRAGMENT_SHADER:
             return MetalShaderType::Fragment;
         case GL_COMPUTE_SHADER:
-            ASSERT(0 && "compute shaders not currently supported");
             return MetalShaderType::Compute;
         default:
             ASSERT(0 && "Invalid shader type.");
@@ -877,6 +916,19 @@ bool TranslatorMSL::translateImpl(TInfoSinkBase &sink,
     IdGen idGen;
     ProgramPreludeConfig ppc(metalShaderTypeFromGLSL(getShaderType()));
     ppc.usesDerivatives = usesDerivatives();
+    {
+        const sh::WorkGroupSize &localSize = getComputeShaderLocalSize();
+        ppc.computeLocalSize = {localSize[0], localSize[1], localSize[2]};
+    }
+
+    {
+        MSL31LimitChecker limitChecker(sink);
+        root->traverse(&limitChecker);
+        if (limitChecker.failed())
+        {
+            return false;
+        }
+    }
 
     // The MSL generator prefers every struct to have a name, and is not bound by GLSL's requirement
     // that anonymous structs match their (lack of) name between shader stages.
@@ -963,22 +1015,27 @@ bool TranslatorMSL::translateImpl(TInfoSinkBase &sink,
         }
     }
 
-    ASSERT(getShaderType() != GL_COMPUTE_SHADER && "compute shaders not currently supported");
-
-    if (compileOptions.useIR)
+    // Compute has no rasterization state, so none of the graphics driver uniforms exist in its
+    // MSL program.  Its only backend-supplied values will be the storage-buffer bindings added by
+    // later stages.
+    if (getShaderType() != GL_COMPUTE_SHADER)
     {
-        driverUniforms->findDeclarationAddedByIR(root);
-    }
-    else
-    {
-        driverUniforms->addGraphicsDriverUniformsToShader(root, &getSymbolTable());
+        if (compileOptions.useIR)
+        {
+            driverUniforms->findDeclarationAddedByIR(root);
+        }
+        else
+        {
+            driverUniforms->addGraphicsDriverUniformsToShader(root, &getSymbolTable());
+        }
+
+        if (!ReplaceGLDepthRangeWithDriverUniform(this, root, driverUniforms, &getSymbolTable()))
+        {
+            return false;
+        }
     }
 
-    if (!ReplaceGLDepthRangeWithDriverUniform(this, root, driverUniforms, &getSymbolTable()))
-    {
-        return false;
-    }
-
+    if (getShaderType() == GL_VERTEX_SHADER)
     {
         bool usesInstanceId = false;
         bool usesVertexId   = false;
@@ -1273,6 +1330,46 @@ bool TranslatorMSL::translateImpl(TInfoSinkBase &sink,
             return false;
         }
     }
+    else if (getShaderType() == GL_COMPUTE_SHADER)
+    {
+        // The compute invocation built-ins arrive as kernel parameters.  gl_WorkGroupSize is the
+        // exception: ESSL 3.10 requires it to be a constant expression, so it is emitted as the
+        // ANGLE_WorkGroupSize constant instead of a threads_per_threadgroup parameter.
+        for (const ShaderVariable &attribute : mAttributes)
+        {
+            if (!attribute.isBuiltIn())
+            {
+                continue;
+            }
+
+            const TVariable *builtIn = nullptr;
+            if (attribute.name == "gl_GlobalInvocationID")
+            {
+                builtIn = BuiltInVariable::gl_GlobalInvocationID();
+            }
+            else if (attribute.name == "gl_LocalInvocationID")
+            {
+                builtIn = BuiltInVariable::gl_LocalInvocationID();
+            }
+            else if (attribute.name == "gl_WorkGroupID")
+            {
+                builtIn = BuiltInVariable::gl_WorkGroupID();
+            }
+            else if (attribute.name == "gl_NumWorkGroups")
+            {
+                builtIn = BuiltInVariable::gl_NumWorkGroups();
+            }
+            else if (attribute.name == "gl_LocalInvocationIndex")
+            {
+                builtIn = BuiltInVariable::gl_LocalInvocationIndex();
+            }
+
+            if (builtIn != nullptr)
+            {
+                AddBuiltInDeclaration(*root, symbolTable, *builtIn);
+            }
+        }
+    }
 
     if (getShaderType() == GL_VERTEX_SHADER)
     {
@@ -1399,8 +1496,8 @@ bool TranslatorMSL::translate(TIntermBlock *root,
         return false;
     }
 
-    // TODO: refactor the code in TranslatorMSL to not issue raw function calls.
-    // http://anglebug.com/42264589#comment3
+    // TODO(anglebug.com/42264589): refactor the code in TranslatorMSL to not issue raw function
+    // calls.
     mValidateASTOptions.validateNoRawFunctionCalls = false;
     // A validation error is generated in this backend due to bool uniforms.
     mValidateASTOptions.validatePrecision = false;

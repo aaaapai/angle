@@ -18,10 +18,11 @@ using namespace sh;
 
 ////////////////////////////////////////////////////////////////////////////////
 
-constexpr std::array<AddressSpace, 3> kAddressSpaces = {
+constexpr std::array<AddressSpace, 4> kAddressSpaces = {
     AddressSpace::Constant,
     AddressSpace::Device,
     AddressSpace::Thread,
+    AddressSpace::Threadgroup,
 };
 
 char const *sh::toString(AddressSpace space)
@@ -34,6 +35,8 @@ char const *sh::toString(AddressSpace space)
             return "device";
         case AddressSpace::Thread:
             return "thread";
+        case AddressSpace::Threadgroup:
+            return "threadgroup";
     }
 }
 
@@ -470,6 +473,16 @@ void SymbolEnv::markAsReference(VarField x, AddressSpace space)
 const AddressSpace *SymbolEnv::isPointer(VarField x) const
 {
     return isSpace(x, mPointers);
+}
+
+void SymbolEnv::markAddressSpace(VarField x, AddressSpace space)
+{
+    return markSpace(x, space, mAddressSpaces);
+}
+
+const AddressSpace *SymbolEnv::isAddressSpace(VarField x) const
+{
+    return isSpace(x, mAddressSpaces);
 }
 
 const AddressSpace *SymbolEnv::isReference(VarField x) const

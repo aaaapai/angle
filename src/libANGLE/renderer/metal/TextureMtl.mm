@@ -1973,12 +1973,13 @@ angle::Result TextureMtl::syncState(const gl::Context *context,
     return angle::Result::Continue;
 }
 
-angle::Result TextureMtl::bindToShader(const gl::Context *context,
-                                       mtl::RenderCommandEncoder *cmdEncoder,
-                                       gl::ShaderType shaderType,
-                                       gl::Sampler *sampler,
-                                       int textureSlotIndex,
-                                       int samplerSlotIndex)
+template <typename Encoder>
+angle::Result TextureMtl::bindToShaderImpl(const gl::Context *context,
+                                           Encoder *cmdEncoder,
+                                           gl::ShaderType shaderType,
+                                           gl::Sampler *sampler,
+                                           int textureSlotIndex,
+                                           int samplerSlotIndex)
 {
     ASSERT(mNativeTextureStorage);
     ASSERT(mViewFromBaseToMaxLevel);
@@ -2065,13 +2066,14 @@ angle::Result TextureMtl::bindToShader(const gl::Context *context,
     return angle::Result::Continue;
 }
 
-angle::Result TextureMtl::bindToShaderImage(const gl::Context *context,
-                                            mtl::RenderCommandEncoder *cmdEncoder,
-                                            gl::ShaderType shaderType,
-                                            int textureSlotIndex,
-                                            int level,
-                                            int layer,
-                                            GLenum format)
+template <typename Encoder>
+angle::Result TextureMtl::bindToShaderImageImpl(const gl::Context *context,
+                                                Encoder *cmdEncoder,
+                                                gl::ShaderType shaderType,
+                                                int textureSlotIndex,
+                                                int level,
+                                                int layer,
+                                                GLenum format)
 {
     ASSERT(mNativeTextureStorage);
     ASSERT(mState.getImmutableFormat());
@@ -2094,6 +2096,52 @@ angle::Result TextureMtl::bindToShaderImage(const gl::Context *context,
 
     cmdEncoder->setRWTexture(shaderType, textureRef, textureSlotIndex);
     return angle::Result::Continue;
+}
+
+angle::Result TextureMtl::bindToShader(const gl::Context *context,
+                                       mtl::RenderCommandEncoder *cmdEncoder,
+                                       gl::ShaderType shaderType,
+                                       gl::Sampler *sampler,
+                                       int textureSlotIndex,
+                                       int samplerSlotIndex)
+{
+    return bindToShaderImpl(context, cmdEncoder, shaderType, sampler, textureSlotIndex,
+                            samplerSlotIndex);
+}
+
+angle::Result TextureMtl::bindToShader(const gl::Context *context,
+                                       mtl::ComputeCommandEncoder *cmdEncoder,
+                                       gl::ShaderType shaderType,
+                                       gl::Sampler *sampler,
+                                       int textureSlotIndex,
+                                       int samplerSlotIndex)
+{
+    return bindToShaderImpl(context, cmdEncoder, shaderType, sampler, textureSlotIndex,
+                            samplerSlotIndex);
+}
+
+angle::Result TextureMtl::bindToShaderImage(const gl::Context *context,
+                                            mtl::RenderCommandEncoder *cmdEncoder,
+                                            gl::ShaderType shaderType,
+                                            int textureSlotIndex,
+                                            int level,
+                                            int layer,
+                                            GLenum format)
+{
+    return bindToShaderImageImpl(context, cmdEncoder, shaderType, textureSlotIndex, level, layer,
+                                 format);
+}
+
+angle::Result TextureMtl::bindToShaderImage(const gl::Context *context,
+                                            mtl::ComputeCommandEncoder *cmdEncoder,
+                                            gl::ShaderType shaderType,
+                                            int textureSlotIndex,
+                                            int level,
+                                            int layer,
+                                            GLenum format)
+{
+    return bindToShaderImageImpl(context, cmdEncoder, shaderType, textureSlotIndex, level, layer,
+                                 format);
 }
 
 angle::Result TextureMtl::redefineImage(const gl::Context *context,

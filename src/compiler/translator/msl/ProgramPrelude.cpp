@@ -58,7 +58,9 @@ class ProgramPrelude : public TIntermTraverser
                 mOut << ";\n";
                 break;
             case MetalShaderType::Compute:
-                ASSERT(0 && "compute shaders not currently supported");
+                mOut << "constant uint3 " << kWorkGroupSizeConstName << " = uint3("
+                     << ppc.computeLocalSize[0] << ", " << ppc.computeLocalSize[1] << ", "
+                     << ppc.computeLocalSize[2] << ");\n";
                 break;
             default:
                 break;
@@ -3890,7 +3892,6 @@ void ProgramPrelude::visitOperator(TOperator op,
         case TOperator::EOpUsubBorrow:
         case TOperator::EOpUmulExtended:
         case TOperator::EOpImulExtended:
-        case TOperator::EOpBarrier:
         case TOperator::EOpMemoryBarrier:
         case TOperator::EOpMemoryBarrierAtomicCounter:
         case TOperator::EOpMemoryBarrierBuffer:
@@ -3908,6 +3909,11 @@ void ProgramPrelude::visitOperator(TOperator op,
         case TOperator::EOpEndPrimitive:
         case TOperator::EOpArrayLength:
             UNIMPLEMENTED();
+            break;
+
+        case TOperator::EOpBarrier:
+            // Emitted inline by GenMetalTraverser::visitAggregate because the MSL intrinsic needs
+            // an explicit memory-flags argument.
             break;
 
         case TOperator::EOpConstruct:

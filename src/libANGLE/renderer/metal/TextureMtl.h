@@ -181,6 +181,13 @@ class TextureMtl : public TextureImpl
                                int textureSlotIndex,
                                int samplerSlotIndex);
 
+    angle::Result bindToShader(const gl::Context *context,
+                               mtl::ComputeCommandEncoder *cmdEncoder,
+                               gl::ShaderType shaderType,
+                               gl::Sampler *sampler, /** nullable */
+                               int textureSlotIndex,
+                               int samplerSlotIndex);
+
     angle::Result bindToShaderImage(const gl::Context *context,
                                     mtl::RenderCommandEncoder *cmdEncoder,
                                     gl::ShaderType shaderType,
@@ -189,7 +196,32 @@ class TextureMtl : public TextureImpl
                                     int layer,
                                     GLenum format);
 
+    angle::Result bindToShaderImage(const gl::Context *context,
+                                    mtl::ComputeCommandEncoder *cmdEncoder,
+                                    gl::ShaderType shaderType,
+                                    int textureSlotIndex,
+                                    int level,
+                                    int layer,
+                                    GLenum format);
+
   private:
+    // Shared implementation for the render and compute encoders.  Both expose the same
+    // shader-type-qualified resource setters, so the binding logic is identical.
+    template <typename Encoder>
+    angle::Result bindToShaderImpl(const gl::Context *context,
+                                   Encoder *cmdEncoder,
+                                   gl::ShaderType shaderType,
+                                   gl::Sampler *sampler,
+                                   int textureSlotIndex,
+                                   int samplerSlotIndex);
+    template <typename Encoder>
+    angle::Result bindToShaderImageImpl(const gl::Context *context,
+                                        Encoder *cmdEncoder,
+                                        gl::ShaderType shaderType,
+                                        int textureSlotIndex,
+                                        int level,
+                                        int layer,
+                                        GLenum format);
     void deallocateNativeStorage(bool keepImages, bool keepSamplerStateAndFormat = false);
     angle::Result createNativeStorage(const gl::Context *context,
                                       gl::TextureType type,

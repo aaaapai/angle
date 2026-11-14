@@ -127,19 +127,27 @@ bool Pipeline::uses(const TVariable &var) const
                     return false;
             }
 
-        case Type::InvocationFragmentGlobals:
+        case Type::InvocationGlobals:
             switch (qualifier)
             {
                 case TQualifier::EvqFragCoord:
                 case TQualifier::EvqPointCoord:
                 case TQualifier::EvqFrontFacing:
                 case TQualifier::EvqSampleID:
+                case TQualifier::EvqNumWorkGroups:
+                case TQualifier::EvqWorkGroupID:
+                case TQualifier::EvqLocalInvocationID:
+                case TQualifier::EvqGlobalInvocationID:
+                case TQualifier::EvqLocalInvocationIndex:
                     return true;
                 case TQualifier::EvqSampleMaskIn:
                     return var.symbolType() == SymbolType::AngleInternal;
                 default:
                     return false;
             }
+
+        case Type::ComputeShared:
+            return qualifier == TQualifier::EvqShared;
 
         case Type::UniformBuffer:
             switch (qualifier)
@@ -193,8 +201,11 @@ Name Pipeline::getStructTypeName(Variant variant) const
         case Type::InvocationVertexGlobals:
             name = VARIANT_NAME(variant, "InvocationVertexGlobals");
             break;
-        case Type::InvocationFragmentGlobals:
-            name = VARIANT_NAME(variant, "InvocationFragmentGlobals");
+        case Type::InvocationGlobals:
+            name = VARIANT_NAME(variant, "InvocationGlobals");
+            break;
+        case Type::ComputeShared:
+            name = VARIANT_NAME(variant, "ComputeShared");
             break;
         case Type::Texture:
             name = VARIANT_NAME(variant, "TextureEnvs");
@@ -243,8 +254,11 @@ Name Pipeline::getStructInstanceName(Variant variant) const
         case Type::InvocationVertexGlobals:
             name = VARIANT_NAME(variant, "invocationVertexGlobals");
             break;
-        case Type::InvocationFragmentGlobals:
-            name = VARIANT_NAME(variant, "invocationFragmentGlobals");
+        case Type::InvocationGlobals:
+            name = VARIANT_NAME(variant, "invocationGlobals");
+            break;
+        case Type::ComputeShared:
+            name = VARIANT_NAME(variant, "computeShared");
             break;
         case Type::Texture:
             name = VARIANT_NAME(variant, "textureEnvs");
@@ -279,13 +293,14 @@ static bool AllowPadding(Pipeline::Type type)
         case Type::AngleUniforms:
         case Type::NonConstantGlobals:
         case Type::InvocationVertexGlobals:
-        case Type::InvocationFragmentGlobals:
+        case Type::InvocationGlobals:
             return true;
 
         case Type::UserUniforms:
         case Type::Texture:
         case Type::Image:
         case Type::InstanceId:
+        case Type::ComputeShared:
         case Type::UniformBuffer:
             return false;
     }
@@ -414,7 +429,8 @@ ModifyStructConfig Pipeline::externalStructModifyConfig() const
             config.recurseStruct                = Pred::True;
             break;
         case Type::InvocationVertexGlobals:
-        case Type::InvocationFragmentGlobals:
+        case Type::InvocationGlobals:
+        case Type::ComputeShared:
         case Type::Texture:
         case Type::Image:
         case Type::InstanceId:
@@ -440,7 +456,8 @@ bool Pipeline::alwaysRequiresLocalVariableDeclarationInMain() const
         case Type::FragmentOut:
         case Type::NonConstantGlobals:
         case Type::InvocationVertexGlobals:
-        case Type::InvocationFragmentGlobals:
+        case Type::InvocationGlobals:
+        case Type::ComputeShared:
         case Type::Texture:
         case Type::InstanceId:
             return true;
@@ -457,7 +474,8 @@ bool Pipeline::isPipelineOut() const
         case Type::AngleUniforms:
         case Type::NonConstantGlobals:
         case Type::InvocationVertexGlobals:
-        case Type::InvocationFragmentGlobals:
+        case Type::InvocationGlobals:
+        case Type::ComputeShared:
         case Type::Texture:
         case Type::Image:
         case Type::InstanceId:
@@ -478,13 +496,16 @@ AddressSpace Pipeline::externalAddressSpace() const
         case Type::FragmentIn:
         case Type::NonConstantGlobals:
         case Type::InvocationVertexGlobals:
-        case Type::InvocationFragmentGlobals:
+        case Type::InvocationGlobals:
         case Type::Texture:
         case Type::Image:
         case Type::InstanceId:
         case Type::FragmentOut:
         case Type::VertexOut:
             return AddressSpace::Thread;
+
+        case Type::ComputeShared:
+            return AddressSpace::Threadgroup;
 
         case Type::UserUniforms:
         case Type::AngleUniforms:
@@ -504,7 +525,8 @@ bool PipelineStructs::matches(const TStructure &s, bool internal, bool external)
         /* angleUniforms, */
         nonConstantGlobals,
         invocationVertexGlobals,
-        invocationFragmentGlobals,
+        invocationGlobals,
+        computeShared,
         uniformBuffers,
         texture,
         instanceId,
