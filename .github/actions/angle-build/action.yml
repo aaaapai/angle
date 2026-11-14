@@ -23,6 +23,10 @@ inputs:
     description: 'Extra GN arguments appended to args.gn before generation'
     required: false
     default: ''
+  pre-build-command:
+    description: 'Optional command run after gclient sync and before GN generation'
+    required: false
+    default: ''
 
 runs:
   using: 'composite'
@@ -101,6 +105,13 @@ runs:
         append-timestamp: true
         install: 'yes'
         job-summary: 'CCache Statistics'
+
+    - name: Pre-build command
+      if: ${{ inputs.pre-build-command != '' }}
+      shell: bash
+      run: |
+        export PATH=`pwd`/depot_tools:$PATH
+        ${{ inputs.pre-build-command }}
 
     - name: Generate args.gn
       shell: bash
