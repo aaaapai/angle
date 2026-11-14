@@ -31,7 +31,6 @@ jobs:
           upload-path: angle_shader_translator
           build-target: angle_shader_translator
           extra-gn-args: 'angle_enable_msl = true'
-          pre-build-command: 'python3 scripts/run_code_generation.py'
       - name: Run L1 corpus
         run: |
           set -euo pipefail
@@ -67,10 +66,6 @@ jobs:
           export PATH=`pwd`/depot_tools:$PATH
           python3 scripts/bootstrap.py
           gclient sync --no-history --shallow --reset --force
-      - name: Regenerate checked-in generated sources
-        run: |
-          export PATH=`pwd`/depot_tools:$PATH
-          python3 scripts/run_code_generation.py
       - name: Build host translator with MSL
         run: |
           export PATH=`pwd`/depot_tools:$PATH
