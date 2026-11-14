@@ -13,7 +13,45 @@ jobs:
       - uses: actions/checkout@main
         with:
           fetch-depth: 1
-      # Checks 6 and 8 compare against the feature registry, which deliberately lives outside the
-      # ANGLE checkout.  CI still enforces the Metal 2-only, zero-emulation, and comment checks.
       - name: L0 static audit
         run: bash scripts/mtl31_audit.sh
+
+  l1-translator:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@main
+        with:
+          fetch-depth: 1
+      - name: Build Linux ANGLE
+        uses: ./.github/actions/angle-build
+        with:
+          platform: linux
+          arch: x86_64
+          out-dir: l1-linux
+          upload-path: angle_shader_translator
+      - name: Rebuild translator with MSL enabled
+        run: |
+          echo 'angle_enable_msl = true' >> out/l1-linux/args.gn
+          gn gen out/l1-linux --threads=8
+          autoninja -C out/l1-linux -j 8 angle_shader_translator
+      - name: Run L1 corpus
+        run: |
+          set -euo pipefail
+          bin=out/l1-linux/angle_shader_translator
+          corpus=src/tests/mtl31_shaders
+          run_positive() {
+            "$bin" -s=e31 -b=m "$corpus/positive/$1" -o "/tmp/$1.metal"
+          }
+          run_positive compute_empty.comp
+          grep -q 'kernel void main0' /tmp/compute_empty.comp.metal
+          run_positive compute_builtins.comp
+          grep -q 'thread_position_in_grid' /tmp/compute_builtins.comp.metal
+          run_positive shared_barrier.comp
+          grep -q 'threadgroup_barrier' /tmp/shared_barrier.comp.metal
+          run_positive ssbo_readwrite.comp
+          grep -q 'device' /tmp/ssbo_readwrite.comp.metal
+          if "$bin" -s=e31 -b=m "$corpus/negative/memory_barrier.comp" -o /tmp/negative.metal; then
+            echo 'negative memoryBarrier case unexpectedly succeeded'
+            exit 1
+          fi
+          grep -q 'MTL31-MSLLIMIT' /tmp/negative.metal
