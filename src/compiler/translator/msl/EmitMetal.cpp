@@ -203,7 +203,6 @@ class GenMetalTraverser : public TIntermTraverser
     size_t mMainSamplerIndex               = 0;
     size_t mMainUniformBufferIndex         = 0;
     size_t mDriverUniformsBindingIndex     = 0;
-    size_t mUBOArgumentBufferBindingIndex  = 0;
     size_t mSSBOArgumentBufferBindingIndex = 0;
     bool mRasterOrderGroupsSupported       = false;
 };
@@ -231,7 +230,6 @@ GenMetalTraverser::GenMetalTraverser(const TCompiler &compiler,
       mCompileOptions(compileOptions),
       mMainUniformBufferIndex(compileOptions.metal.defaultUniformsBindingIndex),
       mDriverUniformsBindingIndex(compileOptions.metal.driverUniformsBindingIndex),
-      mUBOArgumentBufferBindingIndex(compileOptions.metal.UBOArgumentBufferBindingIndex),
       mSSBOArgumentBufferBindingIndex(compileOptions.metal.SSBOArgumentBufferBindingIndex),
       mRasterOrderGroupsSupported(compileOptions.pls.fragmentSyncType ==
                                   ShFragmentSynchronizationType::RasterOrderGroups_Metal)
