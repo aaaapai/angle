@@ -194,6 +194,9 @@ class DisplayMtl : public DisplayImpl, public ThreadSafeDisplayMtl
 
   private:
     angle::Result initializeImpl(egl::Display *display);
+    // Returns true when the device meets the ES 3.1 minimum compute limits.  Used to decide the
+    // supported version; it must not be used to clamp the reported caps.
+    bool hasES31ComputeLimits() const;
     void ensureCapsInitialized() const;
     void initializeCaps() const;
     void initializeExtensions() const;

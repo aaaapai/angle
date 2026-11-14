@@ -406,6 +406,15 @@
             "description": [
                 "The renderer supports purgeable BufferPool memory in the Metal backend"
             ]
+        },
+        {
+            "name": "enable_es31",
+            "category": "Features",
+            "description": [
+                "Expose the OpenGL ES 3.1 code paths that are implemented on top of Metal 2.",
+                "Disabled by default so an ES 3.1 context is only created once every feature",
+                "that is advertised as usable has passed verification."
+            ]
         }
     ]
 }

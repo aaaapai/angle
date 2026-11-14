@@ -4257,6 +4257,20 @@ Extensions Context::generateSupportedExtensions() const
     // Performance counter queries are always supported. Different groups exist on each back-end.
     supportedExtensions.performanceMonitorAMD = true;
 
+    // MTL31-EXT-gate30: project policy for the Metal backend is stricter than ANGLE's usual
+    // "version >= 3.1 || extension" rule: an ES 3.1-only extension is exposed only from an
+    // ES 3.1 context.  Keeping the ES 3.0 extension list unchanged is required for the ES 3.0
+    // regression baseline, and an extension that still contains a stub must never be exposed.
+    if (getDisplay()->getAttributeMap().get(EGL_PLATFORM_ANGLE_TYPE_ANGLE,
+                                            EGL_PLATFORM_ANGLE_TYPE_DEFAULT_ANGLE) ==
+            EGL_PLATFORM_ANGLE_TYPE_METAL_ANGLE &&
+        getClientVersion() < ES_3_1)
+    {
+        supportedExtensions.copyImageEXT        = false;
+        supportedExtensions.colorBufferFloatEXT = false;
+        supportedExtensions.floatBlendEXT       = false;
+    }
+
     // GL_ANDROID_extension_pack_es31a
     supportedExtensions.extensionPackEs31aANDROID =
         CanSupportAEP(getClientVersion(), supportedExtensions);

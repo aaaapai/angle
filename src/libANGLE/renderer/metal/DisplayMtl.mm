@@ -9,6 +9,8 @@
 #include "libANGLE/renderer/metal/DisplayMtl.h"
 #include <sys/param.h>
 
+#include <algorithm>
+
 #include "common/apple_platform_utils.h"
 #include "common/system_utils.h"
 #include "common/unsafe_buffers.h"
@@ -433,6 +435,13 @@ gl::Version DisplayMtl::getMaxSupportedESVersion() const
 #else
     if (supportsEitherGPUFamily(4, 1))
     {
+        // MTL31-VERSION-bump: the ES 3.1 stage is opt-in until every exposed entry point has
+        // passed the verification plan, so that a context never advertises a version whose
+        // capabilities are still stubs.  The device floor is shared with ES 3.0 (red line #11).
+        if (mFeatures.enableEs31.enabled && hasES31ComputeLimits())
+        {
+            return gl::Version(3, 1);
+        }
         return mtl::kMaxSupportedGLVersion;
     }
     return gl::Version(2, 0);
@@ -441,7 +450,22 @@ gl::Version DisplayMtl::getMaxSupportedESVersion() const
 
 gl::Version DisplayMtl::getMaxConformantESVersion() const
 {
-    return gl::Version(3, 2);
+    // MTL31-VERSION-bump: conformant must never exceed supported.  GetClientVersion() raises a
+    // backwards-compatible context to max(conformant, requested), so a hard-coded 3.2 here would
+    // make every eglCreateContext request fail with EGL_BAD_ATTRIBUTE on a 3.0 device.
+    // Keeping the ES 3.0 clamp also keeps a request for ES 3.0 from silently turning into ES 3.1.
+    return std::min(getMaxSupportedESVersion(), gl::Version(3, 0));
+}
+
+bool DisplayMtl::hasES31ComputeLimits() const
+{
+    // ES 3.1 table 20.45 requires at least 128 invocations and 16384 bytes of shared memory.
+    // These are hard lower bounds: failing them means the device is not an ES 3.1 device and
+    // must be downgraded per red line #17 instead of clamping the advertised values.
+    return mMetalDevice != nil && [mMetalDevice maxThreadgroupMemoryLength] >= 16384 &&
+           [mMetalDevice maxThreadsPerThreadgroup].width >= 128 &&
+           [mMetalDevice maxThreadsPerThreadgroup].height >= 128 &&
+           [mMetalDevice maxThreadsPerThreadgroup].depth >= 64;
 }
 
 EGLSyncImpl *ThreadSafeDisplayMtl::createSync()

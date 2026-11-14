@@ -338,6 +338,12 @@ struct FeaturesMtl : FeatureSetBase
         &members,
     };
 
+    FeatureInfo enableEs31 = {
+        "enableEs31",
+        FeatureCategory::MetalFeatures,
+        &members,
+    };
+
 };
 
 inline FeaturesMtl::FeaturesMtl()  = default;

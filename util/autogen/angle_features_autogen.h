@@ -169,6 +169,7 @@ enum class Feature
     EnableAsyncPipelineCacheCompression,
     EnableCaptureLimits,
     EnableCreateContextBackwardsCompatible,
+    EnableEs31,
     EnableExtraSubmitFence,
     EnableInMemoryMtlLibraryCache,
     EnableMergeClientAttribBuffer,
