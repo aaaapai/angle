@@ -25,6 +25,19 @@
 //         Neither exists in bionic; dladdr() on a resolved symbol is used
 //         instead (portable across API levels).
 //
+//   [FIX] resolve_get_exported_ns tries the bionic-internal name
+//         "__loader_android_get_exported_namespace" first (in
+//         libdl_android.so, then libc.so), falling back to the plain
+//         "android_get_exported_namespace" in libdl_android.so / libdl.so.
+//         The plain name is NOT exported by most bionic builds, which is
+//         why the earlier version returned NULL and aborted.
+//
+//   [FIX] get_exported_namespace returning NULL is no longer fatal.
+//         liblinkerhook only invokes get_namespace on non-"vulkan." paths;
+//         the vulkan path (the one we care about) returns ready_handle
+//         directly.  A NULL get_ns is therefore only a WARN, and the
+//         driver load continues.
+//
 //   [SAFE-BUFFERS] Replaced all C-string helpers (strcmp/strstr/strchr/
 //         fgets/snprintf) with std::string / std::string_view / std::format
 //         / std::ifstream to satisfy clang's -Wunsafe-buffer-usage plugin.
@@ -278,18 +291,59 @@ dlopen_ext_4arg_fn resolve_dlopen_ext_4() {
     return fn;
 }
 
+// [FIX] bionic exports this under "__loader_android_get_exported_namespace"
+// (internal prefix), not the plain public name.  Try all known locations:
+//   1. __loader_ prefix in libdl_android.so
+//   2. __loader_ prefix in libc.so (some ROMs)
+//   3. plain name in libdl_android.so (unlikely but cheap)
+//   4. plain name in libdl.so
 get_exported_ns_fn resolve_get_exported_ns() {
     static get_exported_ns_fn fn = nullptr;
     static bool tried = false;
     if (tried) return fn;
     tried = true;
-    if (auto h = libdl_android_handle())
-        fn = reinterpret_cast<get_exported_ns_fn>(dlsym(h, "android_get_exported_namespace"));
-    if (!fn) if (auto h = libdl_handle())
-        fn = reinterpret_cast<get_exported_ns_fn>(dlsym(h, "android_get_exported_namespace"));
-    if (fn) dlog("resolved android_get_exported_namespace = {}", hexp((void*)fn));
-    else    dlog("FAILED to resolve android_get_exported_namespace");
-    return fn;
+
+    if (auto h = libdl_android_handle()) {
+        fn = reinterpret_cast<get_exported_ns_fn>(
+            dlsym(h, "__loader_android_get_exported_namespace"));
+        if (fn) {
+            dlog("resolved __loader_android_get_exported_namespace = {} "
+                 "(libdl_android.so)", hexp((void*)fn));
+            return fn;
+        }
+    }
+    if (void* h = dlopen("libc.so", RTLD_LOCAL | RTLD_LAZY)) {
+        fn = reinterpret_cast<get_exported_ns_fn>(
+            dlsym(h, "__loader_android_get_exported_namespace"));
+        if (fn) {
+            dlog("resolved __loader_android_get_exported_namespace = {} "
+                 "(libc.so)", hexp((void*)fn));
+            return fn;
+        }
+    }
+    if (auto h = libdl_android_handle()) {
+        fn = reinterpret_cast<get_exported_ns_fn>(
+            dlsym(h, "android_get_exported_namespace"));
+        if (fn) {
+            dlog("resolved android_get_exported_namespace = {} "
+                 "(libdl_android.so, no prefix)", hexp((void*)fn));
+            return fn;
+        }
+    }
+    if (auto h = libdl_handle()) {
+        fn = reinterpret_cast<get_exported_ns_fn>(
+            dlsym(h, "android_get_exported_namespace"));
+        if (fn) {
+            dlog("resolved android_get_exported_namespace = {} "
+                 "(libdl.so, no prefix)", hexp((void*)fn));
+            return fn;
+        }
+    }
+
+    dlog("FAILED to resolve android_get_exported_namespace "
+         "(tried __loader_ prefix in libdl_android/libc, and plain name in "
+         "libdl_android/libdl)");
+    return nullptr;
 }
 
 set_handles_fn resolve_set_handles(void* linkerhook) {
@@ -589,11 +643,19 @@ extern "C" void* load_vulkan_with_driver_helper() {
     auto dl3    = resolve_dlopen_ext_3();
     auto dl4    = resolve_dlopen_ext_4();
     auto get_ns = resolve_get_exported_ns();
-    if (!dl3 || !dl4 || !get_ns) {
-        dlog("aborting: required bionic symbols missing "
-             "(dl3={}, dl4={}, get_ns={})",
-             hexp((void*)dl3), hexp((void*)dl4), hexp((void*)get_ns));
+
+    // Only dl3 / dl4 are hard requirements.  get_ns is used by
+    // liblinkerhook only on non-"vulkan." load paths; the vulkan path we
+    // rely on returns ready_handle before touching get_exported_namespace.
+    if (!dl3 || !dl4) {
+        dlog("aborting: required bionic symbols missing (dl3={}, dl4={})",
+             hexp((void*)dl3), hexp((void*)dl4));
         return nullptr;
+    }
+    if (!get_ns) {
+        dlog("WARN: get_exported_namespace unavailable; vulkan-path hooking "
+             "still works, but any non-'vulkan.' load_sphal_library routed "
+             "through liblinkerhook would dereference NULL");
     }
 
     std::string driver_dir_owned;
