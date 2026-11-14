@@ -1226,6 +1226,10 @@ void DisplayMtl::initializeTextureCaps() const
     mFormatTable.generateTextureCaps(this, &mNativeTextureCaps);
 
     // Re-verify texture extensions.
+    // MTL31-FEATURE: MTL31-EXT-colorbufferfloat / MTL31-EXT-floatblend
+    // setTextureExtensionSupport() derives both from the Metal format caps: colorBufferFloatEXT
+    // requires renderable float formats, floatBlendEXT requires 32-bit float blending.  They stay
+    // device-dependent and must not be forced on.
     mNativeExtensions.setTextureExtensionSupport(mNativeTextureCaps);
 
     // When ETC2/EAC formats are natively supported, enable ANGLE-specific extension string to
