@@ -12,7 +12,7 @@ Metal and MacOS, Chrome OS, and Fuchsia support.
 |----------------|:-------------:|:----------------:|:--------------:|:-------------:|:--------:|:-------------:|:-----------------:|
 | OpenGL ES 2.0  |    complete   |    complete      |    complete    |    complete   | complete |    complete   | [in progress][WG] |
 | OpenGL ES 3.0  |               |    complete      |    complete    |    complete   | complete |    complete   |                   |
-| OpenGL ES 3.1  |               |                  |    complete    |    complete   | complete |               |                   |
+| OpenGL ES 3.1  |               |                  |    complete    |    complete   | complete |   In progress |                   |
 | OpenGL ES 3.2  |               |                  |  in progress   |  in progress  | complete |               |                   |
 
 [WG]: doc/WebGLOnWebGPU.md
