@@ -140,9 +140,9 @@ class GeneratePipelineStruct : private TIntermRebuild
         }();
 
         ModifiedStructMachineries modifiedMachineries;
-        const bool isUBO     = mPipeline.type == Pipeline::Type::UniformBuffer;
-        const bool isUniform = mPipeline.type == Pipeline::Type::UniformBuffer ||
-                               mPipeline.type == Pipeline::Type::UserUniforms;
+        // StorageBuffer (GLSL buffer blocks) is never a uniform block.
+        const bool isUBO     = false;
+        const bool isUniform = mPipeline.type == Pipeline::Type::UserUniforms;
         const bool useAttributeAliasing =
             mPipeline.type == Pipeline::Type::VertexIn && mCompiler.supportsAttributeAliasing();
         const bool modified = TryCreateModifiedStruct(
@@ -283,15 +283,15 @@ class GeneratePipelineStruct : private TIntermRebuild
             }
             break;
 
-            case Pipeline::Type::UniformBuffer:
+            case Pipeline::Type::StorageBuffer:
             {
                 for (const TVariable *var : mPipelineVariableList)
                 {
                     auto &type  = CloneType(var->getType());
                     auto *field = new TField(&type, var->name(), kNoSourceLoc, var->symbolType());
-                    mSymbolEnv.markAsPointer(*field, AddressSpace::Constant);
-                    mSymbolEnv.markAsUBO(*field);
-                    mSymbolEnv.markAsPointer(*var, AddressSpace::Constant);
+                    // SSBO storage is writable device memory; it must not be marked as a UBO.
+                    mSymbolEnv.markAsPointer(*field, AddressSpace::Device);
+                    mSymbolEnv.markAsPointer(*var, AddressSpace::Device);
                     fields.push_back(field);
                 }
             }
@@ -1095,7 +1095,7 @@ bool sh::RewritePipelines(TCompiler &compiler,
         {Pipeline::Type::InvocationGlobals, outStructs.invocationGlobals, nullptr,
          &inputVaryings},
         {Pipeline::Type::ComputeShared, outStructs.computeShared, nullptr, nullptr},
-        {Pipeline::Type::UniformBuffer, outStructs.uniformBuffers, nullptr, nullptr},
+        {Pipeline::Type::StorageBuffer, outStructs.uniformBuffers, nullptr, nullptr},
     };
 
     for (Info &info : infos)

@@ -60,7 +60,7 @@ class Pipeline
         InvocationVertexGlobals,
         InvocationGlobals,
         ComputeShared,
-        UniformBuffer,
+        StorageBuffer,
         Texture,
         Image,
         InstanceId,

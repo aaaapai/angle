@@ -149,7 +149,7 @@ bool Pipeline::uses(const TVariable &var) const
         case Type::ComputeShared:
             return qualifier == TQualifier::EvqShared;
 
-        case Type::UniformBuffer:
+        case Type::StorageBuffer:
             switch (qualifier)
             {
                 case TQualifier::EvqBuffer:
@@ -216,7 +216,7 @@ Name Pipeline::getStructTypeName(Variant variant) const
         case Type::InstanceId:
             name = VARIANT_NAME(variant, "InstanceId");
             break;
-        case Type::UniformBuffer:
+        case Type::StorageBuffer:
             name = VARIANT_NAME(variant, "UniformBuffer");
     }
     return Name(name);
@@ -269,7 +269,7 @@ Name Pipeline::getStructInstanceName(Variant variant) const
         case Type::InstanceId:
             name = VARIANT_NAME(variant, "instanceId");
             break;
-        case Type::UniformBuffer:
+        case Type::StorageBuffer:
             name = VARIANT_NAME(variant, "uniformBuffer");
     }
     return Name(name);
@@ -301,7 +301,7 @@ static bool AllowPadding(Pipeline::Type type)
         case Type::Image:
         case Type::InstanceId:
         case Type::ComputeShared:
-        case Type::UniformBuffer:
+        case Type::StorageBuffer:
             return false;
     }
 }
@@ -422,7 +422,7 @@ ModifyStructConfig Pipeline::externalStructModifyConfig() const
 
         case Type::NonConstantGlobals:
             break;
-        case Type::UniformBuffer:
+        case Type::StorageBuffer:
             config.promoteBoolToUint            = Pred::False;
             config.saturateMatrixRows           = SatVec::DontSaturate;
             config.saturateScalarOrVectorArrays = SatVec::DontSaturate;
@@ -448,7 +448,7 @@ bool Pipeline::alwaysRequiresLocalVariableDeclarationInMain() const
         case Type::FragmentIn:
         case Type::UserUniforms:
         case Type::AngleUniforms:
-        case Type::UniformBuffer:
+        case Type::StorageBuffer:
         case Type::Image:
             return false;
 
@@ -479,7 +479,7 @@ bool Pipeline::isPipelineOut() const
         case Type::Texture:
         case Type::Image:
         case Type::InstanceId:
-        case Type::UniformBuffer:
+        case Type::StorageBuffer:
             return false;
 
         case Type::VertexOut:
@@ -509,7 +509,7 @@ AddressSpace Pipeline::externalAddressSpace() const
 
         case Type::UserUniforms:
         case Type::AngleUniforms:
-        case Type::UniformBuffer:
+        case Type::StorageBuffer:
             return AddressSpace::Constant;
     }
 }
