@@ -1722,51 +1722,69 @@ angle::Result ContextMtl::dispatchComputeIndirect(const gl::Context *context, GL
 
 angle::Result ContextMtl::memoryBarrier(const gl::Context *context, GLbitfield barriers)
 {
+    // MTL31-FEATURE: MTL31-BARRIER-compute
     if (barriers == 0)
     {
         return checkCommandBufferError();
     }
-    if (context->getClientVersion() >= gl::Version{3, 1})
+
+    MTLBarrierScope scope = 0;
+    if (barriers == GL_ALL_BARRIER_BITS)
     {
-        // We expect ES 3.0, and as such we don't consider ES 3.1+ objects in this function yet.
-        UNIMPLEMENTED();
-        return angle::Result::Stop;
+        scope = MTLBarrierScopeTextures | MTLBarrierScopeBuffers;
     }
-    MTLBarrierScope scope;
-    switch (barriers)
+    else
     {
-        case GL_ALL_BARRIER_BITS:
-            scope = MTLBarrierScopeTextures | MTLBarrierScopeBuffers;
-#if TARGET_OS_OSX || TARGET_OS_MACCATALYST
-            if (getDisplay()->hasFragmentMemoryBarriers())
-            {
-                scope |= MTLBarrierScopeRenderTargets;
-            }
-#endif
-            break;
-        case GL_SHADER_IMAGE_ACCESS_BARRIER_BIT:
-            scope = MTLBarrierScopeTextures;
-#if TARGET_OS_OSX || TARGET_OS_MACCATALYST
-            if (getDisplay()->hasFragmentMemoryBarriers())
-            {
-                // SHADER_IMAGE_ACCESS_BARRIER_BIT (and SHADER_STORAGE_BARRIER_BIT) require that all
-                // prior types of accesses are finished before writes to the resource. Since this is
-                // the case, we also have to include render targets in our barrier to ensure any
-                // rendering completes before an imageLoad().
-                //
-                // NOTE: Apple Silicon doesn't support MTLBarrierScopeRenderTargets. This seems to
-                // work anyway though, and on that hardware we use programmable blending for pixel
-                // local storage instead of read_write textures anyway.
-                scope |= MTLBarrierScopeRenderTargets;
-            }
-#endif
-            break;
-        default:
-            UNIMPLEMENTED();
-            return angle::Result::Stop;
+        if (barriers & (GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT |
+                        GL_TEXTURE_UPDATE_BARRIER_BIT | GL_FRAMEBUFFER_BARRIER_BIT))
+        {
+            scope |= MTLBarrierScopeTextures;
+        }
+        if (barriers & (GL_SHADER_STORAGE_BARRIER_BIT | GL_UNIFORM_BARRIER_BIT |
+                        GL_ATOMIC_COUNTER_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT |
+                        GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT |
+                        GL_ELEMENT_ARRAY_BARRIER_BIT | GL_TRANSFORM_FEEDBACK_BARRIER_BIT |
+                        GL_COMMAND_BARRIER_BIT | GL_PIXEL_BUFFER_BARRIER_BIT))
+        {
+            scope |= MTLBarrierScopeBuffers;
+        }
     }
-    // The GL API doesn't provide a distinction between different shader stages.
-    // ES 3.0 doesn't have compute.
+
+    // Unknown / implementation-specific bits are synchronized conservatively rather than silently
+    // ignored.
+    if (scope == 0)
+    {
+        scope = MTLBarrierScopeTextures | MTLBarrierScopeBuffers;
+    }
+
+    if (mComputeEncoder.valid())
+    {
+        // Render targets do not participate in a compute barrier; only textures and buffers are
+        // valid scopes for the compute encoder.
+        mComputeEncoder.memoryBarrier(scope & (MTLBarrierScopeTextures | MTLBarrierScopeBuffers));
+        return checkCommandBufferError();
+    }
+
+#if TARGET_OS_OSX || TARGET_OS_MACCATALYST
+    if (getDisplay()->hasFragmentMemoryBarriers() &&
+        (barriers == GL_ALL_BARRIER_BITS ||
+         (barriers & (GL_FRAMEBUFFER_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT)) != 0))
+    {
+        // Image / storage writes must also wait for prior attachment writes.  This scope is only
+        // available on devices that report fragment barriers; iOS rejects the symbol entirely.
+        scope |= MTLBarrierScopeRenderTargets;
+    }
+#endif
+
+    if (!mRenderEncoder.valid())
+    {
+        // No pending render work exists, so there is nothing for the render barrier to order.
+        return checkCommandBufferError();
+    }
+
+    // MTL31-PARTIAL: MTL31-BARRIER-fragment - the fragment stage only participates on devices
+    // with hasFragmentMemoryBarriers() (Apple GPU family < 3); elsewhere the barrier still orders
+    // vertex->vertex work but cannot guarantee fragment-stage visibility.
     MTLRenderStages stages = MTLRenderStageVertex;
     if (getDisplay()->hasFragmentMemoryBarriers())
     {

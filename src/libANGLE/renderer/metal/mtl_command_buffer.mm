@@ -2904,6 +2904,15 @@ ComputeCommandEncoder &ComputeCommandEncoder::useResource(const BufferRef &resou
     return *this;
 }
 
+ComputeCommandEncoder &ComputeCommandEncoder::memoryBarrier(MTLBarrierScope scope)
+{
+    // Compute only needs the texture/buffer scopes; RenderTargets is API_UNAVAILABLE on iOS and
+    // is never requested by the compute path.
+    ASSERT(scope != 0);
+    [get() memoryBarrierWithScope:scope];
+    return *this;
+}
+
 ComputeCommandEncoder &ComputeCommandEncoder::setBuffer(gl::ShaderType shaderType,
                                                         const BufferRef &buffer,
                                                         size_t offset,

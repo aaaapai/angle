@@ -790,6 +790,8 @@ class ComputeCommandEncoder final : public CommandEncoder
                                         uint32_t index);
     ComputeCommandEncoder &useResource(const BufferRef &resource, MTLResourceUsage usage);
 
+    ComputeCommandEncoder &memoryBarrier(MTLBarrierScope scope);
+
     ComputeCommandEncoder &dispatch(const MTLSize &threadGroupsPerGrid,
                                     const MTLSize &threadsPerGroup);
     ComputeCommandEncoder &dispatchIndirect(const BufferRef &indirectBuffer,
