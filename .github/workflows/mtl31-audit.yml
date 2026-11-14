@@ -29,11 +29,8 @@ jobs:
           arch: x86_64
           out-dir: l1-linux
           upload-path: angle_shader_translator
-      - name: Rebuild translator with MSL enabled
-        run: |
-          echo 'angle_enable_msl = true' >> out/l1-linux/args.gn
-          gn gen out/l1-linux --threads=8
-          autoninja -C out/l1-linux -j 8 angle_shader_translator
+          build-target: angle_shader_translator
+          extra-gn-args: 'angle_enable_msl = true'
       - name: Run L1 corpus
         run: |
           set -euo pipefail
