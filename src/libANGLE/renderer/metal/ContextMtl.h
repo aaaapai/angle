@@ -386,6 +386,12 @@ class ContextMtl : public ContextImpl, public mtl::Context
     // command encoder is already started.
     mtl::ComputeCommandEncoder *getComputeCommandEncoder();
 
+    // Validates the active compute program state, resolves dirty textures, starts the compute
+    // encoder and binds the pipeline and every resource.  Used by both direct and indirect
+    // dispatch so their state setup stays identical.
+    angle::Result prepareComputeDispatch(const gl::Context *context,
+                                         mtl::ComputeCommandEncoder **cmdEncoderOut);
+
     // Because this backend uses an intermediate representation for the rendering
     // commands, a render encoder can coexist with blit/compute command encoders.
     // Note: the blit/compute commands will run before the pending render commands.

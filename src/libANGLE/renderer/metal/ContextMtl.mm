@@ -1571,12 +1571,9 @@ SemaphoreImpl *ContextMtl::createSemaphore()
     return nullptr;
 }
 
-angle::Result ContextMtl::dispatchCompute(const gl::Context *context,
-                                          GLuint numGroupsX,
-                                          GLuint numGroupsY,
-                                          GLuint numGroupsZ)
+angle::Result ContextMtl::prepareComputeDispatch(const gl::Context *context,
+                                                 mtl::ComputeCommandEncoder **cmdEncoderOut)
 {
-    // MTL31-FEATURE: MTL31-COMPUTE-dispatch
     ASSERT(mExecutable);
     if (!mExecutable)
     {
@@ -1589,25 +1586,62 @@ angle::Result ContextMtl::dispatchCompute(const gl::Context *context,
         mDirtyBits.reset(DIRTY_BIT_TEXTURES);
     }
 
+    *cmdEncoderOut = getComputeCommandEncoder();
+    ANGLE_TRY(mExecutable->setupCompute(context, *cmdEncoderOut));
+    return angle::Result::Continue;
+}
+
+angle::Result ContextMtl::dispatchCompute(const gl::Context *context,
+                                          GLuint numGroupsX,
+                                          GLuint numGroupsY,
+                                          GLuint numGroupsZ)
+{
+    // MTL31-FEATURE: MTL31-COMPUTE-dispatch
     const gl::ProgramExecutable *executable = mState.getProgramExecutable();
     ANGLE_CHECK(context, executable != nullptr, gl::err::kInternalError, GL_INVALID_OPERATION);
     const sh::WorkGroupSize &localSize = executable->getComputeShaderLocalSize();
     ANGLE_CHECK(context, localSize[0] > 0 && localSize[1] > 0 && localSize[2] > 0,
                 gl::err::kInternalError, GL_INVALID_OPERATION);
 
-    mtl::ComputeCommandEncoder *cmdEncoder = getComputeCommandEncoder();
-    ANGLE_TRY(mExecutable->setupCompute(context, cmdEncoder));
+    mtl::ComputeCommandEncoder *cmdEncoder = nullptr;
+    ANGLE_TRY(prepareComputeDispatch(context, &cmdEncoder));
 
     cmdEncoder->dispatch(MTLSizeMake(numGroupsX, numGroupsY, numGroupsZ),
                          MTLSizeMake(localSize[0], localSize[1], localSize[2]));
 
     return checkCommandBufferError();
 }
+
 angle::Result ContextMtl::dispatchComputeIndirect(const gl::Context *context, GLintptr indirect)
 {
-    // NOTE(hqle): ES 3.0
-    UNIMPLEMENTED();
-    return angle::Result::Stop;
+    // MTL31-FEATURE: MTL31-COMPUTE-dispatch-indirect
+    const gl::ProgramExecutable *executable = mState.getProgramExecutable();
+    ANGLE_CHECK(context, executable != nullptr, gl::err::kInternalError, GL_INVALID_OPERATION);
+    const sh::WorkGroupSize &localSize = executable->getComputeShaderLocalSize();
+    ANGLE_CHECK(context, localSize[0] > 0 && localSize[1] > 0 && localSize[2] > 0,
+                gl::err::kInternalError, GL_INVALID_OPERATION);
+
+    gl::Buffer *indirectBuffer = mState.getTargetBuffer(gl::BufferBinding::DispatchIndirect);
+    ANGLE_CHECK(context, indirectBuffer != nullptr, gl::err::kInternalError, GL_INVALID_OPERATION);
+    BufferMtl *indirectBufferMtl = mtl::GetImpl(indirectBuffer);
+    ANGLE_CHECK(context, indirectBufferMtl != nullptr, gl::err::kInternalError,
+                GL_INVALID_OPERATION);
+
+    // The indirect command is three uint32 values.  The front end validates the range, but a
+    // release build still must not hand Metal an out-of-range pointer.
+    const uint64_t offset = static_cast<uint64_t>(indirect);
+    ANGLE_CHECK(context,
+                offset <= indirectBufferMtl->size() &&
+                    indirectBufferMtl->size() - offset >= 3 * sizeof(uint32_t),
+                gl::err::kInternalError, GL_INVALID_VALUE);
+
+    mtl::ComputeCommandEncoder *cmdEncoder = nullptr;
+    ANGLE_TRY(prepareComputeDispatch(context, &cmdEncoder));
+
+    cmdEncoder->dispatchIndirect(indirectBufferMtl->getCurrentBuffer(), static_cast<size_t>(offset),
+                                 MTLSizeMake(localSize[0], localSize[1], localSize[2]));
+
+    return checkCommandBufferError();
 }
 
 angle::Result ContextMtl::memoryBarrier(const gl::Context *context, GLbitfield barriers)
