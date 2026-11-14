@@ -1,0 +1,20 @@
+#version 310 es
+layout(local_size_x = 8, local_size_y = 4, local_size_z = 2) in;
+layout(std430, binding = 0) buffer Out
+{
+    uvec4 globalId;
+    uvec3 localId;
+    uvec3 groupId;
+    uvec3 numGroups;
+    uint localIndex;
+    uvec3 groupSize;
+} outData;
+void main()
+{
+    outData.globalId   = gl_GlobalInvocationID;
+    outData.localId    = gl_LocalInvocationID;
+    outData.groupId    = gl_WorkGroupID;
+    outData.numGroups  = gl_NumWorkGroups;
+    outData.localIndex = gl_LocalInvocationIndex;
+    outData.groupSize  = gl_WorkGroupSize;
+}

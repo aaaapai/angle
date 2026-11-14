@@ -1,0 +1,22 @@
+#version 310 es
+layout(local_size_x = 64) in;
+shared uint scratch[64];
+layout(std430, binding = 0) buffer Out
+{
+    uint result;
+} outData;
+void main()
+{
+    uint index = gl_LocalInvocationIndex;
+    scratch[index] = index;
+    barrier();
+    if (index == 0u)
+    {
+        uint sum = 0u;
+        for (uint i = 0u; i < 64u; ++i)
+        {
+            sum += scratch[i];
+        }
+        outData.result = sum;
+    }
+}
