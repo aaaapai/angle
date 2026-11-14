@@ -75,10 +75,37 @@ angle::Result RenderbufferMtl::copyTextureSubData(const gl::Context *context,
 {
     ContextMtl *contextMtl = mtl::GetImpl(context);
     TextureMtl *srcMtl     = mtl::GetImpl(srcTexture);
-    ANGLE_CHECK(contextMtl, srcZ.get() == 0, gl::err::kInternalError, GL_INVALID_OPERATION);
+
+    gl::ImageIndex srcIndex;
+    switch (srcTexture->getType())
+    {
+        case gl::TextureType::_2D:
+            srcIndex = gl::ImageIndex::Make2D(static_cast<GLint>(srcLevel.get()));
+            break;
+        case gl::TextureType::_2DArray:
+            srcIndex = gl::ImageIndex::Make2DArray(static_cast<GLint>(srcLevel.get()));
+            break;
+        case gl::TextureType::_3D:
+            srcIndex = gl::ImageIndex::Make3D(static_cast<GLint>(srcLevel.get()));
+            break;
+        case gl::TextureType::CubeMap:
+        {
+            if (srcZ.get() >= 6)
+            {
+                ANGLE_CHECK(contextMtl, false, gl::err::kInternalError, GL_INVALID_OPERATION);
+            }
+            const gl::TextureTarget face = static_cast<gl::TextureTarget>(
+                static_cast<uint8_t>(gl::kCubeMapTextureTargetMin) + srcZ.get());
+            srcIndex = gl::ImageIndex::MakeCubeMapFace(face, static_cast<GLint>(srcLevel.get()));
+            break;
+        }
+        default:
+            ANGLE_CHECK(contextMtl, false, gl::err::kInternalError, GL_INVALID_OPERATION);
+            break;
+    }
 
     mtl::TextureRef srcImage;
-    ANGLE_TRY(srcMtl->getImageForCopy(context, srcLevel, &srcImage));
+    ANGLE_TRY(srcMtl->getImageForCopy(context, srcIndex, &srcImage));
     const mtl::TextureRef &dstImage = getTexture();
     ANGLE_CHECK(contextMtl, srcImage && dstImage, gl::err::kInternalError, GL_INVALID_OPERATION);
     ANGLE_CHECK(contextMtl, srcImage->pixelFormat() == dstImage->pixelFormat(),
@@ -86,10 +113,14 @@ angle::Result RenderbufferMtl::copyTextureSubData(const gl::Context *context,
     ANGLE_CHECK(contextMtl, srcImage->samples() == dstImage->samples(), gl::err::kInternalError,
                 GL_INVALID_OPERATION);
 
+    const uint32_t srcSlice          = (srcTexture->getType() == gl::TextureType::CubeMap ||
+                               srcTexture->getType() == gl::TextureType::_2D)
+                                           ? 0u
+                                           : srcZ.get();
     mtl::BlitCommandEncoder *encoder = contextMtl->getBlitCommandEncoder();
-    encoder->copyTextureRegion(srcImage, 0, mtl::kZeroNativeMipLevel, MTLOriginMake(srcX, srcY, 0),
-                               MTLSizeMake(srcWidth, srcHeight, 1), dstImage, 0,
-                               mtl::kZeroNativeMipLevel, MTLOriginMake(dstX, dstY, 0));
+    encoder->copyTextureRegion(srcImage, srcSlice, mtl::kZeroNativeMipLevel,
+                               MTLOriginMake(srcX, srcY, 0), MTLSizeMake(srcWidth, srcHeight, 1),
+                               dstImage, 0, mtl::kZeroNativeMipLevel, MTLOriginMake(dstX, dstY, 0));
     return angle::Result::Continue;
 }
 

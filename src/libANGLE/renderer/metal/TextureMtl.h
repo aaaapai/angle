@@ -135,7 +135,7 @@ class TextureMtl : public TextureImpl
     // Returns the native 2D image for a GL level, creating the level view if needed.  Used by the
     // renderbuffer copy paths, which cannot access TextureMtl's private image storage.
     angle::Result getImageForCopy(const gl::Context *context,
-                                  gl::LevelIndex level,
+                                  const gl::ImageIndex &imageIndex,
                                   mtl::TextureRef *imageOut);
 
     angle::Result setStorage(const gl::Context *context,
