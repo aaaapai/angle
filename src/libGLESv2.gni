@@ -94,6 +94,7 @@ libangle_common_sources =
       "src/common/base/anglebase/sha1.cc",
       "src/common/base/anglebase/trace_event/trace_categories.cc",
       "src/common/debug.cpp",
+      "src/common/log_stub.cpp",
       "src/common/entry_points_enum_autogen.cpp",
       "src/common/event_tracer.cpp",
       "src/common/mathutil.cpp",
@@ -104,6 +105,7 @@ libangle_common_sources =
       "src/common/tls.cpp",
       "src/common/uniform_type_info_autogen.cpp",
       "src/common/utilities.cpp",
+      "src/common/driver_helper.cpp",
     ]
 
 libangle_common_shader_state_sources =
@@ -656,6 +658,7 @@ libglesv2_entry_point_sources = [
   "src/libGLESv2/entry_points_egl_autogen.h",
   "src/libGLESv2/entry_points_egl_ext_autogen.cpp",
   "src/libGLESv2/entry_points_egl_ext_autogen.h",
+  "src/libGLESv2/entry_points_desktopgl.cpp",
   "src/libGLESv2/entry_points_gles_1_0_autogen.cpp",
   "src/libGLESv2/entry_points_gles_1_0_autogen.h",
   "src/libGLESv2/entry_points_gles_2_0_autogen.cpp",

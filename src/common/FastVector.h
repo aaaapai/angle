@@ -20,6 +20,9 @@
 #include <cstring>
 #include <initializer_list>
 #include <iterator>
+#include <ranges>
+#include <span>
+#include <type_traits>
 
 namespace angle
 {
@@ -557,10 +560,10 @@ ANGLE_INLINE void FastVector<T, N, Storage>::remove_and_permute(iterator pos)
     pop_back();
 }
 
+// Optimized capacity growth: use 1.5x factor instead of doubling to reduce memory fragmentation.
 template <class T, size_t N, class Storage>
 void FastVector<T, N, Storage>::ensure_capacity(size_t capacity)
 {
-    // We have a minimum capacity of N.
     if (mReservedSize < capacity)
     {
         increase_capacity(capacity);
@@ -571,17 +574,30 @@ template <class T, size_t N, class Storage>
 ANGLE_NOINLINE void FastVector<T, N, Storage>::increase_capacity(size_t capacity)
 {
     ASSERT(capacity > N);
+    // Use 1.5x growth factor (rounded up) for better memory reuse.
     size_type newSize = std::max(mReservedSize, N);
     while (newSize < capacity)
     {
-        newSize *= 2;
+        newSize = newSize + newSize / 2;  // 1.5x
+        if (newSize < capacity)
+            newSize = capacity;  // ensure at least capacity
     }
 
     pointer newData = new value_type[newSize];
 
     if (mSize > 0)
     {
-        std::move(begin(), end(), newData);
+        // Optimized copy for trivially copyable types using span-based range copy
+        // (avoids the unsafe-buffer-usage libc-call warning on std::memcpy).
+        if constexpr (std::is_trivially_copyable_v<value_type>)
+        {
+            std::ranges::copy(std::span<const value_type>(mData, mSize),
+                              std::span<value_type>(newData, mSize).begin());
+        }
+        else
+        {
+            std::move(begin(), end(), newData);
+        }
     }
 
     if (!uses_fixed_storage())

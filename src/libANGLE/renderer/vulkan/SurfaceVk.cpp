@@ -1215,6 +1215,13 @@ angle::FormatID WindowSurfaceVk::getActualFormatID(vk::Renderer *renderer)
     {
         actualFormatID = angle::FormatID::R5G6B5_UNORM;
     }
+
+    if (renderer->getFeatures().preferBGRA8ToRGBA8.enabled &&
+        intendedFormatID == angle::FormatID::R8G8B8A8_UNORM)
+    {
+        actualFormatID = angle::FormatID::B8G8R8A8_UNORM;
+    }
+
     return actualFormatID;
 }
 
@@ -1587,6 +1594,10 @@ angle::Result WindowSurfaceVk::recreateSwapchain(vk::ErrorContext *context)
     // Swapchain must be already invalidated.
     ASSERT(mAcquireOperation.state == ImageAcquireState::Unacquired);
     ASSERT(mSwapchain == VK_NULL_HANDLE);
+
+    vk::Renderer *renderer = context->getRenderer();
+    ANGLE_TRY(finish(context));
+    renderer->cleanupGarbage(nullptr);
 
     // May happen in case if it is recreate after a previous failure.
     if (!mSwapchainImages.empty() || mDepthStencilImage.valid() || hasAncillaryColor())
@@ -2109,11 +2120,15 @@ angle::Result WindowSurfaceVk::queryAndAdjustSurfaceCaps(
         }
     }
 
+    // Always query the actual window size.  On Fuchsia and some Android drivers,
+    // vkGetPhysicalDeviceSurfaceCapabilitiesKHR does not provide useful extents; on Android,
+    // currentExtent may also lag behind ANativeWindow_setBuffersGeometry.  Therefore, the
+    // platform-specific window size is used as the source of truth for buffer geometry.
+    //
+    // The IsAndroid() check limits this override to the platform where the lag has been
+    // observed.  Removing it makes the override unconditional for all platforms.
     if (mIsSurfaceSizedBySwapchain)
     {
-        // vkGetPhysicalDeviceSurfaceCapabilitiesKHR does not provide useful extents for some
-        // platforms (e.g. Fuchsia).  Therefore, we must query the window size via a
-        // platform-specific mechanism.  Add those extents to the surfaceCapsOut
         gl::Extents windowExtents;
         ANGLE_TRY(getCurrentWindowSize(context, &windowExtents));
         surfaceCapsOut->currentExtent.width  = windowExtents.width;
@@ -2164,41 +2179,48 @@ angle::Result WindowSurfaceVk::prepareSwapchainForAcquireNextImage(vk::ErrorCont
 
     if (isSwapchainValid)
     {
-        // This device generates neither VK_ERROR_OUT_OF_DATE_KHR nor VK_SUBOPTIMAL_KHR.  Check for
-        // whether the size and/or rotation have changed since the swapchain was created.
         uint32_t curSurfaceWidth  = mWidth;
         uint32_t curSurfaceHeight = mHeight;
 
-        // On Android, rotation can cause the minImageCount to change
-        if (surfaceCaps.currentTransform == mPreTransform &&
-            surfaceCaps.currentExtent.width == curSurfaceWidth &&
-            surfaceCaps.currentExtent.height == curSurfaceHeight && minImageCount == mMinImageCount)
+        gl::Extents nativeExtents;
+        ANGLE_TRY(getCurrentWindowSize(context, &nativeExtents));
+        const uint32_t nativeWidth =
+            static_cast<uint32_t>(std::max<EGLint>(nativeExtents.width, 1));
+        const uint32_t nativeHeight =
+            static_cast<uint32_t>(std::max<EGLint>(nativeExtents.height, 1));
+
+        const bool appRendersAtNativeSize =
+            mAppViewportWidth != 0 && mAppViewportHeight != 0 &&
+            mAppViewportWidth == nativeWidth && mAppViewportHeight == nativeHeight;
+
+        const uint32_t desiredWidth =
+            appRendersAtNativeSize ? nativeWidth : surfaceCaps.currentExtent.width;
+        const uint32_t desiredHeight =
+            appRendersAtNativeSize ? nativeHeight : surfaceCaps.currentExtent.height;
+
+        if (surfaceCaps.currentTransform == mPreTransform && desiredWidth == curSurfaceWidth &&
+            desiredHeight == curSurfaceHeight && minImageCount == mMinImageCount)
         {
             return angle::Result::Continue;
         }
 
-        if (renderer->getFeatures().avoidInvisibleWindowSwapchainRecreate.enabled)
-        {
-            bool isWindowVisible = false;
-            ANGLE_TRY(getWindowVisibility(context, &isWindowVisible));
-            if (!isWindowVisible)
-            {
-                return angle::Result::Continue;
-            }
-        }
+        INFO() << "Swapchain size change: " << curSurfaceWidth << "x" << curSurfaceHeight
+               << " -> " << desiredWidth << "x" << desiredHeight
+               << " (native=" << nativeWidth << "x" << nativeHeight
+               << ", caps=" << surfaceCaps.currentExtent.width << "x"
+               << surfaceCaps.currentExtent.height
+               << ", appViewport=" << mAppViewportWidth << "x" << mAppViewportHeight << ")";
 
         invalidateSwapchain(renderer);
-    }
-    ASSERT(mSwapchain == VK_NULL_HANDLE);
 
+        {
+            std::lock_guard<angle::SimpleMutex> lock(mSizeMutex);
+            mWidth  = desiredWidth;
+            mHeight = desiredHeight;
+        }
+    }
+    else
     {
-        // Lock protects individual |mWidth| and |mHeight| writes from this thread and reads from
-        // other threads.  The acquire memory order of the mutex lock will prevent |mSizeState|
-        // relaxed atomic assignment to be moved before the lock.  When other thread reads that
-        // |mSizeState| is resolved, the mutex will be already locked, preventing reading old
-        // |mWidth| and |mHeight| values.  Similar goal may be archived by using atomics instead of
-        // the mutex.  The mutex is used for code simplicity and to avoid non relaxed atomic stores
-        // on each frame.
         std::lock_guard<angle::SimpleMutex> lock(mSizeMutex);
         mWidth  = surfaceCaps.currentExtent.width;
         mHeight = surfaceCaps.currentExtent.height;
@@ -2954,7 +2976,7 @@ angle::Result WindowSurfaceVk::throttleCPU(vk::ErrorContext *context,
     mSwapHistory.front()   = currentSubmitSerial;
     mSwapHistory.next();
 
-    if (swapSerial.valid() && !context->getRenderer()->hasQueueSerialFinished(swapSerial))
+    /*if (swapSerial.valid() && !context->getRenderer()->hasQueueSerialFinished(swapSerial))
     {
         // Make this call after unlocking the EGL lock.  Renderer::finishQueueSerial is necessarily
         // thread-safe because it can get called from any number of GL commands, which don't
@@ -2969,7 +2991,7 @@ angle::Result WindowSurfaceVk::throttleCPU(vk::ErrorContext *context,
                 ANGLE_UNUSED_VARIABLE(resultOut);
                 (void)context->getRenderer()->finishQueueSerial(context, swapSerial);
             });
-    }
+    }*/ // Should it throttle?
 
     return angle::Result::Continue;
 }

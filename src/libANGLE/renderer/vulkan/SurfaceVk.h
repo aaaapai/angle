@@ -10,6 +10,7 @@
 #ifndef LIBANGLE_RENDERER_VULKAN_SURFACEVK_H_
 #define LIBANGLE_RENDERER_VULKAN_SURFACEVK_H_
 
+#include <algorithm>
 #include <optional>
 #include "common/CircularBuffer.h"
 #include "common/SimpleMutex.h"
@@ -348,6 +349,15 @@ class WindowSurfaceVk : public SurfaceVk
         return mPreTransform;
     }
 
+    // Notify the surface of the application's intended viewport size.  On Android this is used
+    // to decide whether the swapchain should follow the ANativeWindow buffer size or the
+    // driver-reported currentExtent.
+    void setApplicationViewportSize(int width, int height)
+    {
+        mAppViewportWidth  = static_cast<uint32_t>(std::max(width, 0));
+        mAppViewportHeight = static_cast<uint32_t>(std::max(height, 0));
+    }
+
     egl::Error setAutoRefreshEnabled(bool enabled) override;
 
     egl::Error getBufferAge(const gl::Context *context, EGLint *age) override;
@@ -495,6 +505,12 @@ class WindowSurfaceVk : public SurfaceVk
     void onSubjectStateChange(angle::SubjectIndex index, angle::SubjectMessage message) override;
 
     bool mIsSurfaceSizedBySwapchain;
+
+    // Application's intended viewport size (from glViewport).  Zero until first set.
+    // Used on Android to decide whether the swapchain should follow ANativeWindow size
+    // or the driver-reported currentExtent.
+    uint32_t mAppViewportWidth  = 0;
+    uint32_t mAppViewportHeight = 0;
 
     // Atomic is to allow update state without necessarily locking the mSizeMutex.
     std::atomic<impl::SurfaceSizeState> mSizeState;
