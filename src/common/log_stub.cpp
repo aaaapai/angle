@@ -52,6 +52,20 @@ int __android_log_write(int prio, const char* tag, const char* text) noexcept {
     return 0;
 }
 
+// ---------------------------------------------------------------------------
+// __android_log_print is a printf-style variadic API: the format string and
+// va_list have to stay.  clang's -Wunsafe-buffer-usage plugin cannot reason
+// about va_list boundaries, so it flags every printf-family call in this
+// function even though we bound the destination buffer explicitly with
+// std::vsnprintf.  The suppressed diagnostics are false positives; the
+// alternative would be to break the __android_log_print ABI, which callers
+// rely on.
+// ---------------------------------------------------------------------------
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunsafe-buffer-usage"
+#pragma clang diagnostic ignored "-Wunsafe-buffer-usage-in-libc-call"
+#pragma clang diagnostic ignored "-Wunsafe-buffer-usage-in-format-attr-call"
+
 int __android_log_print(int prio, const char* tag, const char* fmt, ...) noexcept {
     if (!fmt) {
         safe_write(prio, tag, "(null format)");
@@ -61,30 +75,29 @@ int __android_log_print(int prio, const char* tag, const char* fmt, ...) noexcep
     va_list args;
     va_start(args, fmt);
     
-    std::lock_guard lock(g_log_mutex);
+    // First pass: measure required length with a bounded (null) destination.
+    va_list args_len;
+    va_copy(args_len, args);
+    int needed = std::vsnprintf(nullptr, 0, fmt, args_len);
+    va_end(args_len);
     
-    // Write prefix: [prio] tag: 
-    fwrite("[", 1, 1, stdout);
-    fprintf(stdout, "%d", prio);
-    fwrite("] ", 1, 2, stdout);
-    if (tag) {
-        fwrite(tag, 1, std::strlen(tag), stdout);
-    } else {
-        fwrite("(null-tag)", 1, 10, stdout);
+    std::string formatted;
+    if (needed > 0) {
+        // std::string guarantees a trailing '\0' at data()[size()], so
+        // passing (size() + 1) as the bound is exact and safe.
+        formatted.resize(static_cast<size_t>(needed));
+        std::vsnprintf(formatted.data(), formatted.size() + 1, fmt, args);
     }
-    fwrite(": ", 1, 2, stdout);
-    
-    // Write formatted message directly
-    vfprintf(stdout, fmt, args);
-    
-    // Write newline and flush
-    fwrite("\n", 1, 1, stdout);
-    fflush(stdout);
-    
     va_end(args);
     
-    // Return 0 to indicate success (no length counted)
+    if (needed > 0) {
+        safe_write(prio, tag, formatted.c_str());
+    } else {
+        safe_write(prio, tag, "(format error)");
+    }
     return 0;
 }
+
+#pragma clang diagnostic pop
 
 } // extern "C"

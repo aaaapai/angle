@@ -4,7 +4,7 @@
 // Self-contained Vulkan driver loader for ANGLE's libvulkan_loader.
 //
 // ==========================================================================
-// Improvements over the previous revision (in no particular order):
+// Improvements (carried over from the previous revision):
 //
 //   [I1]  self_dir() is cached; /proc/self/maps fallback scans only once.
 //   [I2]  Every dlerror() result is copied to std::string BEFORE any dlog(),
@@ -12,25 +12,22 @@
 //         libc++ builds, invalidating the thread-local error buffer.
 //   [I3]  Namespace creation retries with a unique name
 //         ("<base>-<pid>-<counter>") when android_create_namespace returns
-//         NULL.  Some bionic builds refuse to reuse an existing name; the
-//         retry lets the second and third libGLESv2_angle.so instance still
-//         succeed (each gets its own namespace).  A WARN marks this case so
-//         the caller knows the driver may have been initialized twice.
+//         NULL.  A WARN marks this case so the caller knows the driver
+//         may have been initialized twice.
 //   [I4]  Driver name is checked for the substring "vulkan." at runtime.
-//         liblinkerhook intercepts any dlopen path containing "vulkan.";
-//         a driver named e.g. "libvulkan.xxx.so" would recurse.  We fail
-//         loudly instead of letting the process crash inside the hook.
-//   [I5]  probe_icd no longer hard-fails when vk_icdGetInstanceProcAddr
-//         returns NULL for "vkCreateInstance".  Some ICD builds don't
-//         expose it through the ICD entry point (it is a loader-imported
-//         core function).  The check is downgraded to a WARN; the real
-//         usability signal remains vkEnumerateInstanceExtensionProperties.
-//   [I6]  probe_loader's /proc/self/maps cross-check is re-worded: zero
-//         r-xp mappings can be a memfd load (normal), not only "loader
-//         picked another ICD".  Downgraded to a NOTE, still non-fatal.
+//   [I5]  probe_icd downgrades the vkCreateInstance check to a WARN.
+//   [I6]  probe_loader's /proc/self/maps cross-check is a NOTE, not a fail.
 //   [I7]  android_link_namespaces return values are logged.
-//   [I8]  Failed loads print getpid(), dlerror() text and driver dir so
-//         multi-instance failures can be traced from logcat alone.
+//   [I8]  Each log line carries [pid] so multi-instance failures can be
+//         traced from logcat alone.
+//
+//   [FIX] print_loader_path no longer uses dlinfo / RTLD_DI_LINKMAP.
+//         Neither exists in bionic; dladdr() on a resolved symbol is used
+//         instead (portable across API levels).
+//
+//   [SAFE-BUFFERS] Replaced all C-string helpers (strcmp/strstr/strchr/
+//         fgets/snprintf) with std::string / std::string_view / std::format
+//         / std::ifstream to satisfy clang's -Wunsafe-buffer-usage plugin.
 //
 // ==========================================================================
 // Deployment layout this file targets:
@@ -73,13 +70,13 @@
 #include <charconv>
 #include <fcntl.h>
 #include <format>
+#include <fstream>
 #include <mutex>
 #include <string>
 #include <string_view>
 #include <unistd.h>
 
 #include <dlfcn.h>
-#include <link.h>
 #include <android/dlext.h>
 #include <android/api-level.h>
 
@@ -140,7 +137,8 @@ bool is_enabled() {
         dlog("disabled: {} unset", kEnableEnv);
         return false;
     }
-    bool on = (std::strcmp(e, "true") == 0) || (std::strcmp(e, "1") == 0);
+    std::string_view sv(e);
+    bool on = (sv == "true") || (sv == "1");
     dlog("{}={} -> {}", kEnableEnv, e, on ? "enabled" : "disabled");
     return on;
 }
@@ -152,7 +150,7 @@ const char* resolve_driver_name() {
     // [I4] liblinkerhook matches "vulkan." substring on every dlopen path.
     // A driver name containing it would be intercepted and recursively
     // returned as the hook's ready_handle -> stack overflow.
-    if (std::strstr(chosen, "vulkan.")) {
+    if (std::string_view(chosen).find("vulkan.") != std::string_view::npos) {
         dlog("ERROR: driver name '{}' contains the forbidden substring "
              "'vulkan.'; liblinkerhook would intercept its dlopen",
              chosen);
@@ -195,24 +193,22 @@ const std::string& self_dir() {
                 return path.substr(0, slash);
             }
         }
-        if (FILE* f = std::fopen("/proc/self/maps", "r")) {
-            char line[1024];
-            while (std::fgets(line, sizeof(line), f)) {
-                if (!std::strstr(line, "libGLESv2_angle.so")) continue;
-                const char* p = std::strchr(line, '/');
-                if (!p) continue;
-                std::string path(p);
-                while (!path.empty() &&
-                       (path.back() == '\n' || path.back() == ' ' || path.back() == '\t')) {
-                    path.pop_back();
-                }
-                auto slash = path.find_last_of('/');
-                if (slash != std::string::npos && slash > 0) {
-                    std::fclose(f);
-                    return path.substr(0, slash);
-                }
+        std::ifstream maps("/proc/self/maps");
+        std::string line;
+        while (std::getline(maps, line)) {
+            if (line.find("libGLESv2_angle.so") == std::string::npos) continue;
+            auto slash = line.find('/');
+            if (slash == std::string::npos) continue;
+            std::string path = line.substr(slash);
+            while (!path.empty() &&
+                   (path.back() == '\n' || path.back() == '\r' ||
+                    path.back() == ' '  || path.back() == '\t')) {
+                path.pop_back();
             }
-            std::fclose(f);
+            auto last_slash = path.find_last_of('/');
+            if (last_slash != std::string::npos && last_slash > 0) {
+                return path.substr(0, last_slash);
+            }
         }
         return {};
     }();
@@ -364,15 +360,16 @@ struct android_namespace_t* create_driver_namespace_with_retry(
     if (auto* ns = create_driver_namespace(driver_dir, base_name)) return ns;
 
     static std::atomic<uint32_t> s_seq{0};
-    char unique[128];
-    std::snprintf(unique, sizeof(unique), "%s-%d-%u",
-                  base_name,
-                  static_cast<int>(getpid()),
-                  s_seq.fetch_add(1, std::memory_order_relaxed));
+    std::string base_sv(base_name);
+    std::string unique = std::format(
+        "{}-{}-{}",
+        base_sv,
+        static_cast<long long>(getpid()),
+        s_seq.fetch_add(1, std::memory_order_relaxed));
     dlog("namespace '{}' unavailable, retrying as '{}' "
          "(WARN: this instance will get its own driver copy; "
-         "turnip may be initialized more than once)", base_name, unique);
-    return create_driver_namespace(driver_dir, unique);
+         "turnip may be initialized more than once)", base_sv, unique);
+    return create_driver_namespace(driver_dir, unique.c_str());
 }
 
 void* load_in_namespace(struct android_namespace_t* ns, const char* name, int flags) {
@@ -483,23 +480,24 @@ bool probe_icd(void* driver_handle, std::string_view driver_name) {
 }
 
 int count_driver_exec_maps(std::string_view driver_name) {
-    FILE* f = std::fopen("/proc/self/maps", "r");
-    if (!f) {
+    std::ifstream maps("/proc/self/maps");
+    if (!maps) {
         dlog("cannot open /proc/self/maps: {}", std::strerror(errno));
         return -1;
     }
-    std::string needle(driver_name);
-    char line[1024];
     int n = 0;
-    while (std::fgets(line, sizeof(line), f)) {
-        if (!std::strstr(line, needle.c_str())) continue;
-        const char* p = std::strchr(line, ' ');
-        if (!p) continue;
-        ++p;
-        if (p[2] != 'x') continue;
+    std::string line;
+    while (std::getline(maps, line)) {
+        if (line.find(driver_name) == std::string::npos) continue;
+        // Format: "addr perms offset dev inode pathname"
+        // The first space separates address from perms; perms[2] == 'x' means r-xp/rwxp etc.
+        auto sp = line.find(' ');
+        if (sp == std::string::npos) continue;
+        std::string_view perms(line);
+        perms.remove_prefix(sp + 1);
+        if (perms.size() < 3 || perms[2] != 'x') continue;
         ++n;
     }
-    std::fclose(f);
     return n;
 }
 
@@ -547,11 +545,19 @@ bool probe_loader(void* loader_handle, std::string_view driver_name) {
     return true;
 }
 
+// [FIX] dlinfo() / RTLD_DI_LINKMAP do not exist on Android bionic.
+// Resolve a known loader symbol and ask dladdr() for its image path.
 void print_loader_path(void* loader_handle) {
-    struct link_map* lm = nullptr;
-    if (dlinfo(loader_handle, RTLD_DI_LINKMAP, &lm) == 0
-        && lm && lm->l_name && *lm->l_name) {
-        dlog("loader real path = '{}'", lm->l_name);
+    void* sym = dlsym(loader_handle, "vkGetInstanceProcAddr");
+    if (!sym) {
+        dlog("print_loader_path: cannot resolve vkGetInstanceProcAddr");
+        return;
+    }
+    Dl_info info{};
+    if (dladdr(sym, &info) && info.dli_fname && *info.dli_fname) {
+        dlog("loader real path = '{}'", info.dli_fname);
+    } else {
+        dlog("print_loader_path: dladdr failed");
     }
 }
 
