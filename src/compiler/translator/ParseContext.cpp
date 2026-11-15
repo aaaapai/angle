@@ -7729,7 +7729,7 @@ TIntermTyped *TParseContext::addIndexExpression(TIntermTyped *baseExpression,
         if (baseExpression->getAsSymbolNode())
         {
             warning(location, " left of '[' is not of type array, matrix, or vector ",
-                  baseExpression->getAsSymbolNode()->getName());
+                  baseExpression->getAsSymbolNode()->getName().data());
         }
         else
         {

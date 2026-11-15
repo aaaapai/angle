@@ -109,7 +109,7 @@ void LoadA8ToRGBA8(const ImageLoadContext &context,
         }
         return;
     }
-#endif
+#else
 
 #if defined(ANGLE_LOADIMAGE_USE_SSE)
     if (supportsSSE2())
@@ -173,6 +173,8 @@ void LoadA8ToRGBA8(const ImageLoadContext &context,
             }
         }
     }
+
+#endif
 }
 
 void LoadA8ToBGRA8(const ImageLoadContext &context,
@@ -794,7 +796,7 @@ void LoadRGBA8ToBGRA8(const ImageLoadContext &context,
         }
         return;
     }
-#endif
+#else
 
 #if defined(ANGLE_LOADIMAGE_USE_SSE)
     if (supportsSSE2())
@@ -863,6 +865,8 @@ void LoadRGBA8ToBGRA8(const ImageLoadContext &context,
             }
         }
     }
+
+#endif
 }
 
 void LoadRGBA8ToBGRA4(const ImageLoadContext &context,
