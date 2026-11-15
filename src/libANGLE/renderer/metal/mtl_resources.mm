@@ -307,14 +307,8 @@ angle::Result Texture::MakeBufferTexture(ContextMtl *context,
     ASSERT(format.metalFormat != MTLPixelFormatInvalid);
     ANGLE_CHECK(context, offset <= buffer->size() && size <= buffer->size() - offset,
                 "Invalid buffer texture range.", GL_INVALID_VALUE);
-
-    if (width == 0)
-    {
-        // Metal cannot create a zero-width texture.  A zero-sized buffer texture has no texels to
-        // fetch, so leaving the native texture uncreated is sufficient.
-        refOut->reset();
-        return angle::Result::Continue;
-    }
+    ANGLE_CHECK(context, width > 0, "Buffer texture must contain at least one texel.",
+                GL_INVALID_VALUE);
 
     ANGLE_MTL_OBJC_SCOPE
     {

@@ -959,6 +959,9 @@ angle::Result ContextMtl::drawArraysIndirect(const gl::Context *context,
     // performs one native indirect draw; multi-draw repeats it.
     ANGLE_CHECK(this, !context->hasAnyActiveClientAttrib(),
                 "Indirect draw cannot use client-side vertex data.", GL_INVALID_OPERATION);
+    ANGLE_CHECK(this, !getState().isTransformFeedbackActiveUnpaused(),
+                "Indirect draw with active transform feedback is not supported.",
+                GL_INVALID_OPERATION);
     ANGLE_CHECK(this, mode != gl::PrimitiveMode::LineLoop && mode != gl::PrimitiveMode::TriangleFan,
                 "Metal indirect draw cannot close line loops or emulate triangle fans.",
                 GL_INVALID_OPERATION);
@@ -1002,6 +1005,9 @@ angle::Result ContextMtl::drawElementsIndirect(const gl::Context *context,
 
     ANGLE_CHECK(this, !context->hasAnyActiveClientAttrib(),
                 "Indirect draw cannot use client-side vertex data.", GL_INVALID_OPERATION);
+    ANGLE_CHECK(this, !getState().isTransformFeedbackActiveUnpaused(),
+                "Indirect draw with active transform feedback is not supported.",
+                GL_INVALID_OPERATION);
     ANGLE_CHECK(this, mode != gl::PrimitiveMode::LineLoop && mode != gl::PrimitiveMode::TriangleFan,
                 "Metal indirect draw cannot close line loops or emulate triangle fans.",
                 GL_INVALID_OPERATION);

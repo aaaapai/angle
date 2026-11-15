@@ -40,6 +40,22 @@ namespace rx
 namespace
 {
 
+// Buffer textures have no row pitch: each texel must be exactly one Metal pixel.  Return the
+// native format only when Metal can represent the GL internal format directly; widened emulations
+// such as RGB32F -> RGBA32F would change the texel size and are therefore not usable here.
+const mtl::Format *GetBufferTextureFormat(ContextMtl *contextMtl, GLenum internalFormat)
+{
+    const gl::InternalFormat &formatInfo = gl::GetSizedInternalFormatInfo(internalFormat);
+    const angle::FormatID angleFormatId =
+        angle::Format::InternalFormatToID(formatInfo.sizedInternalFormat);
+    const mtl::Format &format = contextMtl->getPixelFormat(angleFormatId);
+    if (format.metalFormat == MTLPixelFormatInvalid || mtl::IsFormatEmulated(format))
+    {
+        return nullptr;
+    }
+    return &format;
+}
+
 gl::ImageIndex GetZeroLevelIndex(const mtl::TextureRef &image)
 {
     switch (image->textureType())
@@ -900,6 +916,14 @@ void TextureMtl::deallocateNativeStorage(bool keepImages, bool keepSamplerStateA
     mViewFromBaseToMaxLevel     = nullptr;
     mSwizzleStencilSamplingView = nullptr;
 
+    // The native storage is gone; drop the buffer texture view state so a later recreation cannot
+    // compare against a stale MTLBuffer or range.
+    mBufferTextureBuffer         = nullptr;
+    mBufferTextureOffset         = 0;
+    mBufferTextureSize           = 0;
+    mBufferTextureWidth          = 0;
+    mBufferTextureInternalFormat = GL_NONE;
+
     // Clear render target cache for each texture's image. We don't erase them because they
     // might still be referenced by a framebuffer.
     for (auto &samplesMapRenderTargets : mRenderTargets)
@@ -1728,16 +1752,23 @@ angle::Result TextureMtl::setImageExternal(const gl::Context *context,
 
 angle::Result TextureMtl::setBuffer(const gl::Context *context, GLenum internalFormat)
 {
-    ANGLE_UNUSED_VARIABLE(internalFormat);
-    ANGLE_UNUSED_VARIABLE(context);
-    // Drop any previous buffer texture view.  The new view is created lazily in syncState(), after
-    // the front-end has updated the texture's image descriptor for the new buffer range.
+    ContextMtl *contextMtl = mtl::GetImpl(context);
+
+    // Validate before dropping the previous storage, so a rejected format leaves the texture
+    // unchanged instead of destroying a working buffer view.
+    if (mState.getBuffer().get() != nullptr)
+    {
+        ANGLE_CHECK(contextMtl, GetBufferTextureFormat(contextMtl, internalFormat) != nullptr,
+                    "Buffer texture format is not natively supported.", GL_INVALID_OPERATION);
+    }
+
+    // The new view is created lazily in syncState(), after the front-end has updated the image
+    // descriptor for the new buffer range.
     deallocateNativeStorage(/*keepImages=*/false);
-    mBufferTextureBuffer         = nullptr;
-    mBufferTextureOffset         = 0;
-    mBufferTextureSize           = 0;
-    mBufferTextureWidth          = 0;
-    mBufferTextureInternalFormat = GL_NONE;
+
+    // The native texture is gone; force the sampler bindings to be refreshed before the next draw.
+    contextMtl->invalidateCurrentTextures();
+
     return angle::Result::Continue;
 }
 
@@ -1745,27 +1776,25 @@ angle::Result TextureMtl::ensureBufferTextureCreated(const gl::Context *context)
 {
     ASSERT(mState.getType() == gl::TextureType::Buffer);
 
+    ContextMtl *contextMtl = mtl::GetImpl(context);
+
     const gl::OffsetBindingPointer<gl::Buffer> &binding = mState.getBuffer();
     gl::Buffer *glBuffer                                = binding.get();
 
     if (glBuffer == nullptr)
     {
-        deallocateNativeStorage(/*keepImages=*/false);
-        mBufferTextureBuffer         = nullptr;
-        mBufferTextureOffset         = 0;
-        mBufferTextureSize           = 0;
-        mBufferTextureWidth          = 0;
-        mBufferTextureInternalFormat = GL_NONE;
+        if (mNativeTextureStorage)
+        {
+            deallocateNativeStorage(/*keepImages=*/false);
+            contextMtl->invalidateCurrentTextures();
+        }
         return angle::Result::Continue;
     }
 
-    ContextMtl *contextMtl = mtl::GetImpl(context);
-    BufferMtl *bufferMtl   = mtl::GetImpl(glBuffer);
-    mtl::BufferRef buffer  = bufferMtl->getCurrentBuffer();
-    if (!buffer)
-    {
-        return angle::Result::Stop;
-    }
+    BufferMtl *bufferMtl  = mtl::GetImpl(glBuffer);
+    mtl::BufferRef buffer = bufferMtl->getCurrentBuffer();
+    ANGLE_CHECK(contextMtl, buffer != nullptr, "Buffer texture source has no native storage.",
+                GL_INVALID_OPERATION);
 
     const size_t offset     = static_cast<size_t>(binding.getOffset());
     const size_t bufferSize = buffer->size();
@@ -1777,20 +1806,14 @@ angle::Result TextureMtl::ensureBufferTextureCreated(const gl::Context *context)
     ANGLE_CHECK(contextMtl, desc.format.valid(), gl::err::kInternalError, GL_INVALID_OPERATION);
     ANGLE_CHECK(contextMtl, size <= bufferSize - offset, gl::err::kInternalError, GL_INVALID_VALUE);
 
-    const angle::FormatID angleFormatId =
-        angle::Format::InternalFormatToID(desc.format.info->sizedInternalFormat);
-    const mtl::Format format = contextMtl->getPixelFormat(angleFormatId);
-    ANGLE_CHECK(contextMtl, format.metalFormat != MTLPixelFormatInvalid, gl::err::kInternalError,
-                GL_INVALID_OPERATION);
-    // Buffer textures have no row pitch: every texel must be exactly one Metal pixel.  Formats
-    // emulated by widening (e.g. RGB32F -> RGBA32F) cannot be represented natively, so they are
-    // rejected instead of copied or converted.
-    ANGLE_CHECK(contextMtl, !mtl::IsFormatEmulated(format), gl::err::kInternalError,
-                GL_INVALID_OPERATION);
-    ANGLE_CHECK(contextMtl, desc.size.width > 0, gl::err::kInternalError, GL_INVALID_VALUE);
-
     const GLenum internalFormat = desc.format.info->sizedInternalFormat;
-    const uint32_t width        = desc.size.width;
+    const mtl::Format *format   = GetBufferTextureFormat(contextMtl, internalFormat);
+    ANGLE_CHECK(contextMtl, format != nullptr, "Buffer texture format is not natively supported.",
+                GL_INVALID_OPERATION);
+
+    const uint32_t width = desc.size.width;
+    ANGLE_CHECK(contextMtl, width > 0, gl::err::kInternalError, GL_INVALID_VALUE);
+
     if (mNativeTextureStorage && mBufferTextureBuffer == buffer && mBufferTextureOffset == offset &&
         mBufferTextureSize == size && mBufferTextureWidth == width &&
         mBufferTextureInternalFormat == internalFormat)
@@ -1800,6 +1823,7 @@ angle::Result TextureMtl::ensureBufferTextureCreated(const gl::Context *context)
     }
 
     deallocateNativeStorage(/*keepImages=*/false);
+
     mBufferTextureBuffer         = buffer;
     mBufferTextureOffset         = offset;
     mBufferTextureSize           = size;
@@ -1807,21 +1831,21 @@ angle::Result TextureMtl::ensureBufferTextureCreated(const gl::Context *context)
     mBufferTextureInternalFormat = internalFormat;
 
     mtl::TextureRef nativeTexture;
-    ANGLE_TRY(mtl::Texture::MakeBufferTexture(contextMtl, format, buffer, offset, size, width,
+    ANGLE_TRY(mtl::Texture::MakeBufferTexture(contextMtl, *format, buffer, offset, size, width,
                                               &nativeTexture));
-    if (!nativeTexture)
-    {
-        return angle::Result::Continue;
-    }
+    ASSERT(nativeTexture);
 
     mSlices               = 1;
     mNativeTextureStorage = std::make_unique<NativeTextureWrapperWithViewSupport>(
-        std::move(nativeTexture), /*baseGLLevel=*/0, format);
+        std::move(nativeTexture), /*baseGLLevel=*/0, *format);
     ANGLE_TRY(createViewFromBaseToMaxLevel());
 
     // A sampler is not used by MSL texture_buffer::read(), but the texture environment still
     // carries a sampler handle in the argument buffer, so keep one available for bindToShader().
     ANGLE_TRY(ensureSamplerStateCreated(context));
+
+    // The native view changed; make the next draw rebind the texture.
+    contextMtl->invalidateCurrentTextures();
 
     return angle::Result::Continue;
 }
@@ -2095,13 +2119,21 @@ angle::Result TextureMtl::bindToShader(const gl::Context *context,
     ASSERT(mNativeTextureStorage);
     ASSERT(mViewFromBaseToMaxLevel);
 
+    ContextMtl *contextMtl = mtl::GetImpl(context);
+
+    // Buffer texture swizzle views are not available through the Metal 2 path used here.  Reject
+    // the draw instead of silently sampling with the unswizzled view.
+    ANGLE_CHECK(
+        contextMtl,
+        mState.getType() != gl::TextureType::Buffer || !mState.getSwizzleState().swizzleRequired(),
+        "Texture swizzle is not supported for buffer textures.", GL_INVALID_OPERATION);
+
     float minLodClamp;
     float maxLodClamp;
     id<MTLSamplerState> samplerState;
 
     if (!mSwizzleStencilSamplingView)
     {
-        ContextMtl *contextMtl             = mtl::GetImpl(context);
         const angle::FeaturesMtl &features = contextMtl->getDisplay()->getFeatures();
         const mtl::Format &format          = mNativeTextureStorage->getFormat();
 

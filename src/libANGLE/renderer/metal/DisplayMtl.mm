@@ -925,9 +925,9 @@ void DisplayMtl::ensureCapsInitialized() const
 
     // Metal doesn't support GL_TEXTURE_COMPARE_MODE=GL_NONE for shadow samplers
     mNativeLimitations.noShadowSamplerCompareModeNone = true;
-    // Metal 2 has no multi-draw API.  Advertise the extension because the shared helper repeats a
-    // native single indirect draw; this flag only controls that advertisement.
-    mNativeLimitations.multidrawEmulated = false;
+    // Metal 2 has no multi-draw API.  Advertise GL_EXT_multi_draw_indirect because the shared
+    // helper repeats a native single indirect draw, while keeping GL_ANGLE_multi_draw WebGL-only.
+    mNativeLimitations.exposeEmulatedMultiDrawIndirect = true;
 
     if (mFeatures.disableProgrammableBlending.enabled || !supportsAppleGPUFamily(1))
     {
