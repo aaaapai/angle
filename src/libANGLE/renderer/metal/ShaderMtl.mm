@@ -92,6 +92,7 @@ std::shared_ptr<ShaderTranslateTask> ShaderMtl::compile(const gl::Context *conte
     options->metal.driverUniformsBindingIndex    = mtl::kDriverUniformsBindingIndex;
     options->metal.defaultUniformsBindingIndex   = mtl::kDefaultUniformsBindingIndex;
     options->metal.UBOArgumentBufferBindingIndex = mtl::kUBOArgumentBufferBindingIndex;
+    options->metal.ssboBindingIndexStart         = mtl::kSSBOBindingIndexStart;
 
     options->metal.allowSamplerCompareGradient =
         displayMtl->getFeatures().allowSamplerCompareGradient.enabled;
