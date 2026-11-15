@@ -33,6 +33,13 @@ angle_source_set("angle_libvulkan_loader") {
     "libvulkan_loader.cpp",
     "libvulkan_loader.h",
   ]
+  # driver_helper.cpp is bionic-only (android_create_namespace,
+  # __loader_android_dlopen_ext, /system/lib*/libvulkan.so).  It is the
+  # implementation behind load_vulkan_with_driver_helper(), which
+  # libvulkan_loader.cpp only calls on Android.
+  if (is_android) {
+    sources += [ "../driver_helper.cpp" ]
+  }
   deps = [ "$angle_root:angle_common" ]
 }
 

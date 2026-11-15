@@ -25,7 +25,7 @@ static void print_message(std::string_view msg) {
     fwrite(msg.data(), 1, msg.size(), stdout);
 }
 
-#if !defined(ANGLE_PLATFORM_APPLE)
+#if defined(ANGLE_PLATFORM_ANDROID)
 static void* vulkan_load_from_env() {
     const char* vulkan_ptr_env = std::getenv("VULKAN_PTR");
     const char* turnipEnv = std::getenv("ANGLE_LOAD_VULKAN_FROM_ENV"); // depends on launchers....
@@ -100,7 +100,7 @@ namespace vk
 {
 void *OpenLibVulkan()
 {
-#if !defined(ANGLE_PLATFORM_APPLE)
+#if defined(ANGLE_PLATFORM_ANDROID)
     void* vulkan_load_result = load_vulkan_with_driver_helper();
     if (vulkan_load_result == nullptr) {
         print_message("[ANGLE] driver_helper unavailable, falling back to VULKAN_PTR env.\n");
