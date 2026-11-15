@@ -189,6 +189,12 @@ class ProgramExecutableMtl : public ProgramExecutableImpl
                             bool forceTexturesSetting,
                             bool uniformBuffersDirty);
 
+    angle::Result setupDispatch(ContextMtl *context,
+                                mtl::ComputeCommandEncoder *cmdEncoder,
+                                GLuint numGroupsX,
+                                GLuint numGroupsY,
+                                GLuint numGroupsZ);
+
   private:
     friend class ProgramMtl;
 
@@ -297,11 +303,6 @@ class ProgramExecutableMtl : public ProgramExecutableImpl
 
     angle::Result getComputeShader(ContextMtl *context, id<MTLFunction> *shaderOut);
     angle::Result commitUniforms(ContextMtl *context, mtl::ComputeCommandEncoder *cmdEncoder);
-    angle::Result setupDispatch(ContextMtl *context,
-                                mtl::ComputeCommandEncoder *cmdEncoder,
-                                GLuint numGroupsX,
-                                GLuint numGroupsY,
-                                GLuint numGroupsZ);
 
 };
 
