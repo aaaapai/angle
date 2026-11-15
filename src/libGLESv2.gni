@@ -105,7 +105,6 @@ libangle_common_sources =
       "src/common/tls.cpp",
       "src/common/uniform_type_info_autogen.cpp",
       "src/common/utilities.cpp",
-      "src/common/driver_helper.cpp",
     ]
 
 libangle_common_shader_state_sources =
