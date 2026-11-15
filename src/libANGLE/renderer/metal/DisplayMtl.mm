@@ -940,6 +940,30 @@ void DisplayMtl::ensureCapsInitialized() const
             }
         }
     }
+
+    mNativeCaps.maxFramebufferSamples = mNativeCaps.maxSamples;
+    // ES 3.1 纹理采集（Texture Gather）偏移量，规范要求至少支持 -8 到 7
+    mNativeCaps.minProgramTextureGatherOffset = -8;
+    mNativeCaps.maxProgramTextureGatherOffset = 7;
+    // 通常为 Varying 向量数 * 4
+    mNativeCaps.maxVaryingComponents = mNativeCaps.maxVaryingVectors * 4;
+    // Compute 和 Image 支持，如果不支持可以设为 0，但必须有默认初始化
+    mNativeCaps.maxAtomicCounterBufferBindings  = 0;
+    mNativeCaps.maxAtomicCounterBufferSize      = 0;
+    mNativeCaps.maxCombinedAtomicCounterBuffers = 0;
+    mNativeCaps.maxCombinedAtomicCounters       = 0;
+    mNativeCaps.maxImageUnits                   = 0;
+    mNativeCaps.maxCombinedImageUniforms        = 0;
+    // ES 3.2 新增 Caps
+    mNativeCaps.maxFramebufferLayers = 2048;       // 至少 256，默认设为和 ArrayTextureLayers 一致
+    mNativeCaps.layerProvokingVertex = GL_LAST_VERTEX_CONVENTION; // 默认给 0x8E4D
+
+    mNativeCaps.lineWidthGranularity    = 1.0f;
+    mNativeCaps.minMultisampleLineWidth = 1.0f;
+    mNativeCaps.maxMultisampleLineWidth = 1.0f;
+
+    mNativeCaps.maxTextureBufferSize         = 65536;
+    mNativeCaps.textureBufferOffsetAlignment = 256;  // Metal 的 minimum constant buffer alignment
 }
 
 void DisplayMtl::initializeExtensions() const
