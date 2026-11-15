@@ -944,8 +944,6 @@ bool TranslatorMSL::translateImpl(TInfoSinkBase &sink,
         }
     }
 
-    ASSERT(getShaderType() != GL_COMPUTE_SHADER && "compute shaders not currently supported");
-
     if (compileOptions.useIR)
     {
         driverUniforms->findDeclarationAddedByIR(root);

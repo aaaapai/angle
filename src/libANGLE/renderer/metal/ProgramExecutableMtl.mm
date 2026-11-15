@@ -1115,6 +1115,52 @@ angle::Result ProgramExecutableMtl::getSpecializedShader(
 }
 
 angle::Result ProgramExecutableMtl::commitUniforms(ContextMtl *context,
+                                                   mtl::RenderCommandEncoder *cmdEncoder)
+{
+    for (gl::ShaderType shaderType : gl::kAllGLES2ShaderTypes)
+    {
+        if (!mDefaultUniformBlocksDirty[shaderType] || !mCurrentShaderVariants[shaderType])
+        {
+            continue;
+        }
+        DefaultUniformBlockMtl &uniformBlock = mDefaultUniformBlocks[shaderType];
+
+        if (!uniformBlock.uniformData.size())
+        {
+            continue;
+        }
+
+        // If we exceed the default inline max size, try to allocate a buffer
+        bool needsCommitUniform = true;
+        if (needsCommitUniform && uniformBlock.uniformData.size() <= mtl::kInlineConstDataMaxSize)
+        {
+            ASSERT(uniformBlock.uniformData.size() <= mtl::kInlineConstDataMaxSize);
+            cmdEncoder->setBytes(shaderType, uniformBlock.uniformData.data(),
+                                 uniformBlock.uniformData.size(),
+                                 mtl::kDefaultUniformsBindingIndex);
+        }
+        else if (needsCommitUniform)
+        {
+            mtl::BufferPool *bufferPool = getBufferPool(context, shaderType);
+            bufferPool->releaseInFlightBuffers(context);
+
+            ASSERT(uniformBlock.uniformData.size() <= mtl::kDefaultUniformsMaxSize);
+            mtl::BufferSlice uniformBuffer;
+            angle::Span<uint8_t> mapped;
+            ANGLE_TRY(bufferPool->allocateAndMap(context, uniformBlock.uniformData.size(), &mapped,
+                                                 &uniformBuffer));
+            angle::SpanMemcpy(mapped, uniformBlock.uniformData.span());
+            ANGLE_TRY(bufferPool->commit(context));
+            cmdEncoder->setBuffer(shaderType, uniformBuffer.buffer(), uniformBuffer.offset(),
+                                  mtl::kDefaultUniformsBindingIndex);
+        }
+
+        mDefaultUniformBlocksDirty.reset(shaderType);
+    }
+    return angle::Result::Continue;
+}
+
+angle::Result ProgramExecutableMtl::commitUniforms(ContextMtl *context,
                                                    mtl::ComputeCommandEncoder *cmdEncoder)
 {
     const gl::ShaderType shaderType = gl::ShaderType::Compute;

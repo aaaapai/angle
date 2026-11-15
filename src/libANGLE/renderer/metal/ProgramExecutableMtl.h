@@ -296,6 +296,7 @@ class ProgramExecutableMtl : public ProgramExecutableImpl
     Serial mProgramSerialId;
 
     angle::Result getComputeShader(ContextMtl *context, id<MTLFunction> *shaderOut);
+    angle::Result commitUniforms(ContextMtl *context, mtl::RenderCommandEncoder *cmdEncoder);
     angle::Result commitUniforms(ContextMtl *context, mtl::ComputeCommandEncoder *cmdEncoder);
     angle::Result setupDispatch(ContextMtl *context,
                                 mtl::ComputeCommandEncoder *cmdEncoder,
