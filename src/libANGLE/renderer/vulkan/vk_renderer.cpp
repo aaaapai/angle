@@ -6702,13 +6702,25 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // |vkCmdBindVertexBuffers2| applies strides to the wrong index on ARM proprietary drivers prior
     // to r48, according to the errata:
     // https://developer.arm.com/documentation/SDEN-3735689/0100/?lang=en
-    const bool isVertexInputBindingStrideBuggy =
+    //
+    // MoltenVK exposes VK_EXT_extended_dynamic_state as a whole, but Metal cannot change a vertex
+    // binding's stride everywhere: that requires macOS 14.0 / iOS 17.0 on Apple4 or Mac2 and later.
+    // On older platforms vkCreateGraphicsPipelines rejects every pipeline that uses
+    // VK_DYNAMIC_STATE_VERTEX_INPUT_BINDING_STRIDE with VK_ERROR_FEATURE_NOT_PRESENT, which breaks
+    // all drawing that has vertex attributes.  There is no per-state feature to query, so the
+    // dynamic state is only used when the driver is known to implement it.
+    constexpr char kMoltenVKDeviceExtensionName[] = "VK_MVK_moltenvk";
+    const bool isPortabilityImplementation =
+        ExtensionFound(kMoltenVKDeviceExtensionName, deviceExtensionNames) ||
+        ExtensionFound(VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME, deviceExtensionNames);
+    const bool isVertexInputBindingStrideUnsupported =
         (IsWindows() && isIntel && driverVersion < angle::VersionTriple(100, 9684, 0)) ||
-        (isARMProprietary && driverVersion < angle::VersionTriple(48, 0, 0));
+        (isARMProprietary && driverVersion < angle::VersionTriple(48, 0, 0)) ||
+        isPortabilityImplementation;
     ANGLE_FEATURE_CONDITION(&mFeatures, useVertexInputBindingStrideDynamicState,
                             mFeatures.supportsExtendedDynamicState.enabled &&
                                 !mFeatures.supportsVertexInputDynamicState.enabled &&
-                                !isVertexInputBindingStrideBuggy);
+                                !isVertexInputBindingStrideUnsupported);
     // On ARM proprietary drivers prior to r52, |vkCmdSetCullMode| incorrectly culls non-triangle
     // topologies, according to the errata:
     // https://developer.arm.com/documentation/SDEN-3735689/0100/?lang=en
