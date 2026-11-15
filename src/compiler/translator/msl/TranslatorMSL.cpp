@@ -840,7 +840,6 @@ static inline MetalShaderType metalShaderTypeFromGLSL(sh::GLenum shaderType)
         case GL_FRAGMENT_SHADER:
             return MetalShaderType::Fragment;
         case GL_COMPUTE_SHADER:
-            ASSERT(0 && "compute shaders not currently supported");
             return MetalShaderType::Compute;
         default:
             ASSERT(0 && "Invalid shader type.");
@@ -1280,6 +1279,11 @@ bool TranslatorMSL::translateImpl(TInfoSinkBase &sink,
         {
             return false;
         }
+    }
+    else if (getShaderType() == GL_COMPUTE_SHADER)
+    {
+        // Compute-specific AST rewrites (gl_GlobalInvocationID injection, SSBO lowering) land
+        // in Step 3; EmitMetal handles builtins inline in the meantime.
     }
 
     if (!validateAST(root))

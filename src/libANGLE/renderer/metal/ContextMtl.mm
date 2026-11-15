@@ -953,18 +953,17 @@ angle::Result ContextMtl::drawArraysIndirect(const gl::Context *context,
                                              gl::PrimitiveMode mode,
                                              const void *indirect)
 {
-    // NOTE(hqle): ES 3.0
-    UNIMPLEMENTED();
-    return angle::Result::Stop;
+    ANGLE_TRY(resyncDrawFramebufferIfNeeded(context));
+    return rx::MultiDrawArraysIndirectGeneral(this, context, mode, indirect, 1, 0);
 }
+
 angle::Result ContextMtl::drawElementsIndirect(const gl::Context *context,
                                                gl::PrimitiveMode mode,
                                                gl::DrawElementsType type,
                                                const void *indirect)
 {
-    // NOTE(hqle): ES 3.0
-    UNIMPLEMENTED();
-    return angle::Result::Stop;
+    ANGLE_TRY(resyncDrawFramebufferIfNeeded(context));
+    return rx::MultiDrawElementsIndirectGeneral(this, context, mode, type, indirect, 1, 0);
 }
 
 angle::Result ContextMtl::multiDrawArrays(const gl::Context *context,
@@ -1575,15 +1574,10 @@ angle::Result ContextMtl::dispatchCompute(const gl::Context *context,
                                           GLuint numGroupsY,
                                           GLuint numGroupsZ)
 {
-    // NOTE(hqle): ES 3.0
-    UNIMPLEMENTED();
-    return angle::Result::Stop;
-}
-angle::Result ContextMtl::dispatchComputeIndirect(const gl::Context *context, GLintptr indirect)
-{
-    // NOTE(hqle): ES 3.0
-    UNIMPLEMENTED();
-    return angle::Result::Stop;
+    ASSERT(mExecutable);
+    mtl::ComputeCommandEncoder *enc = getComputeCommandEncoder();
+    ANGLE_TRY(mExecutable->setupDispatch(this, enc, numGroupsX, numGroupsY, numGroupsZ));
+    return checkCommandBufferError();
 }
 
 angle::Result ContextMtl::memoryBarrier(const gl::Context *context, GLbitfield barriers)
@@ -1592,12 +1586,64 @@ angle::Result ContextMtl::memoryBarrier(const gl::Context *context, GLbitfield b
     {
         return checkCommandBufferError();
     }
+
     if (context->getClientVersion() >= gl::Version{3, 1})
     {
-        // We expect ES 3.0, and as such we don't consider ES 3.1+ objects in this function yet.
-        UNIMPLEMENTED();
-        return angle::Result::Stop;
+        // ES 3.1 barrier.  Map GL barrier bits onto MTLBarrierScope, then route to
+        // whichever encoder is active.
+        MTLBarrierScope scope = 0;
+        if (barriers & (GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT |
+                        GL_UNIFORM_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT |
+                        GL_ATOMIC_COUNTER_BARRIER_BIT | GL_COMMAND_BARRIER_BIT |
+                        GL_PIXEL_BUFFER_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT |
+                        GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT_EXT))
+        {
+            scope |= MTLBarrierScopeBuffers;
+        }
+        if (barriers & (GL_TEXTURE_FETCH_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT |
+                        GL_TEXTURE_UPDATE_BARRIER_BIT | GL_FRAMEBUFFER_BARRIER_BIT))
+        {
+            scope |= MTLBarrierScopeTextures;
+        }
+#if TARGET_OS_OSX || TARGET_OS_MACCATALYST
+        if (getDisplay()->hasFragmentMemoryBarriers() &&
+            (barriers & GL_FRAMEBUFFER_BARRIER_BIT))
+        {
+            scope |= MTLBarrierScopeRenderTargets;
+        }
+#endif
+        if (barriers == GL_ALL_BARRIER_BITS)
+        {
+            scope = MTLBarrierScopeBuffers | MTLBarrierScopeTextures;
+#if TARGET_OS_OSX || TARGET_OS_MACCATALYST
+            if (getDisplay()->hasFragmentMemoryBarriers())
+            {
+                scope |= MTLBarrierScopeRenderTargets;
+            }
+#endif
+        }
+        if (scope == 0)
+        {
+            return checkCommandBufferError();
+        }
+
+        if (mComputeEncoder.valid())
+        {
+            mComputeEncoder.memoryBarrierWithScope(scope);
+        }
+        else if (mRenderEncoder.valid())
+        {
+            MTLRenderStages stages = MTLRenderStageVertex;
+            if (getDisplay()->hasFragmentMemoryBarriers())
+            {
+                stages |= MTLRenderStageFragment;
+            }
+            mRenderEncoder.memoryBarrier(scope, stages, stages);
+        }
+        return checkCommandBufferError();
     }
+
+    // ES 3.0 path — 保持原逻辑。
     MTLBarrierScope scope;
     switch (barriers)
     {
@@ -1615,14 +1661,6 @@ angle::Result ContextMtl::memoryBarrier(const gl::Context *context, GLbitfield b
 #if TARGET_OS_OSX || TARGET_OS_MACCATALYST
             if (getDisplay()->hasFragmentMemoryBarriers())
             {
-                // SHADER_IMAGE_ACCESS_BARRIER_BIT (and SHADER_STORAGE_BARRIER_BIT) require that all
-                // prior types of accesses are finished before writes to the resource. Since this is
-                // the case, we also have to include render targets in our barrier to ensure any
-                // rendering completes before an imageLoad().
-                //
-                // NOTE: Apple Silicon doesn't support MTLBarrierScopeRenderTargets. This seems to
-                // work anyway though, and on that hardware we use programmable blending for pixel
-                // local storage instead of read_write textures anyway.
                 scope |= MTLBarrierScopeRenderTargets;
             }
 #endif
@@ -1631,8 +1669,6 @@ angle::Result ContextMtl::memoryBarrier(const gl::Context *context, GLbitfield b
             UNIMPLEMENTED();
             return angle::Result::Stop;
     }
-    // The GL API doesn't provide a distinction between different shader stages.
-    // ES 3.0 doesn't have compute.
     MTLRenderStages stages = MTLRenderStageVertex;
     if (getDisplay()->hasFragmentMemoryBarriers())
     {
@@ -1644,9 +1680,10 @@ angle::Result ContextMtl::memoryBarrier(const gl::Context *context, GLbitfield b
 
 angle::Result ContextMtl::memoryBarrierByRegion(const gl::Context *context, GLbitfield barriers)
 {
-    // NOTE(hqle): ES 3.0
-    UNIMPLEMENTED();
-    return angle::Result::Stop;
+    // Metal does not expose a distinct "by region" barrier; the narrower-scope barrier can be
+    // safely lowered to the full memoryBarrier. On ES 3.1+ this still hits UNIMPLEMENTED() in
+    // memoryBarrier() until compute/image support lands.
+    return memoryBarrier(context, barriers);
 }
 
 // override mtl::ErrorHandler

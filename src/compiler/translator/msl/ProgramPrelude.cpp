@@ -58,7 +58,6 @@ class ProgramPrelude : public TIntermTraverser
                 }
                 break;
             case MetalShaderType::Compute:
-                ASSERT(0 && "compute shaders not currently supported");
                 break;
             default:
                 break;

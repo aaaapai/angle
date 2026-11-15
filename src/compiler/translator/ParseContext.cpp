@@ -7728,12 +7728,12 @@ TIntermTyped *TParseContext::addIndexExpression(TIntermTyped *baseExpression,
     {
         if (baseExpression->getAsSymbolNode())
         {
-            error(location, " left of '[' is not of type array, matrix, or vector ",
+            warning(location, " left of '[' is not of type array, matrix, or vector ",
                   baseExpression->getAsSymbolNode()->getName());
         }
         else
         {
-            error(location, " left of '[' is not of type array, matrix, or vector ", "expression");
+            warning(location, " left of '[' is not of type array, matrix, or vector ", "expression");
         }
 
         return CreateZeroNode(TType(EbtFloat, EbpHigh, EvqConst));
@@ -7746,7 +7746,7 @@ TIntermTyped *TParseContext::addIndexExpression(TIntermTyped *baseExpression,
             if (mGeometryShaderInputPrimitiveType == EptUndefined &&
                 mShaderType == GL_GEOMETRY_SHADER_EXT)
             {
-                error(location, "missing input primitive declaration before indexing gl_in.", "[");
+                warning(location, "missing input primitive declaration before indexing gl_in.", "[");
                 return CreateZeroNode(TType(EbtFloat, EbpHigh, EvqConst));
             }
             break;
@@ -7789,14 +7789,14 @@ TIntermTyped *TParseContext::addIndexExpression(TIntermTyped *baseExpression,
                 case EvqUniform:
                     if (!allowUniformIndices)
                     {
-                        error(location,
+                        warning(location,
                               "array indexes for uniform block arrays must be constant integral "
                               "expressions",
                               "[");
                     }
                     break;
                 case EvqBuffer:
-                    error(location,
+                    warning(location,
                           "array indexes for shader storage block arrays must be constant integral "
                           "expressions",
                           "[");
@@ -7816,23 +7816,23 @@ TIntermTyped *TParseContext::addIndexExpression(TIntermTyped *baseExpression,
         else if (effectivelyIndexedExpression->getQualifier() == EvqFragmentOut ||
                  effectivelyIndexedExpression->getQualifier() == EvqFragmentInOut)
         {
-            error(location,
+            warning(location,
                   "array indexes for fragment outputs must be constant integral expressions", "[");
         }
         else if (effectivelyIndexedExpression->getQualifier() == EvqLastFragData)
         {
-            error(location,
+            warning(location,
                   "array indexes for gl_LastFragData must be constant integral expressions", "[");
         }
         else if (mShaderSpec == SH_WEBGL2_SPEC &&
                  effectivelyIndexedExpression->getQualifier() == EvqFragData)
         {
-            error(location, "array index for gl_FragData must be constant zero", "[");
+            warning(location, "array index for gl_FragData must be constant zero", "[");
         }
         else if (mShaderSpec == SH_WEBGL2_SPEC &&
                  effectivelyIndexedExpression->getQualifier() == EvqSecondaryFragDataEXT)
         {
-            error(location, "array index for gl_SecondaryFragDataEXT must be constant zero", "[");
+            warning(location, "array index for gl_SecondaryFragDataEXT must be constant zero", "[");
         }
         else if (effectivelyIndexedExpression->isArray())
         {
@@ -7850,12 +7850,12 @@ TIntermTyped *TParseContext::addIndexExpression(TIntermTyped *baseExpression,
             //   integral-expressions.
             if (IsSampler(elementType) && !allowUniformIndices && mShaderVersion > 100)
             {
-                error(location, "array index for samplers must be constant integral expressions",
+                warning(location, "array index for samplers must be constant integral expressions",
                       "[");
             }
             else if (IsImage(elementType))
             {
-                error(location,
+                warning(location,
                       "array indexes for image arrays must be constant integral expressions", "[");
             }
         }

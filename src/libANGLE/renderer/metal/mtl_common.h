@@ -159,6 +159,12 @@ constexpr uint32_t kTransformFeedbackBindingIndex = kDefaultUniformsBindingIndex
 // Binding index for UBO's argument buffer
 constexpr uint32_t kUBOArgumentBufferBindingIndex = kTransformFeedbackBindingIndex + 4;
 
+// Binding index start for compute-shader SSBOs.  The slot at
+// kUBOArgumentBufferBindingIndex + 1 is intentionally left unused so the
+// UBO argument buffer can grow later if needed.
+constexpr uint32_t kSSBOBindingIndexStart = kUBOArgumentBufferBindingIndex + 2;
+constexpr uint32_t kMaxShaderSSBOs        = kMaxShaderBuffers - kSSBOBindingIndexStart;
+
 constexpr uint32_t kStencilMaskAll = 0xff;  // Only 8 bits stencil is supported
 
 // This special constant is used to indicate that a particular vertex descriptor's buffer layout

@@ -294,6 +294,15 @@ class ProgramExecutableMtl : public ProgramExecutableImpl
     // A unique ID to identify this program executable across its lifetime. It's guaranteed that
     // there is no duplicated ID ever even if the program is deleted.
     Serial mProgramSerialId;
+
+    angle::Result getComputeShader(ContextMtl *context, id<MTLFunction> *shaderOut);
+    angle::Result commitUniforms(ContextMtl *context, mtl::ComputeCommandEncoder *cmdEncoder);
+    angle::Result setupDispatch(ContextMtl *context,
+                                mtl::ComputeCommandEncoder *cmdEncoder,
+                                GLuint numGroupsX,
+                                GLuint numGroupsY,
+                                GLuint numGroupsZ);
+
 };
 
 angle::Result CreateMslShaderLib(mtl::Context *context,

@@ -328,7 +328,11 @@ egl::Error DisplayMtl::waitClient(const gl::Context *context)
 
 egl::Error DisplayMtl::waitNative(const gl::Context *context, EGLint engine)
 {
-    UNIMPLEMENTED();
+    if (engine != EGL_CORE_NATIVE_ENGINE)
+    {
+        return egl::Error(EGL_BAD_PARAMETER);
+    }
+    // Metal has no native drawing engine to synchronize with.
     return egl::NoError();
 }
 
@@ -866,10 +870,11 @@ void DisplayMtl::ensureCapsInitialized() const
     mNativeCaps.maxProgramTexelOffset = 7;
 
     // NOTE(hqle): support storage buffer.
-    const uint32_t maxPerStageStorageBuffers                     = 0;
+    const uint32_t maxPerStageStorageBuffers                     = mtl::kMaxShaderSSBOs;
     mNativeCaps.maxShaderStorageBlocks[gl::ShaderType::Vertex]   = maxPerStageStorageBuffers;
     mNativeCaps.maxShaderStorageBlocks[gl::ShaderType::Fragment] = maxPerStageStorageBuffers;
-    mNativeCaps.maxCombinedShaderStorageBlocks                   = maxPerStageStorageBuffers;
+    mNativeCaps.maxShaderStorageBlocks[gl::ShaderType::Compute]  = maxPerStageStorageBuffers;
+    mNativeCaps.maxCombinedShaderStorageBlocks                   = maxPerStageStorageBuffers * 3;
 
     // Fill in additional limits for UBOs and SSBOs.
     mNativeCaps.maxUniformBufferBindings = mNativeCaps.maxCombinedUniformBlocks;
@@ -887,9 +892,9 @@ void DisplayMtl::ensureCapsInitialized() const
             256;  // constant buffers on all other GPUs must be aligned to 256.
     }
 
-    mNativeCaps.maxShaderStorageBufferBindings     = 0;
-    mNativeCaps.maxShaderStorageBlockSize          = 0;
-    mNativeCaps.shaderStorageBufferOffsetAlignment = 0;
+    mNativeCaps.maxShaderStorageBufferBindings     = mtl::kMaxShaderSSBOs;
+    mNativeCaps.maxShaderStorageBlockSize          = 1 << 27;
+    mNativeCaps.shaderStorageBufferOffsetAlignment = 16;
 
     // UBO plus default uniform limits
     const uint32_t maxCombinedUniformComponents =
@@ -900,6 +905,19 @@ void DisplayMtl::ensureCapsInitialized() const
     }
 
     mNativeCaps.maxCombinedShaderOutputResources = 0;
+
+    mNativeCaps.maxComputeWorkGroupCount       = {65535, 65535, 65535};
+    mNativeCaps.maxComputeWorkGroupSize        = {1024, 1024, 64};
+    mNativeCaps.maxComputeWorkGroupInvocations = 1024;
+    mNativeCaps.maxComputeSharedMemorySize     = 32 * 1024;
+    mNativeCaps.maxShaderUniformComponents[gl::ShaderType::Compute] = maxDefaultUniformComponents;
+    mNativeCaps.maxShaderUniformBlocks[gl::ShaderType::Compute]     = mtl::kMaxShaderUBOs;
+    mNativeCaps.maxShaderTextureImageUnits[gl::ShaderType::Compute] = mtl::kMaxShaderSamplers;
+    mNativeCaps.maxShaderImageUniforms[gl::ShaderType::Compute]     = 0;
+    mNativeCaps.maxShaderAtomicCounters[gl::ShaderType::Compute]    = 0;
+    mNativeCaps.maxShaderAtomicCounterBuffers[gl::ShaderType::Compute] = 0;
+    mNativeCaps.maxCombinedShaderUniformComponents[gl::ShaderType::Compute] =
+        maxCombinedUniformComponents;
 
     mNativeCaps.maxTransformFeedbackInterleavedComponents =
         gl::IMPLEMENTATION_MAX_TRANSFORM_FEEDBACK_INTERLEAVED_COMPONENTS;
@@ -1160,6 +1178,8 @@ void DisplayMtl::initializeExtensions() const
     // "The GPUs in Apple3 through Apple8 families only support memory barriers for compute command
     // encoders, and for vertex-to-vertex and vertex-to-fragment stages of render command encoders."
     mHasFragmentMemoryBarriers = !supportsAppleGPUFamily(3);
+
+    mNativeExtensions.shaderStorageBufferObject = true;
 }
 
 void DisplayMtl::initializeTextureCaps() const

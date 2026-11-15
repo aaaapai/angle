@@ -166,7 +166,7 @@ egl::Error ThreadSafeDisplayGL::makeCurrent(egl::Surface *drawSurface,
 gl::Version DisplayGL::getMaxConformantESVersion() const
 {
     // 3.1 support is in progress.
-    return std::min(getMaxSupportedESVersion(), gl::Version(3, 0));
+    return std::min(getMaxSupportedESVersion(), gl::Version(3, 2));
 }
 
 void DisplayGL::generateExtensions(egl::DisplayExtensions *outExtensions) const

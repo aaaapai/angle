@@ -440,7 +440,10 @@ void ProgramExecutableMtl::reset(ContextMtl *context)
         var.reset(context);
     }
 
-    for (gl::ShaderType shaderType : gl::kAllGLES2ShaderTypes)
+    // ---- compute ----
+    mComputeShaderVariant.reset(context);
+
+    for (gl::ShaderType shaderType : gl::AllShaderTypes())
     {
         if (mDefaultUniformBufferPools[shaderType])
         {
@@ -448,6 +451,33 @@ void ProgramExecutableMtl::reset(ContextMtl *context)
             mDefaultUniformBufferPools[shaderType].reset();
         }
     }
+}
+
+angle::Result ProgramExecutableMtl::getComputeShader(ContextMtl *context,
+                                                     id<MTLFunction> *shaderOut)
+{
+    if (mComputeShaderVariant.metalShader)
+    {
+        *shaderOut = mComputeShaderVariant.metalShader;
+        return angle::Result::Continue;
+    }
+
+    mtl::TranslatedShaderInfo &info = mMslShaderTranslateInfo[gl::ShaderType::Compute];
+    if (!info.metalLibrary)
+    {
+        // MSL 编译/链接失败，或 ProgramMtl::compileMslShaderLibs 尚未覆盖 compute。
+        ERR() << "Compute shader library is not available.";
+        return angle::Result::Stop;
+    }
+
+    // Compute 没有 rasterization/fragment 变体，直接创建默认函数常量。
+    angle::ObjCPtr<MTLFunctionConstantValues> fc;
+    ANGLE_TRY(CreateMslShader(context, info.metalLibrary, SHADER_ENTRY_NAME, fc.get(),
+                              &mComputeShaderVariant.metalShader));
+
+    mComputeShaderVariant.translatedSrcInfo = &info;
+    *shaderOut                              = mComputeShaderVariant.metalShader;
+    return angle::Result::Continue;
 }
 
 angle::Result ProgramExecutableMtl::load(ContextMtl *contextMtl, gl::BinaryInputStream *stream)
@@ -726,7 +756,7 @@ angle::Result ProgramExecutableMtl::initDefaultUniformBlocks(
     gl::ShaderMap<size_t> requiredBufferSize;
     requiredBufferSize.fill(0);
 
-    for (gl::ShaderType shaderType : gl::kAllGLES2ShaderTypes)
+    for (gl::ShaderType shaderType : gl::AllShaderTypes)
     {
         const gl::SharedCompiledShaderState &shader = shaders[shaderType];
         if (shader)
@@ -761,7 +791,7 @@ angle::Result ProgramExecutableMtl::initDefaultUniformBlocks(
 
                 bool found = false;
 
-                for (gl::ShaderType shaderType : gl::kAllGLES2ShaderTypes)
+                for (gl::ShaderType shaderType : gl::AllShaderTypes)
                 {
                     auto it = layoutMap[shaderType].find(uniformName);
                     if (it != layoutMap[shaderType].end())
@@ -775,7 +805,7 @@ angle::Result ProgramExecutableMtl::initDefaultUniformBlocks(
             }
         }
 
-        for (gl::ShaderType shaderType : gl::kAllGLES2ShaderTypes)
+        for (gl::ShaderType shaderType : gl::AllShaderTypes)
         {
             mDefaultUniformBlocks[shaderType].uniformLayout.push_back(layoutInfo[shaderType]);
         }
@@ -947,6 +977,30 @@ angle::Result ProgramExecutableMtl::setupDraw(const gl::Context *glContext,
     return angle::Result::Continue;
 }
 
+angle::Result ProgramExecutableMtl::setupDispatch(ContextMtl *context,
+                                                  mtl::ComputeCommandEncoder *cmdEncoder,
+                                                  GLuint numGroupsX,
+                                                  GLuint numGroupsY,
+                                                  GLuint numGroupsZ)
+{
+    id<MTLFunction> cs = nil;
+    ANGLE_TRY(getComputeShader(context, &cs));
+
+    angle::ObjCPtr<id<MTLComputePipelineState>> ps;
+    ANGLE_TRY(context->getPipelineCache().getComputePipeline(context, cs, &ps));
+    cmdEncoder->setComputePipelineState(ps);
+
+    // 每次 dispatch 都用新 encoder，default uniform 必须重传。
+    mDefaultUniformBlocksDirty.set(gl::ShaderType::Compute);
+    ANGLE_TRY(commitUniforms(context, cmdEncoder));
+
+    // Step 2 阶段先传 (1,1,1)；真正的 threadgroup 大小在 Step 3 从 executable 读取。
+    const MTLSize groups = MTLSizeMake(numGroupsX, numGroupsY, numGroupsZ);
+    const MTLSize per    = MTLSizeMake(1, 1, 1);
+    cmdEncoder->dispatch(groups, per);
+    return angle::Result::Continue;
+}
+
 angle::Result ProgramExecutableMtl::getSpecializedShader(
     ContextMtl *context,
     gl::ShaderType shaderType,
@@ -1061,48 +1115,42 @@ angle::Result ProgramExecutableMtl::getSpecializedShader(
 }
 
 angle::Result ProgramExecutableMtl::commitUniforms(ContextMtl *context,
-                                                   mtl::RenderCommandEncoder *cmdEncoder)
+                                                   mtl::ComputeCommandEncoder *cmdEncoder)
 {
-    for (gl::ShaderType shaderType : gl::kAllGLES2ShaderTypes)
+    const gl::ShaderType shaderType = gl::ShaderType::Compute;
+
+    if (!mDefaultUniformBlocksDirty[shaderType] || !mComputeShaderVariant.metalShader)
     {
-        if (!mDefaultUniformBlocksDirty[shaderType] || !mCurrentShaderVariants[shaderType])
-        {
-            continue;
-        }
-        DefaultUniformBlockMtl &uniformBlock = mDefaultUniformBlocks[shaderType];
-
-        if (!uniformBlock.uniformData.size())
-        {
-            continue;
-        }
-
-        // If we exceed the default inline max size, try to allocate a buffer
-        bool needsCommitUniform = true;
-        if (needsCommitUniform && uniformBlock.uniformData.size() <= mtl::kInlineConstDataMaxSize)
-        {
-            ASSERT(uniformBlock.uniformData.size() <= mtl::kInlineConstDataMaxSize);
-            cmdEncoder->setBytes(shaderType, uniformBlock.uniformData.data(),
-                                 uniformBlock.uniformData.size(),
-                                 mtl::kDefaultUniformsBindingIndex);
-        }
-        else if (needsCommitUniform)
-        {
-            mtl::BufferPool *bufferPool = getBufferPool(context, shaderType);
-            bufferPool->releaseInFlightBuffers(context);
-
-            ASSERT(uniformBlock.uniformData.size() <= mtl::kDefaultUniformsMaxSize);
-            mtl::BufferSlice uniformBuffer;
-            angle::Span<uint8_t> mapped;
-            ANGLE_TRY(bufferPool->allocateAndMap(context, uniformBlock.uniformData.size(), &mapped,
-                                                 &uniformBuffer));
-            angle::SpanMemcpy(mapped, uniformBlock.uniformData.span());
-            ANGLE_TRY(bufferPool->commit(context));
-            cmdEncoder->setBuffer(shaderType, uniformBuffer.buffer(), uniformBuffer.offset(),
-                                  mtl::kDefaultUniformsBindingIndex);
-        }
-
-        mDefaultUniformBlocksDirty.reset(shaderType);
+        return angle::Result::Continue;
     }
+
+    DefaultUniformBlockMtl &ub = mDefaultUniformBlocks[shaderType];
+    if (!ub.uniformData.size())
+    {
+        return angle::Result::Continue;
+    }
+
+    if (ub.uniformData.size() <= mtl::kInlineConstDataMaxSize)
+    {
+        // Metal setBytes 上限 4KB；compute 没有 stage 区分，binding 直接给 default uniform 槽。
+        cmdEncoder->setBytes(ub.uniformData.data(), ub.uniformData.size(),
+                             mtl::kDefaultUniformsBindingIndex);
+    }
+    else
+    {
+        mtl::BufferPool *pool = getBufferPool(context, shaderType);
+        pool->releaseInFlightBuffers(context);
+
+        mtl::BufferSlice slice;
+        angle::Span<uint8_t> mapped;
+        ANGLE_TRY(pool->allocateAndMap(context, ub.uniformData.size(), &mapped, &slice));
+        angle::SpanMemcpy(mapped, ub.uniformData.span());
+        ANGLE_TRY(pool->commit(context));
+
+        cmdEncoder->setBuffer(slice.buffer(), slice.offset(), mtl::kDefaultUniformsBindingIndex);
+    }
+
+    mDefaultUniformBlocksDirty.reset(shaderType);
     return angle::Result::Continue;
 }
 

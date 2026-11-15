@@ -2111,6 +2111,10 @@ void GenMetalTraverser::emitFunctionReturn(const TFunction &func)
             mOut << "vertex __VERTEX_OUT(";
             isVertexMain = true;
         }
+        else if (mCompiler.getShaderType() == GL_COMPUTE_SHADER)
+        {
+            mOut << "kernel ";
+        }
         else
         {
             UNIMPLEMENTED();

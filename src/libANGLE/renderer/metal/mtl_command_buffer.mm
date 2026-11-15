@@ -2783,11 +2783,18 @@ ComputeCommandEncoder &ComputeCommandEncoder::dispatch(const MTLSize &threadGrou
     return *this;
 }
 
+ComputeCommandEncoder &ComputeCommandEncoder::memoryBarrierWithScope(MTLBarrierScope scope)
+{
+    [get() memoryBarrierWithScope:scope];
+    return *this;
+}
+
 ComputeCommandEncoder &ComputeCommandEncoder::dispatchNonUniform(const MTLSize &threadsPerGrid,
                                                                  const MTLSize &threadsPerGroup)
 {
     [get() dispatchThreads:threadsPerGrid threadsPerThreadgroup:threadsPerGroup];
     return *this;
 }
+
 }  // namespace mtl
 }  // namespace rx
