@@ -1584,24 +1584,17 @@ angle::Result ContextMtl::dispatchComputeIndirect(const gl::Context *context, GL
 {
     ASSERT(mExecutable);
 
-    // 从 GL 状态中获取当前绑定的 DispatchIndirect 缓冲区
     const gl::State &glState = context->getState();
     gl::Buffer *indirectBuffer = glState.getTargetBuffer(gl::BufferBinding::DispatchIndirect);
     if (!indirectBuffer)
     {
-        // 未绑定间接缓冲区，不执行任何操作
         return angle::Result::Continue;
     }
 
-    // 获取底层的 Metal Buffer
     BufferMtl *indirectBufferMtl = mtl::GetImpl(indirectBuffer);
     const mtl::BufferRef &bufferRef = indirectBufferMtl->getCurrentBuffer();
-
-    // GL 的 indirect offset 相对于缓冲区起始位置
-    // 注意：gl::Buffer 的 offset 已经由 frontend 处理过，这里直接使用传入的 indirect 参数
     size_t offset = static_cast<size_t>(indirect);
 
-    // 获取 Compute Command Encoder 并执行间接调度
     mtl::ComputeCommandEncoder *enc = getComputeCommandEncoder();
     ANGLE_TRY(mExecutable->setupDispatchIndirect(this, enc, bufferRef, offset));
 

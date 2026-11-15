@@ -994,10 +994,50 @@ angle::Result ProgramExecutableMtl::setupDispatch(ContextMtl *context,
     mDefaultUniformBlocksDirty.set(gl::ShaderType::Compute);
     ANGLE_TRY(commitUniforms(context, cmdEncoder));
 
-    // Step 2 阶段先传 (1,1,1)；真正的 threadgroup 大小在 Step 3 从 executable 读取。
+    // 绑定 SSBO
+    const gl::State &glState = context->getState();
+    for (uint32_t i = 0; i < mExecutable->getShaderStorageBlocks().size(); ++i)
+    {
+        const GLuint binding = mExecutable->getShaderStorageBlockBinding(i);
+        const gl::OffsetBindingPointer<gl::Buffer> &buf = glState.getIndexedShaderStorageBuffer(binding);
+        if (buf.get() == nullptr)
+        {
+            continue;
+        }
+        BufferMtl *bufMtl = mtl::GetImpl(buf.get());
+        size_t offset = std::min<size_t>(buf.getOffset(), bufMtl->size());
+        cmdEncoder->setBufferForWrite(bufMtl->getCurrentBuffer(), offset,
+                                      mtl::kSSBOBindingIndexStart + binding);
+    }
+
+    // 用 executable 中的 local size 信息
     const MTLSize groups = MTLSizeMake(numGroupsX, numGroupsY, numGroupsZ);
-    const MTLSize per    = MTLSizeMake(1, 1, 1);
+    const MTLSize per = MTLSizeMake(mExecutable->getComputeLocalSizeX(),
+                                    mExecutable->getComputeLocalSizeY(),
+                                    mExecutable->getComputeLocalSizeZ());
+
     cmdEncoder->dispatch(groups, per);
+    return angle::Result::Continue;
+}
+
+angle::Result ProgramExecutableMtl::setupDispatchIndirect(
+    ContextMtl *context,
+    mtl::ComputeCommandEncoder *cmdEncoder,
+    const mtl::BufferRef &indirectBuffer,
+    size_t indirectBufferOffset)
+{
+    id<MTLFunction> cs = nil;
+    ANGLE_TRY(getComputeShader(context, &cs));
+
+    angle::ObjCPtr<id<MTLComputePipelineState>> ps;
+    ANGLE_TRY(context->getPipelineCache().getComputePipeline(context, cs, &ps));
+    cmdEncoder->setComputePipelineState(ps);
+
+    mDefaultUniformBlocksDirty.set(gl::ShaderType::Compute);
+    ANGLE_TRY(commitUniforms(context, cmdEncoder));
+
+    const MTLSize per = MTLSizeMake(1, 1, 1);
+    cmdEncoder->dispatchThreadgroupsIndirect(indirectBuffer, indirectBufferOffset, per);
     return angle::Result::Continue;
 }
 

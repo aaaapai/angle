@@ -46,6 +46,14 @@ struct TranslatedShaderInfo
     bool hasUBOArgumentBuffer;
     bool hasIsnanOrIsinf;
     bool hasInvariant;
+
+    struct SSBOBinding
+    {
+        std::string name;
+        uint32_t glBinding;
+        uint32_t mtlBinding;
+    };
+    std::vector<SSBOBinding> actualSSBOBindings;
 };
 
 void MSLGetShaderSource(const gl::ProgramState &programState,

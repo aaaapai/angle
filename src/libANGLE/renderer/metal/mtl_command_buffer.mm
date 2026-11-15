@@ -2796,5 +2796,22 @@ ComputeCommandEncoder &ComputeCommandEncoder::dispatchNonUniform(const MTLSize &
     return *this;
 }
 
+ComputeCommandEncoder &ComputeCommandEncoder::dispatchThreadgroupsIndirect(
+    const BufferRef &indirectBuffer,
+    size_t indirectBufferOffset,
+    const MTLSize &threadsPerGroup)
+{
+    if (!indirectBuffer)
+    {
+        return *this;
+    }
+    cmdBuffer().setReadDependency(indirectBuffer, /*isRenderCommand=*/false);
+    ASSERT((indirectBufferOffset % 4) == 0);
+    [get() dispatchThreadgroupsWithIndirectBuffer:indirectBuffer->get()
+                             indirectBufferOffset:indirectBufferOffset
+                               threadsPerThreadgroup:threadsPerGroup];
+    return *this;
+}
+
 }  // namespace mtl
 }  // namespace rx

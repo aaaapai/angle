@@ -752,6 +752,10 @@ class ComputeCommandEncoder final : public CommandEncoder
     ComputeCommandEncoder &dispatchNonUniform(const MTLSize &threadsPerGrid,
                                               const MTLSize &threadsPerGroup);
 
+    ComputeCommandEncoder &dispatchThreadgroupsIndirect(const BufferRef &indirectBuffer,
+                                                        size_t indirectBufferOffset,
+                                                        const MTLSize &threadsPerGroup);
+
     ComputeCommandEncoder &memoryBarrierWithScope(MTLBarrierScope scope);
 
   private:

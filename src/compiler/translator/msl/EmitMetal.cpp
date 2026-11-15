@@ -1804,6 +1804,16 @@ bool GenMetalTraverser::visitBinary(Visit, TIntermBinary *binaryNode)
         case TOperator::EOpIndexDirectStruct:
         case TOperator::EOpIndexDirectInterfaceBlock:
         {
+            if (op == TOperator::EOpIndexDirectInterfaceBlock && mCompiler.getShaderType() == GL_COMPUTE_SHADER)
+            {
+                mOut << "->";
+            }
+            else
+            {
+                mOut << ".";
+            }
+            emitNameOf(field);
+
             const TField &field = getDirectField(leftNode, rightNode);
             if (mSymbolEnv.isPointer(field) && mSymbolEnv.isUBO(field))
             {
@@ -2086,6 +2096,22 @@ void GenMetalTraverser::emitFunctionSignature(const TFunction &func)
         mOut << " @@XFB-Bindings@@ ";
     }
 
+    if (isTraversingVertexMain)
+    {
+        mOut << " @@XFB-Bindings@@ ";
+    }
+
+    // 【新增】追加 compute builtin 参数
+    if (func.isMain() && mCompiler.getShaderType() == GL_COMPUTE_SHADER)
+    {
+        mOut << (paramCount ? ", " : "")
+             << "uint3 ANGLE_gl_GlobalInvocationID [[thread_position_in_grid]], "
+             << "uint3 ANGLE_gl_LocalInvocationID  [[thread_position_in_threadgroup]], "
+             << "uint3 ANGLE_gl_WorkGroupID        [[threadgroup_position_in_grid]], "
+             << "uint3 ANGLE_gl_NumWorkGroups      [[threadgroups_per_grid]], "
+             << "uint3 ANGLE_gl_WorkGroupSize      [[threads_per_threadgroup]]";
+    }
+
     mOut << ")";
 }
 
@@ -2127,6 +2153,21 @@ void GenMetalTraverser::emitFunctionReturn(const TFunction &func)
 
 void GenMetalTraverser::emitFunctionParameter(const TFunction &func, const TVariable &param)
 {
+
+    if (isMain && mCompiler.getShaderType() == GL_COMPUTE_SHADER &&
+        type.getBasicType() == TBasicType::EbtInterfaceBlock)
+    {
+        const TInterfaceBlock *ib = type.getInterfaceBlock();
+        mOut << "device ";
+        emitBlockNameOf(*ib);
+        mOut << " *";
+        emitNameOf(param);
+        mOut << " [[buffer(" << (mtl::kSSBOBindingIndexStart + ib->binding()) << ")]]";
+        TranslatorMetalReflection *reflection = mtl::getTranslatorMetalReflection(&mCompiler);
+        reflection->addInterfaceBlockBinding(ib->name().data(), ib->binding());
+        return;
+    }
+
     const bool isMain = func.isMain();
 
     const TType &type           = param.getType();
@@ -2199,6 +2240,23 @@ void GenMetalTraverser::emitFunctionParameter(const TFunction &func, const TVari
 void GenMetalTraverser::visitFunctionPrototype(TIntermFunctionPrototype *funcProtoNode)
 {
     const TFunction &func = *funcProtoNode->getFunction();
+
+    if (func.isMain() && mCompiler.getShaderType() == GL_COMPUTE_SHADER)
+    {
+        const TSymbolTable &symbolTable = mCompiler.getSymbolTable();
+        for (const char *builtinName : {"gl_GlobalInvocationID", "gl_LocalInvocationID", "gl_WorkGroupID", "gl_NumWorkGroups", "gl_WorkGroupSize"})
+        {
+            const TVariable *var = static_cast<const TVariable *>(
+                symbolTable.findBuiltIn(ImmutableString(builtinName), mCompiler.getShaderVersion()));
+            if (var)
+            {
+                mRenamedSymbols[var] = Name(BuildConcatenatedImmutableString("ANGLE_", builtinName),
+                                            SymbolType::AngleInternal);
+            }
+        }
+    }
+
+    TIntermBlock &body = *funcDefNode->getBody();
 
     emitIndentation();
     emitFunctionSignature(func);

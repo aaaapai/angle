@@ -161,6 +161,8 @@ void TranslatedShaderInfo::reset()
     {
         binding = mtl::kMaxShaderBuffers;
     }
+
+    actualSSBOBindings.clear();
 }
 
 // Original mapping of front end from sampler name to multiple sampler slots (in form of

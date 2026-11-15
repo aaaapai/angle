@@ -195,6 +195,11 @@ class ProgramExecutableMtl : public ProgramExecutableImpl
                                 GLuint numGroupsY,
                                 GLuint numGroupsZ);
 
+    angle::Result setupDispatchIndirect(ContextMtl *context,
+                                        mtl::ComputeCommandEncoder *cmdEncoder,
+                                        const mtl::BufferRef &indirectBuffer,
+                                        size_t indirectBufferOffset);
+
   private:
     friend class ProgramMtl;
 
