@@ -964,7 +964,7 @@ angle::Result ContextMtl::drawArraysIndirect(const gl::Context *context,
                 GL_INVALID_OPERATION);
 
     const MTLPrimitiveType primitiveType = mtl::GetPrimitiveType(mode);
-    ANGLE_CHECK(this, primitiveType != MTLPrimitiveTypeInvalid,
+    ANGLE_CHECK(this, primitiveType != mtl::MTLPrimitiveTypeInvalid,
                 "Unsupported primitive mode for indirect draw.", GL_INVALID_OPERATION);
 
     gl::Buffer *indirectBuffer = getState().getTargetBuffer(gl::BufferBinding::DrawIndirect);
@@ -1007,13 +1007,13 @@ angle::Result ContextMtl::drawElementsIndirect(const gl::Context *context,
                 GL_INVALID_OPERATION);
 
     const MTLPrimitiveType primitiveType = mtl::GetPrimitiveType(mode);
-    ANGLE_CHECK(this, primitiveType != MTLPrimitiveTypeInvalid,
+    ANGLE_CHECK(this, primitiveType != mtl::MTLPrimitiveTypeInvalid,
                 "Unsupported primitive mode for indirect draw.", GL_INVALID_OPERATION);
 
     // Metal has no 8-bit index type.  Converting it would require knowing the draw count, which is
     // stored in the indirect buffer and is not read on the CPU.
     const MTLIndexType indexType = mtl::GetIndexType(type);
-    ANGLE_CHECK(this, indexType != MTLIndexTypeInvalid,
+    ANGLE_CHECK(this, indexType != mtl::MTLIndexTypeInvalid,
                 "Metal indirect indexed draw requires 16-bit or 32-bit indices.",
                 GL_INVALID_OPERATION);
 
