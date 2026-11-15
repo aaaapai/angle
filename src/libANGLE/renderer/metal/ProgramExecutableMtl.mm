@@ -35,6 +35,12 @@ bool CompareBlockInfo(const sh::BlockMemberInfo &a, const sh::BlockMemberInfo &b
     return a.offset < b.offset;
 }
 
+MTLSize GetThreadsPerThreadgroup(const gl::ProgramExecutable &executable)
+{
+    const sh::WorkGroupSize &localSize = executable.getComputeShaderLocalSize();
+    return MTLSizeMake(localSize[0], localSize[1], localSize[2]);
+}
+
 size_t GetAlignmentOfUniformGroup(sh::BlockLayoutMap *blockLayoutMap)
 {
     size_t align = 1;
@@ -1010,10 +1016,8 @@ angle::Result ProgramExecutableMtl::setupDispatch(ContextMtl *context,
     }
 
     const MTLSize groups = MTLSizeMake(numGroupsX, numGroupsY, numGroupsZ);
-    
-    // 使用 ProgramState 提供的 local size
-    const sh::WorkGroupSize &localSize = mExecutable->getState().getComputeShaderLocalSize();
-    const MTLSize per = MTLSizeMake(localSize.x, localSize.y, localSize.z);
+
+    const MTLSize per = GetThreadsPerThreadgroup(*mExecutable);
 
     cmdEncoder->dispatch(groups, per);
     return angle::Result::Continue;
@@ -1035,9 +1039,7 @@ angle::Result ProgramExecutableMtl::setupDispatchIndirect(
     mDefaultUniformBlocksDirty.set(gl::ShaderType::Compute);
     ANGLE_TRY(commitUniforms(context, cmdEncoder));
 
-    // 使用 ProgramState 提供的 local size
-    const sh::WorkGroupSize &localSize = mExecutable->getState().getComputeShaderLocalSize();
-    const MTLSize per = MTLSizeMake(localSize.x, localSize.y, localSize.z);
+    const MTLSize per = GetThreadsPerThreadgroup(*mExecutable);
 
     cmdEncoder->dispatchThreadgroupsIndirect(indirectBuffer, indirectBufferOffset, per);
     return angle::Result::Continue;
