@@ -6699,10 +6699,15 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // VK_DYNAMIC_STATE_VERTEX_INPUT_BINDING_STRIDE with VK_ERROR_FEATURE_NOT_PRESENT, which breaks
     // all drawing that has vertex attributes.  There is no per-state feature to query, so the
     // dynamic state is only used when the driver is known to implement it.
-    constexpr char kMoltenVKDeviceExtensionName[] = "VK_MVK_moltenvk";
+    //
+    // Portability implementations are conservatively treated as not implementing it.  The
+    // extension names are spelled out because VK_KHR_portability_subset is guarded by
+    // VK_ENABLE_BETA_EXTENSIONS in the Vulkan headers and VK_MVK_moltenvk is not part of them.
+    constexpr char kPortabilitySubsetExtensionName[] = "VK_KHR_portability_subset";
+    constexpr char kMoltenVKDeviceExtensionName[]    = "VK_MVK_moltenvk";
     const bool isPortabilityImplementation =
-        ExtensionFound(kMoltenVKDeviceExtensionName, deviceExtensionNames) ||
-        ExtensionFound(VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME, deviceExtensionNames);
+        ExtensionFound(kPortabilitySubsetExtensionName, deviceExtensionNames) ||
+        ExtensionFound(kMoltenVKDeviceExtensionName, deviceExtensionNames);
     const bool isVertexInputBindingStrideUnsupported =
         (IsWindows() && isIntel && driverVersion < angle::VersionTriple(100, 9684, 0)) ||
         (isARMProprietary && driverVersion < angle::VersionTriple(48, 0, 0)) ||
