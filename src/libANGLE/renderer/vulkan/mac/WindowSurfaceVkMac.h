@@ -15,8 +15,8 @@
 #if TARGET_OS_OSX
 #    include <Cocoa/Cocoa.h>
 #else
-#    include <UIKit/UIKit.h>
 #    include <QuartzCore/CAMetalLayer.h>
+#    include <UIKit/UIKit.h>
 #endif
 
 namespace rx
@@ -33,6 +33,13 @@ class WindowSurfaceVkMac : public WindowSurfaceVk
     angle::Result getCurrentWindowSize(vk::ErrorContext *context,
                                        gl::Extents *extentsOut) const override;
 
+    // Returns the size of the layer's drawable in whole pixels, updating the layer if its
+    // geometry or drawable size was out of date.
+    CGSize updateDrawableSize() const;
+
+    // The EGL native window, retained for the lifetime of the surface.
+    CALayer *mLayer;
+    // Either |mLayer| when it already is a CAMetalLayer, or a Metal layer owned by this surface.
     CAMetalLayer *mMetalLayer;
     id<MTLDevice> mMetalDevice;
 };
