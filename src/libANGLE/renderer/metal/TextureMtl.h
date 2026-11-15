@@ -141,6 +141,8 @@ class TextureMtl : public TextureImpl
                                    egl::Stream *stream,
                                    const egl::Stream::GLTextureDescription &desc) override;
 
+    angle::Result setBuffer(const gl::Context *context, GLenum internalFormat) override;
+
     angle::Result generateMipmap(const gl::Context *context) override;
 
     angle::Result setBaseLevel(const gl::Context *context, GLuint baseLevel) override;
@@ -173,6 +175,10 @@ class TextureMtl : public TextureImpl
     angle::Result ensureNativeStorageCreated(const gl::Context *context,
                                              bool keepImages,
                                              ImageMipLevels mipLevels);
+
+    // Create or recreate the MTLTextureTypeTextureBuffer view over the currently bound GL buffer.
+    // Buffer textures share the buffer's storage; no copy is made.
+    angle::Result ensureBufferTextureCreated(const gl::Context *context);
 
     angle::Result bindToShader(const gl::Context *context,
                                mtl::RenderCommandEncoder *cmdEncoder,
@@ -358,6 +364,14 @@ class TextureMtl : public TextureImpl
 
     // Number of slices
     uint32_t mSlices = 1;
+
+    // Buffer texture state. The MTLTexture is a view over the GL buffer's native MTLBuffer, so it
+    // must be recreated when the buffer object reallocates or the bound range changes.
+    mtl::BufferRef mBufferTextureBuffer;
+    size_t mBufferTextureOffset         = 0;
+    size_t mBufferTextureSize           = 0;
+    uint32_t mBufferTextureWidth        = 0;
+    GLenum mBufferTextureInternalFormat = GL_NONE;
 
     // Stored images array defined by glTexImage/glCopy*.
     // Once the images array is complete, they will be transferred to real texture object.

@@ -925,6 +925,9 @@ void DisplayMtl::ensureCapsInitialized() const
 
     // Metal doesn't support GL_TEXTURE_COMPARE_MODE=GL_NONE for shadow samplers
     mNativeLimitations.noShadowSamplerCompareModeNone = true;
+    // Metal 2 has no multi-draw API.  Advertise the extension because the shared helper repeats a
+    // native single indirect draw; this flag only controls that advertisement.
+    mNativeLimitations.multidrawEmulated = false;
 
     if (mFeatures.disableProgrammableBlending.enabled || !supportsAppleGPUFamily(1))
     {
@@ -1236,6 +1239,10 @@ void DisplayMtl::initializeTextureCaps() const
     // Disable all depth buffer and stencil buffer readback extensions until we need them
     mNativeExtensions.readDepthNV         = false;
     mNativeExtensions.readStencilNV       = false;
+
+    // Metal exposes buffer textures through MTLTextureTypeTextureBuffer.
+    mNativeExtensions.textureBufferEXT = true;
+    mNativeExtensions.textureBufferOES = true;
 }
 
 void DisplayMtl::initializeFeatures()

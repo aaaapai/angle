@@ -1726,6 +1726,106 @@ angle::Result TextureMtl::setImageExternal(const gl::Context *context,
     return angle::Result::Stop;
 }
 
+angle::Result TextureMtl::setBuffer(const gl::Context *context, GLenum internalFormat)
+{
+    ANGLE_UNUSED_VARIABLE(internalFormat);
+    ANGLE_UNUSED_VARIABLE(context);
+    // Drop any previous buffer texture view.  The new view is created lazily in syncState(), after
+    // the front-end has updated the texture's image descriptor for the new buffer range.
+    deallocateNativeStorage(/*keepImages=*/false);
+    mBufferTextureBuffer         = nullptr;
+    mBufferTextureOffset         = 0;
+    mBufferTextureSize           = 0;
+    mBufferTextureWidth          = 0;
+    mBufferTextureInternalFormat = GL_NONE;
+    return angle::Result::Continue;
+}
+
+angle::Result TextureMtl::ensureBufferTextureCreated(const gl::Context *context)
+{
+    ASSERT(mState.getType() == gl::TextureType::Buffer);
+
+    const gl::OffsetBindingPointer<gl::Buffer> &binding = mState.getBuffer();
+    gl::Buffer *glBuffer                                = binding.get();
+
+    if (glBuffer == nullptr)
+    {
+        deallocateNativeStorage(/*keepImages=*/false);
+        mBufferTextureBuffer         = nullptr;
+        mBufferTextureOffset         = 0;
+        mBufferTextureSize           = 0;
+        mBufferTextureWidth          = 0;
+        mBufferTextureInternalFormat = GL_NONE;
+        return angle::Result::Continue;
+    }
+
+    ContextMtl *contextMtl = mtl::GetImpl(context);
+    BufferMtl *bufferMtl   = mtl::GetImpl(glBuffer);
+    mtl::BufferRef buffer  = bufferMtl->getCurrentBuffer();
+    if (!buffer)
+    {
+        return angle::Result::Stop;
+    }
+
+    const size_t offset     = static_cast<size_t>(binding.getOffset());
+    const size_t bufferSize = buffer->size();
+    ANGLE_CHECK(contextMtl, offset <= bufferSize, gl::err::kInternalError, GL_INVALID_VALUE);
+    const size_t size =
+        binding.getSize() == 0 ? bufferSize - offset : static_cast<size_t>(binding.getSize());
+
+    const gl::ImageDesc &desc = mState.getBaseLevelDesc();
+    ANGLE_CHECK(contextMtl, desc.format.valid(), gl::err::kInternalError, GL_INVALID_OPERATION);
+    ANGLE_CHECK(contextMtl, size <= bufferSize - offset, gl::err::kInternalError, GL_INVALID_VALUE);
+
+    const angle::FormatID angleFormatId =
+        angle::Format::InternalFormatToID(desc.format.info->sizedInternalFormat);
+    const mtl::Format format = contextMtl->getPixelFormat(angleFormatId);
+    ANGLE_CHECK(contextMtl, format.metalFormat != MTLPixelFormatInvalid, gl::err::kInternalError,
+                GL_INVALID_OPERATION);
+    // Buffer textures have no row pitch: every texel must be exactly one Metal pixel.  Formats
+    // emulated by widening (e.g. RGB32F -> RGBA32F) cannot be represented natively, so they are
+    // rejected instead of copied or converted.
+    ANGLE_CHECK(contextMtl, !mtl::IsFormatEmulated(format), gl::err::kInternalError,
+                GL_INVALID_OPERATION);
+    ANGLE_CHECK(contextMtl, desc.size.width > 0, gl::err::kInternalError, GL_INVALID_VALUE);
+
+    const GLenum internalFormat = desc.format.info->sizedInternalFormat;
+    const uint32_t width        = desc.size.width;
+    if (mNativeTextureStorage && mBufferTextureBuffer == buffer && mBufferTextureOffset == offset &&
+        mBufferTextureSize == size && mBufferTextureWidth == width &&
+        mBufferTextureInternalFormat == internalFormat)
+    {
+        ANGLE_TRY(ensureSamplerStateCreated(context));
+        return angle::Result::Continue;
+    }
+
+    deallocateNativeStorage(/*keepImages=*/false);
+    mBufferTextureBuffer         = buffer;
+    mBufferTextureOffset         = offset;
+    mBufferTextureSize           = size;
+    mBufferTextureWidth          = width;
+    mBufferTextureInternalFormat = internalFormat;
+
+    mtl::TextureRef nativeTexture;
+    ANGLE_TRY(mtl::Texture::MakeBufferTexture(contextMtl, format, buffer, offset, size, width,
+                                              &nativeTexture));
+    if (!nativeTexture)
+    {
+        return angle::Result::Continue;
+    }
+
+    mSlices               = 1;
+    mNativeTextureStorage = std::make_unique<NativeTextureWrapperWithViewSupport>(
+        std::move(nativeTexture), /*baseGLLevel=*/0, format);
+    ANGLE_TRY(createViewFromBaseToMaxLevel());
+
+    // A sampler is not used by MSL texture_buffer::read(), but the texture environment still
+    // carries a sampler handle in the argument buffer, so keep one available for bindToShader().
+    ANGLE_TRY(ensureSamplerStateCreated(context));
+
+    return angle::Result::Continue;
+}
+
 angle::Result TextureMtl::generateMipmap(const gl::Context *context)
 {
     // glGenerateMipmap needs the full mip chain allocated, expanding the storage if it was
@@ -1923,6 +2023,7 @@ angle::Result TextureMtl::syncState(const gl::Context *context,
                                     gl::Command source)
 {
     ContextMtl *contextMtl = mtl::GetImpl(context);
+
     for (size_t dirtyBit : dirtyBits)
     {
         switch (dirtyBit)
@@ -1964,6 +2065,17 @@ angle::Result TextureMtl::syncState(const gl::Context *context,
             default:
                 break;
         }
+    }
+
+    if (mState.getType() == gl::TextureType::Buffer)
+    {
+        // Buffer textures have exactly one level and no mip chain; their native storage is a view
+        // over the bound buffer, so only (re)creation is needed.
+        if (!mState.getBaseLevelDesc().format.valid())
+        {
+            return angle::Result::Continue;
+        }
+        return ensureBufferTextureCreated(context);
     }
 
     ANGLE_TRY(

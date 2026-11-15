@@ -954,7 +954,43 @@ angle::Result ContextMtl::drawArraysIndirect(const gl::Context *context,
                                              const void *indirect)
 {
     ANGLE_TRY(resyncDrawFramebufferIfNeeded(context));
-    return rx::MultiDrawArraysIndirectGeneral(this, context, mode, indirect, 1, 0);
+
+    // Metal has native single-draw indirect commands but no multi-draw command.  This entry point
+    // performs one native indirect draw; multi-draw repeats it.
+    ANGLE_CHECK(this, !context->hasAnyActiveClientAttrib(),
+                "Indirect draw cannot use client-side vertex data.", GL_INVALID_OPERATION);
+    ANGLE_CHECK(this, mode != gl::PrimitiveMode::LineLoop && mode != gl::PrimitiveMode::TriangleFan,
+                "Metal indirect draw cannot close line loops or emulate triangle fans.",
+                GL_INVALID_OPERATION);
+
+    const MTLPrimitiveType primitiveType = mtl::GetPrimitiveType(mode);
+    ANGLE_CHECK(this, primitiveType != MTLPrimitiveTypeInvalid,
+                "Unsupported primitive mode for indirect draw.", GL_INVALID_OPERATION);
+
+    gl::Buffer *indirectBuffer = getState().getTargetBuffer(gl::BufferBinding::DrawIndirect);
+    ANGLE_CHECK(this, indirectBuffer != nullptr, "No indirect draw buffer is bound.",
+                GL_INVALID_OPERATION);
+
+    const size_t indirectOffset = reinterpret_cast<size_t>(indirect);
+    ANGLE_CHECK(this, (indirectOffset % 4) == 0, "Indirect draw offset must be a multiple of 4.",
+                GL_INVALID_VALUE);
+
+    bool isNoOp = false;
+    ANGLE_TRY(setupDraw(context, /*firstVertex=*/-1, /*vertexOrIndexCount=*/0,
+                        /*instances=*/0, gl::DrawElementsType::InvalidEnum, nullptr, false,
+                        &isNoOp));
+    if (isNoOp)
+    {
+        return angle::Result::Continue;
+    }
+
+    BufferMtl *indirectBufferMtl           = mtl::GetImpl(indirectBuffer);
+    const mtl::BufferRef indirectBufferRef = indirectBufferMtl->getCurrentBuffer();
+    ANGLE_CHECK(this, indirectBufferRef != nullptr, "Indirect draw buffer has no native storage.",
+                GL_INVALID_OPERATION);
+    mRenderEncoder.drawIndirect(primitiveType, indirectBufferRef, indirectOffset);
+
+    return angle::Result::Continue;
 }
 
 angle::Result ContextMtl::drawElementsIndirect(const gl::Context *context,
@@ -963,7 +999,60 @@ angle::Result ContextMtl::drawElementsIndirect(const gl::Context *context,
                                                const void *indirect)
 {
     ANGLE_TRY(resyncDrawFramebufferIfNeeded(context));
-    return rx::MultiDrawElementsIndirectGeneral(this, context, mode, type, indirect, 1, 0);
+
+    ANGLE_CHECK(this, !context->hasAnyActiveClientAttrib(),
+                "Indirect draw cannot use client-side vertex data.", GL_INVALID_OPERATION);
+    ANGLE_CHECK(this, mode != gl::PrimitiveMode::LineLoop && mode != gl::PrimitiveMode::TriangleFan,
+                "Metal indirect draw cannot close line loops or emulate triangle fans.",
+                GL_INVALID_OPERATION);
+
+    const MTLPrimitiveType primitiveType = mtl::GetPrimitiveType(mode);
+    ANGLE_CHECK(this, primitiveType != MTLPrimitiveTypeInvalid,
+                "Unsupported primitive mode for indirect draw.", GL_INVALID_OPERATION);
+
+    // Metal has no 8-bit index type.  Converting it would require knowing the draw count, which is
+    // stored in the indirect buffer and is not read on the CPU.
+    const MTLIndexType indexType = mtl::GetIndexType(type);
+    ANGLE_CHECK(this, indexType != MTLIndexTypeInvalid,
+                "Metal indirect indexed draw requires 16-bit or 32-bit indices.",
+                GL_INVALID_OPERATION);
+
+    gl::Buffer *indirectBuffer = getState().getTargetBuffer(gl::BufferBinding::DrawIndirect);
+    ANGLE_CHECK(this, indirectBuffer != nullptr, "No indirect draw buffer is bound.",
+                GL_INVALID_OPERATION);
+
+    const gl::VertexArray *vertexArray = getState().getVertexArray();
+    gl::Buffer *indexBuffer            = vertexArray->getElementArrayBuffer();
+    ANGLE_CHECK(this, indexBuffer != nullptr, "No element array buffer is bound.",
+                GL_INVALID_OPERATION);
+
+    const size_t indirectOffset = reinterpret_cast<size_t>(indirect);
+    ANGLE_CHECK(this, (indirectOffset % 4) == 0, "Indirect draw offset must be a multiple of 4.",
+                GL_INVALID_VALUE);
+
+    bool isNoOp = false;
+    ANGLE_TRY(setupDraw(context, /*firstVertex=*/-1, /*vertexOrIndexCount=*/0,
+                        /*instances=*/0, type, nullptr, false, &isNoOp));
+    if (isNoOp)
+    {
+        return angle::Result::Continue;
+    }
+
+    BufferMtl *indirectBufferMtl           = mtl::GetImpl(indirectBuffer);
+    const mtl::BufferRef indirectBufferRef = indirectBufferMtl->getCurrentBuffer();
+    BufferMtl *indexBufferMtl              = mtl::GetImpl(indexBuffer);
+    const mtl::BufferRef indexBufferRef    = indexBufferMtl->getCurrentBuffer();
+    ANGLE_CHECK(this, indirectBufferRef != nullptr, "Indirect draw buffer has no native storage.",
+                GL_INVALID_OPERATION);
+    ANGLE_CHECK(this, indexBufferRef != nullptr, "Index buffer has no native storage.",
+                GL_INVALID_OPERATION);
+
+    // The element array buffer is bound as a whole; firstIndex from the indirect command selects
+    // the starting element inside it.
+    mRenderEncoder.drawIndexedIndirect(primitiveType, indexType, indexBufferRef, 0,
+                                       indirectBufferRef, indirectOffset);
+
+    return angle::Result::Continue;
 }
 
 angle::Result ContextMtl::multiDrawArrays(const gl::Context *context,
@@ -992,6 +1081,8 @@ angle::Result ContextMtl::multiDrawArraysIndirect(const gl::Context *context,
                                                   GLsizei drawcount,
                                                   GLsizei stride)
 {
+    // Metal 2 has no multi-draw command.  Use the shared helper, which only advances the
+    // offset/stride and never reads the indirect buffer.
     return rx::MultiDrawArraysIndirectGeneral(this, context, mode, indirect, drawcount, stride);
 }
 
@@ -1024,6 +1115,7 @@ angle::Result ContextMtl::multiDrawElementsIndirect(const gl::Context *context,
                                                     GLsizei drawcount,
                                                     GLsizei stride)
 {
+    // Multi-draw is a loop over the single indirect draw entry point.
     return rx::MultiDrawElementsIndirectGeneral(this, context, mode, type, indirect, drawcount,
                                                 stride);
 }
