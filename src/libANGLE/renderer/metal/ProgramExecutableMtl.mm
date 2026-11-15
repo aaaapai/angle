@@ -756,7 +756,7 @@ angle::Result ProgramExecutableMtl::initDefaultUniformBlocks(
     gl::ShaderMap<size_t> requiredBufferSize;
     requiredBufferSize.fill(0);
 
-    for (gl::ShaderType shaderType : gl::AllShaderTypes)
+    for (gl::ShaderType shaderType : gl::AllShaderTypes())
     {
         const gl::SharedCompiledShaderState &shader = shaders[shaderType];
         if (shader)
@@ -791,7 +791,7 @@ angle::Result ProgramExecutableMtl::initDefaultUniformBlocks(
 
                 bool found = false;
 
-                for (gl::ShaderType shaderType : gl::AllShaderTypes)
+                for (gl::ShaderType shaderType : gl::AllShaderTypes())
                 {
                     auto it = layoutMap[shaderType].find(uniformName);
                     if (it != layoutMap[shaderType].end())
@@ -805,7 +805,7 @@ angle::Result ProgramExecutableMtl::initDefaultUniformBlocks(
             }
         }
 
-        for (gl::ShaderType shaderType : gl::AllShaderTypes)
+        for (gl::ShaderType shaderType : gl::AllShaderTypes())
         {
             mDefaultUniformBlocks[shaderType].uniformLayout.push_back(layoutInfo[shaderType]);
         }
@@ -1093,7 +1093,7 @@ angle::Result ProgramExecutableMtl::getSpecializedShader(
     else
     {
         UNREACHABLE();
-        return angle::Result::Stop;
+        return angle::Result::Continue;
     }
     ANGLE_TRY(CreateMslShader(context, translatedMslInfo->metalLibrary, SHADER_ENTRY_NAME,
                               funcConstants.get(), &shaderVariant->metalShader));

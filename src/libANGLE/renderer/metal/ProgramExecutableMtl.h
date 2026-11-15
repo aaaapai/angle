@@ -284,6 +284,9 @@ class ProgramExecutableMtl : public ProgramExecutableImpl
     // Cached references of current shader variants.
     gl::ShaderMap<ProgramShaderObjVariantMtl *> mCurrentShaderVariants;
 
+    // ---- compute ----
+    ProgramShaderObjVariantMtl mComputeShaderVariant;
+
     gl::ShaderBitSet mDefaultUniformBlocksDirty;
     gl::ShaderBitSet mSamplerBindingsDirty;
 

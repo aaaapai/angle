@@ -141,7 +141,7 @@ angle::Result DisplayMtl::initializeImpl(egl::Display *display)
         if (mFeatures.requireGpuFamily2.enabled && !supportsEitherGPUFamily(1, 2))
         {
             ANGLE_MTL_LOG("Could not initialize: Metal device does not support Mac GPU family 2.");
-            return angle::Result::Stop;
+            return angle::Result::Continue;
         }
 
         if (mFeatures.disableMetalOnNvidia.enabled && isNVIDIA())
@@ -904,7 +904,9 @@ void DisplayMtl::ensureCapsInitialized() const
         mNativeCaps.maxCombinedShaderUniformComponents[shaderType] = maxCombinedUniformComponents;
     }
 
-    mNativeCaps.maxCombinedShaderOutputResources = 0;
+        mNativeCaps.maxUniformLocations = 1024;
+        mNativeCaps.maxCombinedShaderOutputResources = 
+        mNativeCaps.maxDrawBuffers + mNativeCaps.maxCombinedShaderStorageBlocks;
 
     mNativeCaps.maxComputeWorkGroupCount       = {65535, 65535, 65535};
     mNativeCaps.maxComputeWorkGroupSize        = {1024, 1024, 64};
@@ -1369,7 +1371,7 @@ angle::Result DisplayMtl::initializeShaderLibrary()
     if (err)
     {
         ERR() << "Internal error: " << err.get().localizedDescription.UTF8String;
-        return angle::Result::Stop;
+        return angle::Result::Continue;
     }
 
     return angle::Result::Continue;
