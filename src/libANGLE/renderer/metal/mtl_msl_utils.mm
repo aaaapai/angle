@@ -682,6 +682,16 @@ angle::Result MTLGetMSL(const angle::FeaturesMtl &features,
 
         const sh::TranslatorMetalReflection *reflection =
             &shadersState[type]->translatorMetalReflection;
+
+        if (type == gl::ShaderType::Compute)
+        {
+            for (auto &binding : reflection->getInterfaceBlockBindings())
+            {
+                (*mslShaderInfoOut)[type].actualSSBOBindings.push_back(
+                    {binding.first, binding.second, static_cast<uint32_t>(mtl::kSSBOBindingIndexStart + binding.second)});
+            }
+        }
+
         if (reflection->hasUBOs)
         {
             (*mslShaderInfoOut)[type].hasUBOArgumentBuffer = true;

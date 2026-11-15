@@ -157,7 +157,7 @@ class TranslatorMetalReflection
 
     std::unordered_map<std::string, uint32_t> interfaceBlockBindings;
 
-    void reset()
+        void reset()
     {
         hasUBOs              = false;
         hasFlatInput         = false;
@@ -170,6 +170,7 @@ class TranslatorMetalReflection
         rwTextureBindings.clear();
         userUniformBufferBindings.clear();
         uniformBufferBindings.clear();
+        interfaceBlockBindings.clear();
     }
 
     bool hasUBOs              = false;
