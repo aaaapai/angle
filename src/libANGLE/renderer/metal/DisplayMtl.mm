@@ -429,18 +429,7 @@ ExternalImageSiblingImpl *DisplayMtl::createExternalImageSibling(const gl::Conte
 
 gl::Version DisplayMtl::getMaxSupportedESVersion() const
 {
-#if TARGET_OS_SIMULATOR
-    // Simulator should be able to support ES3, despite not supporting iOS GPU
-    // Family 3 in its entirety.
-    // FIXME: None of the feature conditions are checked for simulator support.
-    return gl::Version(3, 0);
-#else
-    if (supportsEitherGPUFamily(4, 1))
-    {
         return mtl::kMaxSupportedGLVersion;
-    }
-    return gl::Version(2, 0);
-#endif
 }
 
 gl::Version DisplayMtl::getMaxConformantESVersion() const
@@ -1181,7 +1170,6 @@ void DisplayMtl::initializeExtensions() const
     // encoders, and for vertex-to-vertex and vertex-to-fragment stages of render command encoders."
     mHasFragmentMemoryBarriers = !supportsAppleGPUFamily(3);
 
-    mNativeExtensions.shaderStorageBufferObject = true;
 }
 
 void DisplayMtl::initializeTextureCaps() const
