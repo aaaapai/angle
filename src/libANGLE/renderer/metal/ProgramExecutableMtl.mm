@@ -1010,9 +1010,11 @@ angle::Result ProgramExecutableMtl::setupDispatch(ContextMtl *context,
     }
 
     const MTLSize groups = MTLSizeMake(numGroupsX, numGroupsY, numGroupsZ);
-    const MTLSize per = MTLSizeMake(mExecutable->getComputeLocalSizeX(),
-                                    mExecutable->getComputeLocalSizeY(),
-                                    mExecutable->getComputeLocalSizeZ());
+    
+    // 使用 ProgramState 提供的 local size
+    const sh::WorkGroupSize &localSize = mExecutable->getState().getComputeShaderLocalSize();
+    const MTLSize per = MTLSizeMake(localSize[0], localSize[1], localSize[2]);
+
     cmdEncoder->dispatch(groups, per);
     return angle::Result::Continue;
 }
@@ -1033,10 +1035,10 @@ angle::Result ProgramExecutableMtl::setupDispatchIndirect(
     mDefaultUniformBlocksDirty.set(gl::ShaderType::Compute);
     ANGLE_TRY(commitUniforms(context, cmdEncoder));
 
-    // 与 setupDispatch 一致，用真实的 local size
-    const MTLSize per = MTLSizeMake(mExecutable->getComputeLocalSizeX(),
-                                    mExecutable->getComputeLocalSizeY(),
-                                    mExecutable->getComputeLocalSizeZ());
+    // 与 setupDispatch 一致，使用 ProgramState 提供的 local size
+    const sh::WorkGroupSize &localSize = mExecutable->getState().getComputeShaderLocalSize();
+    const MTLSize per = MTLSizeMake(localSize[0], localSize[1], localSize[2]);
+
     cmdEncoder->dispatchThreadgroupsIndirect(indirectBuffer, indirectBufferOffset, per);
     return angle::Result::Continue;
 }
