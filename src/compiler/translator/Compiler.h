@@ -130,6 +130,7 @@ class TCompiler : public TShHandleBase
     ShHashFunction64 getHashFunction() const { return mResources.HashFunction; }
     NameMap &getNameMap() { return mNameMap; }
     TSymbolTable &getSymbolTable() { return mSymbolTable; }
+    const TSymbolTable &getSymbolTable() const { return mSymbolTable; }
     ShShaderSpec getShaderSpec() const { return mShaderSpec; }
     ShShaderOutput getOutputType() const { return mOutputType; }
     const ShBuiltInResources &getBuiltInResources() const { return mResources; }

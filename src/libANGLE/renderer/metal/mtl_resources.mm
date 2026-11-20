@@ -294,6 +294,56 @@ angle::Result Texture::Make3DTexture(ContextMtl *context,
 }
 
 /** static */
+angle::Result Texture::MakeBufferTexture(ContextMtl *context,
+                                         const Format &format,
+                                         const BufferRef &buffer,
+                                         size_t offset,
+                                         size_t size,
+                                         uint32_t width,
+                                         TextureRef *refOut)
+{
+    ASSERT(refOut);
+    ASSERT(buffer);
+    ASSERT(format.metalFormat != MTLPixelFormatInvalid);
+    ANGLE_CHECK(context, offset <= buffer->size() && size <= buffer->size() - offset,
+                "Invalid buffer texture range.", GL_INVALID_VALUE);
+    ANGLE_CHECK(context, width > 0, "Buffer texture must contain at least one texel.",
+                GL_INVALID_VALUE);
+
+    ANGLE_MTL_OBJC_SCOPE
+    {
+        const mtl::ContextDevice &metalDevice = context->getMetalDevice();
+        const NSUInteger alignment =
+            [metalDevice.get() minimumTextureBufferAlignmentForPixelFormat:format.metalFormat];
+        ANGLE_CHECK(context, alignment == 0 || (offset % alignment) == 0,
+                    "Buffer texture offset does not meet Metal alignment requirements.",
+                    GL_INVALID_OPERATION);
+
+        MTLTextureDescriptor *desc = [[MTLTextureDescriptor alloc] init];
+        desc.textureType           = MTLTextureTypeTextureBuffer;
+        desc.pixelFormat           = format.metalFormat;
+        desc.width                 = width;
+        desc.height                = 1;
+        desc.depth                 = 1;
+        desc.mipmapLevelCount      = 1;
+        desc.arrayLength           = 1;
+        desc.sampleCount           = 1;
+        desc.usage                 = MTLTextureUsageShaderRead;
+
+        id<MTLTexture> metalTexture = [buffer->get() newTextureWithDescriptor:desc
+                                                                       offset:offset
+                                                                  bytesPerRow:0];
+        ANGLE_CHECK_GL_ALLOC(context, metalTexture);
+
+        refOut->reset(new Texture(metalTexture));
+        // The backing memory belongs to the buffer object, not this texture.
+        refOut->get()->setEstimatedByteSize(0);
+    }  // ANGLE_MTL_OBJC_SCOPE
+
+    return angle::Result::Continue;
+}
+
+/** static */
 angle::Result Texture::MakeTexture(ContextMtl *context,
                                    const Format &mtlFormat,
                                    MTLTextureDescriptor *desc,

@@ -4168,8 +4168,11 @@ Extensions Context::generateSupportedExtensions() const
     if (limitations.multidrawEmulated &&
         !frontendFeatures.alwaysEnableEmulatedMultidrawExtensions.enabled && !mWebGLContext)
     {
-        supportedExtensions.multiDrawANGLE       = false;
-        supportedExtensions.multiDrawIndirectEXT = false;
+        supportedExtensions.multiDrawANGLE = false;
+        if (!limitations.exposeEmulatedMultiDrawIndirect)
+        {
+            supportedExtensions.multiDrawIndirectEXT = false;
+        }
     }
 
     if (limitations.baseInstanceBaseVertexEmulated &&

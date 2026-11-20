@@ -205,6 +205,7 @@ class GenMetalTraverser : public TIntermTraverser
     size_t mMainUniformBufferIndex         = 0;
     size_t mDriverUniformsBindingIndex     = 0;
     size_t mUBOArgumentBufferBindingIndex  = 0;
+    size_t mSSBOBindingIndexStart          = 0;
     bool mRasterOrderGroupsSupported       = false;
     bool mWriteHelperSampleMask            = false;
 };
@@ -234,6 +235,7 @@ GenMetalTraverser::GenMetalTraverser(const TCompiler &compiler,
       mMainUniformBufferIndex(compileOptions.metal.defaultUniformsBindingIndex),
       mDriverUniformsBindingIndex(compileOptions.metal.driverUniformsBindingIndex),
       mUBOArgumentBufferBindingIndex(compileOptions.metal.UBOArgumentBufferBindingIndex),
+      mSSBOBindingIndexStart(compileOptions.metal.ssboBindingIndexStart),
       mRasterOrderGroupsSupported(compileOptions.pls.fragmentSyncType ==
                                   ShFragmentSynchronizationType::RasterOrderGroups_Metal),
       mWriteHelperSampleMask(ppc.writeHelperSampleMask)
@@ -2160,11 +2162,11 @@ void GenMetalTraverser::emitFunctionParameter(const TFunction &func, const TVari
         emitBlockNameOf(*ib);
         mOut << " *";
         emitNameOf(param);
-        // 硬编码 26，与 mtl::kSSBOBindingIndexStart 保持一致
-        mOut << " [[buffer(" << (26 + ib->binding()) << ")]]";
-        
+        // SSBO slots start at the compute SSBO binding index and grow with the block's binding
+        mOut << " [[buffer(" << (mSSBOBindingIndexStart + ib->blockBinding()) << ")]]";
+
         TranslatorMetalReflection *reflection = mtl::getTranslatorMetalReflection(&mCompiler);
-        reflection->addInterfaceBlockBinding(ib->name().data(), ib->binding());
+        reflection->addInterfaceBlockBinding(ib->name().data(), ib->blockBinding());
         return;
     }
 

@@ -74,6 +74,10 @@ class VertexArrayMtl : public VertexArrayImpl
                                   const gl::VertexBinding &binding,
                                   size_t attribIndex);
 
+    angle::Result syncDirtyBinding(const gl::Context *glContext,
+                                   size_t bindingIndex,
+                                   gl::VertexArray::DirtyAttribBitsArray *attribBits);
+
     angle::Result convertIndexBuffer(const gl::Context *glContext,
                                      gl::DrawElementsType indexType,
                                      size_t offset,

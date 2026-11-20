@@ -82,6 +82,8 @@ struct ShCompileOptionsMetal
     int defaultUniformsBindingIndex = 0;
     // Binding index for UBO's argument buffer
     int UBOArgumentBufferBindingIndex = 0;
+    // First buffer binding index available for compute shader SSBOs:
+    int ssboBindingIndexStart = 0;
 
     // Use sample_compare with explicit gradients for shadow textureGrad functions. When false,
     // the gradients are converted to an explicit level of detail.

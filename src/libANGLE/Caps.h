@@ -153,6 +153,11 @@ struct Limitations
     // shared renderer code.
     bool multidrawEmulated = true;
 
+    // GL_EXT_multi_draw_indirect is emulated by shared code, but the backend explicitly wants it
+    // exposed outside WebGL.  Keep this separate from multidrawEmulated so GL_ANGLE_multi_draw
+    // remains WebGL-only.
+    bool exposeEmulatedMultiDrawIndirect = false;
+
     // GL_ANGLE_base_vertex_base_instance is emulated and should only be exposed to WebGL. Emulated
     // by default in shared renderer code.
     bool baseInstanceBaseVertexEmulated = true;

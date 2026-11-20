@@ -266,21 +266,19 @@ angle::Result VertexArrayMtl::syncState(const gl::Context *context,
 
                 ANGLE_VERTEX_INDEX_CASES(ANGLE_VERTEX_DIRTY_ATTRIB_FUNC)
 
-#define ANGLE_VERTEX_DIRTY_BINDING_FUNC(INDEX)                                                    \
-    case gl::VertexArray::DIRTY_BIT_BINDING_0 + INDEX:                                            \
-        ANGLE_TRY(syncDirtyAttrib(context, attribs[INDEX], bindings[attribs[INDEX].bindingIndex], \
-                                  INDEX));                                                        \
-        mVertexArrayDirty = true;                                                                 \
-        (*bindingBits)[INDEX].reset();                                                            \
+#define ANGLE_VERTEX_DIRTY_BINDING_FUNC(INDEX)                   \
+    case gl::VertexArray::DIRTY_BIT_BINDING_0 + INDEX:           \
+        ANGLE_TRY(syncDirtyBinding(context, INDEX, attribBits)); \
+        mVertexArrayDirty = true;                                \
+        (*bindingBits)[INDEX].reset();                           \
         break;
 
                 ANGLE_VERTEX_INDEX_CASES(ANGLE_VERTEX_DIRTY_BINDING_FUNC)
 
-#define ANGLE_VERTEX_DIRTY_BUFFER_DATA_FUNC(INDEX)                                                \
-    case gl::VertexArray::DIRTY_BIT_BUFFER_DATA_0 + INDEX:                                        \
-        ANGLE_TRY(syncDirtyAttrib(context, attribs[INDEX], bindings[attribs[INDEX].bindingIndex], \
-                                  INDEX));                                                        \
-        mVertexDataDirty = true;                                                                  \
+#define ANGLE_VERTEX_DIRTY_BUFFER_DATA_FUNC(INDEX)               \
+    case gl::VertexArray::DIRTY_BIT_BUFFER_DATA_0 + INDEX:       \
+        ANGLE_TRY(syncDirtyBinding(context, INDEX, attribBits)); \
+        mVertexDataDirty = true;                                 \
         break;
 
                 ANGLE_VERTEX_INDEX_CASES(ANGLE_VERTEX_DIRTY_BUFFER_DATA_FUNC)
@@ -629,7 +627,15 @@ angle::Result VertexArrayMtl::syncDirtyAttrib(const gl::Context *glContext,
         }
         else
         {
-            // ContextMtl must feed the client data using updateClientAttribs()
+            // Enabled, but no buffer is bound: the attribute reads client memory.  ContextMtl
+            // feeds that data through updateClientAttribs() before the draw; drop any buffered
+            // pointer from an earlier binding now so it cannot outlive the buffer it came from.
+            mCurrentArrayBuffers[attribIndex]            = nullptr;
+            mCurrentArrayInlineDataPointers[attribIndex] = nullptr;
+            mCurrentArrayBufferOffsets[attribIndex]      = 0;
+            mCurrentArrayBufferStrides[attribIndex]      = 0;
+            mCurrentArrayBufferFormats[attribIndex] =
+                &contextMtl->getVertexFormat(angle::FormatID::NONE, false);
         }
     }
     else
@@ -640,6 +646,27 @@ angle::Result VertexArrayMtl::syncDirtyAttrib(const gl::Context *glContext,
         mCurrentArrayBufferStrides[attribIndex] = 0;
         mCurrentArrayBufferFormats[attribIndex] =
             &contextMtl->getVertexFormat(angle::FormatID::NONE, false);
+    }
+
+    return angle::Result::Continue;
+}
+
+angle::Result VertexArrayMtl::syncDirtyBinding(const gl::Context *glContext,
+                                               size_t bindingIndex,
+                                               gl::VertexArray::DirtyAttribBitsArray *attribBits)
+{
+    const std::vector<gl::VertexAttribute> &attribs = mState.getVertexAttributes();
+    const gl::VertexBinding &binding                = mState.getVertexBindings()[bindingIndex];
+
+    // A binding can feed more than one attribute (GL_ARB_vertex_attrib_binding).  The cached array
+    // buffer is per attribute, so every attribute attached to the binding has to be re-synced.
+    // Syncing only attribs[bindingIndex] would leave the other attributes pointing at the buffer
+    // that the binding just released, which is destroyed with it when the application has already
+    // deleted it.
+    for (size_t attribIndex : binding.getBoundAttributesMask())
+    {
+        ANGLE_TRY(syncDirtyAttrib(glContext, attribs[attribIndex], binding, attribIndex));
+        (*attribBits)[attribIndex].reset();
     }
 
     return angle::Result::Continue;
