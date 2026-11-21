@@ -11,6 +11,7 @@
 #include "common/debug.h"
 #include "common/utilities.h"
 #include "libANGLE/Context.h"
+#include "libANGLE/Display.h"
 #include "libANGLE/Renderbuffer.h"
 #include "libANGLE/Texture.h"
 #include "libANGLE/angletypes.h"
@@ -241,7 +242,7 @@ ExternalImageSibling::ExternalImageSibling(rx::EGLImplFactory *factory,
 
 ExternalImageSibling::~ExternalImageSibling() = default;
 
-void ExternalImageSibling::onDestroy(const egl::Display *display)
+void ExternalImageSibling::onDestroy(const egl::ThreadSafeDisplay *display)
 {
     mImplementation->onDestroy(display);
 }
@@ -396,7 +397,7 @@ Image::Image(rx::EGLImplFactory *factory,
     mState.source->addImageSource(this);
 }
 
-void Image::onDestroy(const Display *display)
+void Image::onDestroy(const ThreadSafeDisplay *display)
 {
     // All targets should hold a ref to the egl image and it should not be deleted until there are
     // no siblings left.
@@ -422,6 +423,12 @@ void Image::onDestroy(const Display *display)
         }
 
         mState.source = nullptr;
+    }
+
+    // display is only nullptr in unit tests, which create images without a display.
+    if (display != nullptr)
+    {
+        display->releaseImageHandle(id());
     }
 }
 
@@ -688,6 +695,43 @@ void Image::notifySiblings(const ImageSibling *notifier, angle::SubjectMessage m
         {
             target->onSubjectStateChange(rx::kTextureImageSiblingMessageIndex, message);
         }
+    }
+}
+
+ScopedImageRef::~ScopedImageRef()
+{
+    if (mImage)
+    {
+        mDisplay->releaseImage(mImage);
+    }
+}
+
+ScopedImageDestroy::~ScopedImageDestroy()
+{
+    if (mImage)
+    {
+        ASSERT(mDisplay != nullptr);
+        AssertCurrentThreadHoldingOneDisplayRefCount();
+        mDisplay->releaseImage(mImage);
+    }
+}
+
+void ImageMap::destroyAllInvalidImages(ThreadSafeDisplay *display)
+{
+    std::vector<Image *> imagesToDestroy;
+    {
+        std::lock_guard<angle::SimpleMutex> lock(mMutex);
+        if (mInvalidImages.empty())
+        {
+            return;
+        }
+        imagesToDestroy = std::move(mInvalidImages);
+        ASSERT(mInvalidImages.empty());
+    }
+
+    for (Image *image : imagesToDestroy)
+    {
+        display->releaseImage(image);
     }
 }
 

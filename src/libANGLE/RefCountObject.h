@@ -70,13 +70,25 @@ class ThreadSafeRefCountObject : angle::NonCopyable
 
     void addRef() const { mRefCount.fetch_add(1, std::memory_order_relaxed); }
 
+    ANGLE_INLINE bool releaseRef()
+    {
+        const size_t prevCount = mRefCount.fetch_sub(1, std::memory_order_acq_rel);
+        ASSERT(prevCount > 0);
+        return prevCount == 1;
+    }
+
+    ANGLE_INLINE void destroy(const ContextType *context)
+    {
+        ASSERT(mRefCount == 0);
+        onDestroy(context);
+        delete this;
+    }
+
     ANGLE_INLINE void release(const ContextType *context)
     {
-        ASSERT(mRefCount > 0);
-        if (mRefCount.fetch_sub(1, std::memory_order_acq_rel) == 1)
+        if (releaseRef())
         {
-            onDestroy(context);
-            delete this;
+            destroy(context);
         }
     }
 
@@ -244,7 +256,9 @@ class BindingPointer : public angle::BindingPointer<ObjectType, Context>
     {
         ObjectType *obj = this->get();
         if (obj)
+        {
             return obj->id();
+        }
         return {0};
     }
 };
@@ -355,16 +369,16 @@ class SubjectBindingPointer : protected BindingPointer<SubjectT>, public angle::
 
 namespace egl
 {
-class Display;
+class ThreadSafeDisplay;
 
-using RefCountObject           = angle::RefCountObject<Display, Error>;
-using ThreadSafeRefCountObject = angle::ThreadSafeRefCountObject<Display, Error>;
-
-template <class ObjectType>
-using RefCountObjectReleaser = angle::RefCountObjectReleaser<ObjectType, Display, Error>;
+using RefCountObject           = angle::RefCountObject<ThreadSafeDisplay, Error>;
+using ThreadSafeRefCountObject = angle::ThreadSafeRefCountObject<ThreadSafeDisplay, Error>;
 
 template <class ObjectType>
-using BindingPointer = angle::BindingPointer<ObjectType, Display, Error>;
+using RefCountObjectReleaser = angle::RefCountObjectReleaser<ObjectType, ThreadSafeDisplay, Error>;
+
+template <class ObjectType>
+using BindingPointer = angle::BindingPointer<ObjectType, ThreadSafeDisplay, Error>;
 
 }  // namespace egl
 

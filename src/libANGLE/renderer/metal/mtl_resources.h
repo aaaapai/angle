@@ -14,6 +14,7 @@
 
 #include <atomic>
 #include <memory>
+#include <tuple>
 
 #include "common/FastVector.h"
 #include "common/MemoryBuffer.h"
@@ -321,14 +322,12 @@ class Texture final : public Resource,
     // Get reading copy. Used for reading non-readable texture or reading stencil value from
     // packed depth & stencil texture.
     // NOTE: this only copies 1 depth slice of the 3D texture.
-    // The texels will be copied to region(0, 0, 0, areaToCopy.size) of the returned texture.
     // The returned pointer will be retained by the original texture object.
     // Calling getReadableCopy() will overwrite previously returned texture.
     TextureRef getReadableCopy(ContextMtl *context,
                                mtl::BlitCommandEncoder *encoder,
                                const uint32_t levelToCopy,
-                               const uint32_t sliceToCopy,
-                               const MTLRegion &areaToCopy);
+                               const uint32_t sliceToCopy);
 
     void releaseReadableCopy();
 
@@ -340,6 +339,9 @@ class Texture final : public Resource,
     TextureRef parentTexture();
     MipmapNativeLevel parentRelativeLevel();
     uint32_t parentRelativeSlice();
+    std::tuple<TextureRef, MipmapNativeLevel, uint32_t> getRootParentAndRelativeLevelSlice(
+        MipmapNativeLevel level,
+        uint32_t slice);
 
     // Change the wrapped metal object. Special case for swapchain image
     void set(id<MTLTexture> metalTexture);

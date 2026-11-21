@@ -978,8 +978,7 @@ TextureRef Texture::getLinearColorView()
 TextureRef Texture::getReadableCopy(ContextMtl *context,
                                     mtl::BlitCommandEncoder *encoder,
                                     const uint32_t levelToCopy,
-                                    const uint32_t sliceToCopy,
-                                    const MTLRegion &areaToCopy)
+                                    const uint32_t sliceToCopy)
 {
     gl::Extents firstLevelSize = size(kZeroNativeMipLevel);
     if (!mReadCopy || mReadCopy->get().width < static_cast<size_t>(firstLevelSize.width) ||
@@ -1083,6 +1082,24 @@ MipmapNativeLevel Texture::parentRelativeLevel()
 uint32_t Texture::parentRelativeSlice()
 {
     return static_cast<uint32_t>(get().parentRelativeSlice);
+}
+
+std::tuple<TextureRef, MipmapNativeLevel, uint32_t> Texture::getRootParentAndRelativeLevelSlice(
+    MipmapNativeLevel level,
+    uint32_t slice)
+{
+    TextureRef root             = shared_from_this();
+    MipmapNativeLevel rootLevel = level;
+    uint32_t rootSlice          = slice;
+
+    while (root && root->parentTexture())
+    {
+        rootLevel = rootLevel + root->parentRelativeLevel().get();
+        rootSlice = rootSlice + root->parentRelativeSlice();
+        root      = root->parentTexture();
+    }
+
+    return {root, rootLevel, rootSlice};
 }
 
 void Texture::set(id<MTLTexture> metalTexture)

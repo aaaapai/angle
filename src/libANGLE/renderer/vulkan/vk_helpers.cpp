@@ -837,11 +837,13 @@ void RenderPassAttachment::finalizeLoadStore(ErrorContext *context,
     const bool notLoaded = *loadOp == RenderPassLoadOp::DontCare && !hasUnresolveAttachment;
     if (isInvalidated(currentCmdCount) || (notLoaded && !HasResourceWriteAccess(mAccess)))
     {
+        ASSERT(!hasWriteAfterInvalidate(currentCmdCount));
         *storeOp          = RenderPassStoreOp::DontCare;
         *isInvalidatedOut = true;
     }
     else if (hasWriteAfterInvalidate(currentCmdCount))
     {
+        ASSERT(HasResourceWriteAccess(mAccess));
         // The attachment was invalidated, but is now valid.  Let the image know the contents are
         // now defined so a future render pass would use loadOp=LOAD.
         restoreContent();
@@ -899,7 +901,8 @@ void RenderPassAttachment::finalizeLoadStore(ErrorContext *context,
         }
     }
 
-    if (mAccess == ResourceAccess::Unused || (mAccess == ResourceAccess::ReadOnly && notLoaded))
+    if ((mAccess == ResourceAccess::Unused && !hasUnresolveAttachment) ||
+        (mAccess == ResourceAccess::ReadOnly && notLoaded))
     {
         // If we are loading or clearing the attachment, but the attachment has not been used,
         // and the data has also not been stored back into attachment, then just skip the
@@ -913,7 +916,8 @@ void RenderPassAttachment::finalizeLoadStore(ErrorContext *context,
             (*loadOp == RenderPassLoadOp::Load || *loadOp == RenderPassLoadOp::Clear);
         if (*storeOp == RenderPassStoreOp::DontCare && !attachmentNeedsToBeResolved)
         {
-            if (supportsLoadStoreOpNone && !isInvalidated(currentCmdCount))
+            ASSERT(*loadOp != RenderPassLoadOp::None);
+            if (supportsLoadStoreOpNone && *loadOp == RenderPassLoadOp::DontCare)
             {
                 *loadOp  = RenderPassLoadOp::None;
                 *storeOp = RenderPassStoreOp::None;
@@ -1001,7 +1005,11 @@ bool RenderPassAttachment::onAccessImpl(ResourceAccess access, uint32_t currentC
     // Use the latest CmdCount at the start of being disabled.  At the end of the render pass,
     // cmdCountDisabled is <= the actual command count, and so it's compared with
     // cmdCountInvalidated.  If the same, the attachment is still invalidated.
-    mDisabledCmdCount = currentCmdCount;
+    if (mDisabledCmdCount == kInfiniteCmdCount)
+    {
+        // Disable only if was not already disabled.
+        mDisabledCmdCount = currentCmdCount;
+    }
     return false;
 }
 
@@ -1108,6 +1116,7 @@ void CommandBufferHelperCommon::bufferWrite(Context *context,
         GetBufferMemoryBarrierData(writeStage).pipelineStageFlags;
     bufferWriteImpl(context, writeAccessType, writePipelineStageFlags, writeStage, buffer,
                     kNoMemoryBarrierBits);
+    retainResourceForWrite(buffer);
 }
 
 void CommandBufferHelperCommon::bufferWrite(Context *context,
@@ -1121,6 +1130,7 @@ void CommandBufferHelperCommon::bufferWrite(Context *context,
     PipelineStage firstWriteStage = GetPipelineStage(writeShaderStages.first());
     bufferWriteImpl(context, writeAccessType, writePipelineStageFlags, firstWriteStage, buffer,
                     memoryBarrierBits);
+    retainResourceForWrite(buffer);
 }
 
 void CommandBufferHelperCommon::bufferRead(Context *context,
@@ -1169,8 +1179,8 @@ void CommandBufferHelperCommon::bufferWriteImpl(Context *context,
         mIsAnyHostVisibleBufferWritten = true;
     }
 
-    buffer->recordWriteEvent(context, writeAccessType, writePipelineStageFlags, mQueueSerial,
-                             writeStage, &mRefCountedEvents);
+    buffer->recordWriteEvent(context, writeAccessType, writePipelineStageFlags, writeStage,
+                             &mRefCountedEvents);
 }
 
 void CommandBufferHelperCommon::bufferReadImpl(Context *context,
@@ -1338,6 +1348,25 @@ void OutsideRenderPassCommandBufferHelper::abandon(
     mEventBarriers.reset();
 
     (void)reset(context, commandBufferCollector);
+}
+
+void OutsideRenderPassCommandBufferHelper::bufferWriteWhileUsedInRenderPass(
+    Context *context,
+    VkAccessFlags writeAccessType,
+    const gl::ShaderBitSet &writeShaderStages,
+    BufferHelper *buffer,
+    const GLbitfield memoryBarrierBits)
+{
+    ASSERT(buffer->getResourceUse() > mQueueSerial);
+    VkPipelineStageFlags writePipelineStageFlags =
+        ConvertShaderBitSetToVkPipelineStageFlags(writeShaderStages);
+    PipelineStage firstWriteStage = GetPipelineStage(writeShaderStages.first());
+    bufferWriteImpl(context, writeAccessType, writePipelineStageFlags, firstWriteStage, buffer,
+                    memoryBarrierBits);
+    // Do not update mUse since the open render pass already tracks a strictly larger QueueSerial
+    // covering this command buffer's lifetime. Still update mWriteUse if smaller than mQueueSerial
+    // so subsequent maps/copies synchronize with this write.
+    buffer->mergeWriteOnlyQueueSerial(mQueueSerial);
 }
 
 void OutsideRenderPassCommandBufferHelper::imageRead(Context *context,
@@ -5470,10 +5499,11 @@ void BufferHelper::recordWriteBarrier(Context *context,
     // Barrier against prior read VkEvents.
     if (!mCurrentReadEvents.empty())
     {
-        // If we already have a event in the same command buffer, fall back to pipeline. Otherwise
-        // you may run into wait an event that has not been set. This may be can be removed once we
-        // fix https://issuetracker.google.com/392968868
-        if (forcePipelineBarrier || usedByCommandBuffer(queueSerial))
+        // If we already have an event in the same command buffer or in an open render pass with a
+        // larger queue serial, fall back to pipeline barrier. Otherwise you may run into waiting on
+        // an event that has not been set. This may be removed once we fix
+        // https://issuetracker.google.com/392968868
+        if (forcePipelineBarrier || getResourceUse() >= queueSerial)
         {
             for (EventStage eventStage : mCurrentReadEvents.getBitMask())
             {
@@ -5501,13 +5531,14 @@ void BufferHelper::recordWriteBarrier(Context *context,
         const VkPipelineStageFlags srcStageFlags =
             renderer->getPipelineStageMask(mCurrentWriteEvent.getEventStage());
 
-        // If we already have a write event in the same command buffer, fall back to pipeline
-        // barrier. Using VkEvent to track multiple writes either requires tracking multiple write
-        // events or has to replace existing event with another event that tracks more pipeline
-        // stage bits. Both are a bit complex. Without evidence showing we are hitting performance
-        // issue in real world situation, this will just use pipeline barriers to track extra stages
-        // that not captured by mCurrentWriteEvent.
-        if (forcePipelineBarrier || writtenByCommandBuffer(queueSerial))
+        // If we already have a write event in the same command buffer (or in an open render pass
+        // with a larger queue serial), fall back to pipeline barrier. Using VkEvent to track
+        // multiple writes either requires tracking multiple write events or has to replace existing
+        // event with another event that tracks more pipeline stage bits. Both are a bit complex.
+        // Without evidence showing we are hitting performance issue in real world situation, this
+        // will just use pipeline barriers to track extra stages that not captured by
+        // mCurrentWriteEvent.
+        if (forcePipelineBarrier || getWriteResourceUse() >= queueSerial)
         {
             mCurrentWriteStages |= srcStageFlags;
             mCurrentWriteAccess |= mCurrentWriteEvent.getAccessFlags();
@@ -5548,7 +5579,6 @@ void BufferHelper::recordWriteBarrier(Context *context,
 void BufferHelper::recordWriteEvent(Context *context,
                                     VkAccessFlags writeAccessType,
                                     VkPipelineStageFlags writePipelineStageFlags,
-                                    const QueueSerial &writeQueueSerial,
                                     PipelineStage writeStage,
                                     RefCountedEventArray *refCountedEventArray)
 {
@@ -5588,8 +5618,6 @@ void BufferHelper::recordWriteEvent(Context *context,
         mCurrentWriteAccess = writeAccessType;
         mCurrentWriteStages = writePipelineStageFlags;
     }
-
-    setWriteQueueSerial(writeQueueSerial);
 }
 
 void BufferHelper::fillWithColor(const angle::Color<uint8_t> &color,

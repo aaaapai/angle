@@ -200,6 +200,42 @@ struct ScopedFramebufferGL : angle::NonCopyable
     GLuint id = 0;
 };
 
+// Unbinds the pixel unpack buffer while in scope, and restores the previous binding on exit.
+struct ScopedUnbindPixelUnpackBuffer : angle::NonCopyable
+{
+    ScopedUnbindPixelUnpackBuffer(StateManagerGL *stateManager, bool isHardenedContext)
+        : stateManager(stateManager),
+          isHardenedContext(isHardenedContext),
+          previousBuffer(stateManager->getBufferID(gl::BufferBinding::PixelUnpack))
+    {
+        stateManager->bindBuffer(gl::BufferBinding::PixelUnpack, 0, isHardenedContext);
+    }
+    ~ScopedUnbindPixelUnpackBuffer()
+    {
+        stateManager->bindBuffer(gl::BufferBinding::PixelUnpack, previousBuffer, isHardenedContext);
+    }
+    StateManagerGL *stateManager;
+    bool isHardenedContext;
+    GLuint previousBuffer;
+};
+
+// ES 3.0+ glTexSubImage* requires GL_RGB / GL_RGBA instead of unsized GL_SRGB / GL_SRGB_ALPHA_EXT.
+GLenum GetTexSubImageSRGBFormat(const FunctionsGL *functions, GLenum format)
+{
+    if (functions->standard == STANDARD_GL_DESKTOP || functions->isAtLeastGLES(gl::Version(3, 0)))
+    {
+        if (format == GL_SRGB)
+        {
+            return GL_RGB;
+        }
+        if (format == GL_SRGB_ALPHA_EXT)
+        {
+            return GL_RGBA;
+        }
+    }
+    return format;
+}
+
 bool NeedsShaderCopyForVirtualMipchain(const gl::FramebufferAttachment *readBuffer,
                                        GLenum dstSizedInternalFormat)
 {
@@ -375,7 +411,7 @@ angle::Result TextureGL::allocateTexStorage(const gl::Context *context,
         }
         GLuint levelBytes = 0;
         ANGLE_CHECK_GL_ALLOC(contextGL,
-                             internalFormatInfo.computeImageSize(levelExtents, 0, &levelBytes));
+                             internalFormatInfo.estimateImageSize(levelExtents, 0, &levelBytes));
         angle::CheckedNumeric<size_t> checkedLevelBytes(levelBytes);
         if (type == gl::TextureType::CubeMap)
         {
@@ -1450,10 +1486,13 @@ angle::Result TextureGL::setImageHelper(const gl::Context *context,
 
     stateManager->bindTexture(getType(), mTextureID);
 
+    bool levelAllocatedByWorkaround = false;
     if (features.recreateTextureOnTexImage3dDepthIncrease.enabled &&
-        getType() == gl::TextureType::_3D && !mState.getImmutableFormat())
+        nativegl::UseTexImage3D(getType()) && !mState.getImmutableFormat())
     {
-        ANGLE_TRY(recreateTextureOnTexImage3DDepthIncreaseWorkaround(context, target, level, size));
+        ANGLE_TRY(recreateTextureOnTexImage3DDepthIncreaseWorkaround(
+            context, target, level, size, texImageFormat.internalFormat, texImageFormat.format,
+            texImageFormat.type, &levelAllocatedByWorkaround));
     }
 
     if (features.resetTexImage2DBaseLevel.enabled)
@@ -1490,11 +1529,29 @@ angle::Result TextureGL::setImageHelper(const gl::Context *context,
     else
     {
         ASSERT(nativegl::UseTexImage3D(getType()));
-        ANGLE_GL_TRY_ALWAYS_CHECK(
-            context, functions->texImage3D(ToGLenum(target), static_cast<GLint>(level),
-                                           texImageFormat.internalFormat, size.width, size.height,
-                                           size.depth, 0, texImageFormat.format,
-                                           texImageFormat.type, pixels));
+        if (levelAllocatedByWorkaround)
+        {
+            // The level was allocated before the contents of the other levels were copied, so only
+            // its data is uploaded.
+            if (!size.empty() && (pixels != nullptr ||
+                                  stateManager->getBufferID(gl::BufferBinding::PixelUnpack) != 0))
+            {
+                ANGLE_GL_TRY_ALWAYS_CHECK(
+                    context, functions->texSubImage3D(
+                                 ToGLenum(target), static_cast<GLint>(level), 0, 0, 0, size.width,
+                                 size.height, size.depth,
+                                 GetTexSubImageSRGBFormat(functions, texImageFormat.format),
+                                 texImageFormat.type, pixels));
+            }
+        }
+        else
+        {
+            ANGLE_GL_TRY_ALWAYS_CHECK(
+                context, functions->texImage3D(ToGLenum(target), static_cast<GLint>(level),
+                                               texImageFormat.internalFormat, size.width,
+                                               size.height, size.depth, 0, texImageFormat.format,
+                                               texImageFormat.type, pixels));
+        }
     }
 
     LevelInfoGL levelInfo =
@@ -1880,6 +1937,261 @@ angle::Result TextureGL::setSubImagePaddingWorkaround(const gl::Context *context
     return angle::Result::Continue;
 }
 
+// Uploads a compressed texture sub-region for setCompressedSubImage and (when
+// virtualizeBaseLevelAndMipchain is enabled) setCompressedImage, applying two driver workarounds:
+// 1. splitLevel0PboFullSubImage2D (https://crbug.com/577323296): Full-level uploads to native level
+//    0 from a GL_PIXEL_UNPACK_BUFFER trigger a ghost-allocation UAF in the PowerVR driver when
+//    performed in a single call. Multi-block uploads are split into two glCompressedTexSubImage2D /
+//    glCompressedTexSubImage3D calls along a block boundary (depth, height, or width). Single-block
+//    levels (and PVRTC1 levels, which disallow partial sub-image updates) cannot be split and are
+//    instead mapped from the PBO into CPU scratch memory and uploaded with the PBO unbound.
+// 2. copyImageSubData3DFailsOnTailMipLevels: Full-level CPU uploads to 1x1xD 3D tail mip levels
+//    cache the compressed bytes in TailMip3DCpuData so copyBetweenNativeLevels can re-upload them
+//    from CPU memory rather than calling glCopyImageSubDataEXT.
+angle::Result TextureGL::setCompressedSubImageHelper(
+    const gl::Context *context,
+    const NativeLevelTarget &nlt,
+    gl::TextureTarget target,
+    size_t level,
+    const gl::Box &area,
+    const gl::Extents &levelSize,
+    const gl::InternalFormat &originalInternalFormatInfo,
+    GLenum compressedSubImageFormat,
+    const gl::PixelUnpackState &unpack,
+    bool hasUnpackBuffer,
+    size_t imageSize,
+    const uint8_t *pixels)
+{
+    ContextGL *contextGL              = GetImplAs<ContextGL>(context);
+    const FunctionsGL *functions      = GetFunctionsGL(context);
+    StateManagerGL *stateManager      = GetStateManagerGL(context);
+    const angle::FeaturesGL &features = GetFeaturesGL(context);
+
+    gl::TextureType bindType = gl::TextureTargetToType(nlt.target);
+    const bool isFullImage   = area.x == 0 && area.y == 0 && area.z == 0 &&
+                               area.width == levelSize.width && area.height == levelSize.height &&
+                               area.depth == levelSize.depth;
+
+    const GLsizei blockW = std::max<GLsizei>(1, originalInternalFormatInfo.compressedBlockWidth);
+    const GLsizei blockH = std::max<GLsizei>(1, originalInternalFormatInfo.compressedBlockHeight);
+    const GLsizei blockD = std::max<GLsizei>(1, originalInternalFormatInfo.compressedBlockDepth);
+    const GLuint blockBytes      = originalInternalFormatInfo.pixelBytes;
+    const GLsizei blocksWide     = (area.width + blockW - 1) / blockW;
+    const GLsizei blocksHigh     = (area.height + blockH - 1) / blockH;
+    const GLsizei blocksDeep     = (area.depth + blockD - 1) / blockD;
+    const bool hasNonEmptyBlocks = imageSize > 0 && blocksWide >= 1 && blocksHigh >= 1 &&
+                                   (nativegl::UseTexImage2D(bindType) || blocksDeep >= 1);
+    const bool isSingleBlock     = blocksWide == 1 && blocksHigh == 1 &&
+                                   (nativegl::UseTexImage2D(bindType) || blocksDeep == 1);
+
+    const bool needsSingleBlockPboReadback =
+        features.splitLevel0PboFullSubImage2D.enabled && nlt.level == 0 && isFullImage &&
+        hasNonEmptyBlocks &&
+        (isSingleBlock || gl::IsPVRTC1Format(originalInternalFormatInfo.internalFormat));
+
+    stateManager->bindTexture(bindType, nlt.textureID);
+    ANGLE_TRY(stateManager->setPixelUnpackState(context, unpack));
+
+    ASSERT(!area.getExtents().empty() && !levelSize.empty());
+
+    const uint8_t *cpuPixels = nullptr;
+
+    if (hasUnpackBuffer && functions->mapBufferRange != nullptr && needsSingleBlockPboReadback)
+    {
+        angle::MemoryBuffer *scratchBuffer = nullptr;
+        ANGLE_CHECK_GL_ALLOC(contextGL, context->getScratchBuffer(imageSize, &scratchBuffer));
+
+        const gl::Buffer *unpackBuffer =
+            context->getState().getTargetBuffer(gl::BufferBinding::PixelUnpack);
+        ASSERT(unpackBuffer != nullptr);
+        ANGLE_TRY(stateManager->setPixelUnpackBuffer(context, unpackBuffer));
+
+        const uintptr_t startOffset = reinterpret_cast<uintptr_t>(pixels);
+        const void *mappedPtr       = nullptr;
+        ANGLE_GL_TRY(context, mappedPtr = functions->mapBufferRange(
+                                  GL_PIXEL_UNPACK_BUFFER, static_cast<GLintptr>(startOffset),
+                                  static_cast<GLsizeiptr>(imageSize), GL_MAP_READ_BIT));
+        ANGLE_CHECK_GL_ALLOC(contextGL, mappedPtr != nullptr);
+        // SAFETY: `scratchBuffer` is allocated with size `>= imageSize`, and `mappedPtr`
+        // points to `imageSize` bytes mapped from `GL_PIXEL_UNPACK_BUFFER` by `glMapBufferRange`.
+        ANGLE_UNSAFE_BUFFERS(memcpy(scratchBuffer->data(), mappedPtr, imageSize));
+        ANGLE_GL_TRY(context, functions->unmapBuffer(GL_PIXEL_UNPACK_BUFFER));
+
+        ANGLE_TRY(stateManager->setPixelUnpackBuffer(context, nullptr));
+        if (nativegl::UseTexImage2D(bindType))
+        {
+            ASSERT(area.z == 0 && area.depth == 1);
+            ANGLE_GL_TRY(context, functions->compressedTexSubImage2D(
+                                      ToGLenum(nlt.target), nlt.level, area.x, area.y, area.width,
+                                      area.height, compressedSubImageFormat,
+                                      static_cast<GLsizei>(imageSize), scratchBuffer->data()));
+        }
+        else
+        {
+            ASSERT(nativegl::UseTexImage3D(bindType));
+            ANGLE_GL_TRY(context, functions->compressedTexSubImage3D(
+                                      ToGLenum(nlt.target), nlt.level, area.x, area.y, area.z,
+                                      area.width, area.height, area.depth, compressedSubImageFormat,
+                                      static_cast<GLsizei>(imageSize), scratchBuffer->data()));
+            cpuPixels = scratchBuffer->data();
+        }
+        ANGLE_TRY(stateManager->setPixelUnpackBuffer(context, unpackBuffer));
+    }
+    else if (nativegl::UseTexImage2D(bindType))
+    {
+        ASSERT(area.z == 0 && area.depth == 1);
+        if (features.splitLevel0PboFullSubImage2D.enabled && nlt.level == 0 && hasUnpackBuffer &&
+            isFullImage && hasNonEmptyBlocks &&
+            !gl::IsPVRTC1Format(originalInternalFormatInfo.internalFormat) &&
+            (blocksHigh > 1 || blocksWide > 1))
+        {
+            // Split full-image PBO uploads to native level 0 into two glCompressedTexSubImage2D
+            // calls along block boundaries to avoid the PowerVR level-0 PBO ghost-allocation UAF
+            // (https://crbug.com/577323296).
+            GLsizei firstWidth   = area.width;
+            GLsizei firstHeight  = area.height;
+            GLint secondX        = 0;
+            GLint secondY        = 0;
+            GLsizei secondWidth  = area.width;
+            GLsizei secondHeight = area.height;
+            size_t firstSize     = 0;
+
+            if (blocksHigh > 1)
+            {
+                firstHeight  = (blocksHigh - 1) * blockH;
+                secondY      = firstHeight;
+                secondHeight = area.height - firstHeight;
+                firstSize = static_cast<size_t>(blocksWide) * static_cast<size_t>(blocksHigh - 1) *
+                            blockBytes;
+            }
+            else
+            {
+                ASSERT(blocksWide > 1);
+                firstWidth  = (blocksWide - 1) * blockW;
+                secondX     = firstWidth;
+                secondWidth = area.width - firstWidth;
+                firstSize   = static_cast<size_t>(blocksWide - 1) * blockBytes;
+            }
+
+            ASSERT(imageSize >= firstSize);
+            const size_t secondSize = imageSize - firstSize;
+            const void *secondPixels =
+                reinterpret_cast<const void *>(reinterpret_cast<uintptr_t>(pixels) + firstSize);
+            ANGLE_GL_TRY(context,
+                         functions->compressedTexSubImage2D(
+                             ToGLenum(nlt.target), nlt.level, 0, 0, firstWidth, firstHeight,
+                             compressedSubImageFormat, static_cast<GLsizei>(firstSize), pixels));
+            ANGLE_GL_TRY(context, functions->compressedTexSubImage2D(
+                                      ToGLenum(nlt.target), nlt.level, secondX, secondY,
+                                      secondWidth, secondHeight, compressedSubImageFormat,
+                                      static_cast<GLsizei>(secondSize), secondPixels));
+        }
+        else
+        {
+            ANGLE_GL_TRY(context, functions->compressedTexSubImage2D(
+                                      ToGLenum(nlt.target), nlt.level, area.x, area.y, area.width,
+                                      area.height, compressedSubImageFormat,
+                                      static_cast<GLsizei>(imageSize), pixels));
+        }
+    }
+    else
+    {
+        ASSERT(nativegl::UseTexImage3D(bindType));
+        if (features.splitLevel0PboFullSubImage2D.enabled && nlt.level == 0 && hasUnpackBuffer &&
+            isFullImage && hasNonEmptyBlocks &&
+            !gl::IsPVRTC1Format(originalInternalFormatInfo.internalFormat) &&
+            (blocksDeep > 1 || blocksHigh > 1 || blocksWide > 1))
+        {
+            GLsizei firstWidth   = area.width;
+            GLsizei firstHeight  = area.height;
+            GLsizei firstDepth   = area.depth;
+            GLint secondX        = 0;
+            GLint secondY        = 0;
+            GLint secondZ        = 0;
+            GLsizei secondWidth  = area.width;
+            GLsizei secondHeight = area.height;
+            GLsizei secondDepth  = area.depth;
+            size_t firstSize     = 0;
+
+            if (blocksDeep > 1)
+            {
+                firstDepth  = (blocksDeep - 1) * blockD;
+                secondZ     = firstDepth;
+                secondDepth = area.depth - firstDepth;
+                firstSize   = static_cast<size_t>(blocksWide) * static_cast<size_t>(blocksHigh) *
+                              static_cast<size_t>(blocksDeep - 1) * blockBytes;
+            }
+            else if (blocksHigh > 1)
+            {
+                firstHeight  = (blocksHigh - 1) * blockH;
+                secondY      = firstHeight;
+                secondHeight = area.height - firstHeight;
+                firstSize = static_cast<size_t>(blocksWide) * static_cast<size_t>(blocksHigh - 1) *
+                            blockBytes;
+            }
+            else
+            {
+                ASSERT(blocksWide > 1);
+                firstWidth  = (blocksWide - 1) * blockW;
+                secondX     = firstWidth;
+                secondWidth = area.width - firstWidth;
+                firstSize   = static_cast<size_t>(blocksWide - 1) * blockBytes;
+            }
+
+            ASSERT(imageSize >= firstSize);
+            const size_t secondSize = imageSize - firstSize;
+            const void *secondPixels =
+                reinterpret_cast<const void *>(reinterpret_cast<uintptr_t>(pixels) + firstSize);
+            ANGLE_GL_TRY(context, functions->compressedTexSubImage3D(
+                                      ToGLenum(nlt.target), nlt.level, 0, 0, 0, firstWidth,
+                                      firstHeight, firstDepth, compressedSubImageFormat,
+                                      static_cast<GLsizei>(firstSize), pixels));
+            ANGLE_GL_TRY(context,
+                         functions->compressedTexSubImage3D(
+                             ToGLenum(nlt.target), nlt.level, secondX, secondY, secondZ,
+                             secondWidth, secondHeight, secondDepth, compressedSubImageFormat,
+                             static_cast<GLsizei>(secondSize), secondPixels));
+        }
+        else
+        {
+            ANGLE_GL_TRY(context, functions->compressedTexSubImage3D(
+                                      ToGLenum(nlt.target), nlt.level, area.x, area.y, area.z,
+                                      area.width, area.height, area.depth, compressedSubImageFormat,
+                                      static_cast<GLsizei>(imageSize), pixels));
+        }
+
+        if (!hasUnpackBuffer && pixels != nullptr)
+        {
+            cpuPixels = pixels;
+        }
+    }
+
+    if (cpuPixels != nullptr && features.copyImageSubData3DFailsOnTailMipLevels.enabled &&
+        mVirtualMipChain.has_value() && getType() == gl::TextureType::_3D && levelSize.width == 1 &&
+        levelSize.height == 1 && isFullImage)
+    {
+        VirtualLevelInfo &vLevel =
+            mVirtualMipChain->virtualLevels[GetLevelInfoIndex(target, level)];
+        TailMip3DCpuData &cpuInfo = vLevel.tailMip3DCpuData;
+        if (vLevel.texID != 0 ||
+            (!mState.hasBeenBoundAsAttachment() && !mState.hasBeenBoundAsImage()))
+        {
+            // SAFETY: `cpuPixels` points to either `scratchBuffer->data()` (allocated with size
+            // `>= imageSize`) or client memory validated by the GL entry point to contain
+            // `imageSize` bytes of compressed texture data.
+            angle::Span<const uint8_t> srcSpan =
+                ANGLE_UNSAFE_BUFFERS(angle::Span<const uint8_t>(cpuPixels, imageSize));
+            cpuInfo.data.assign(srcSpan.begin(), srcSpan.end());
+            cpuInfo.format                  = compressedSubImageFormat;
+            cpuInfo.type                    = GL_NONE;
+            cpuInfo.compressed              = true;
+            cpuInfo.contiguousSlicesWritten = static_cast<size_t>(levelSize.depth);
+        }
+    }
+
+    return angle::Result::Continue;
+}
+
 angle::Result TextureGL::setCompressedImage(const gl::Context *context,
                                             const gl::ImageIndex &index,
                                             GLenum internalFormat,
@@ -1917,49 +2229,13 @@ angle::Result TextureGL::setCompressedImage(const gl::Context *context,
                 stateManager->getBufferID(gl::BufferBinding::PixelUnpack) != 0;
             NativeLevelTarget nlt =
                 getNativeLevelTarget(target, level, /*invalidateCpuData=*/false);
-            gl::TextureType bindType = gl::TextureTargetToType(nlt.target);
-            stateManager->bindTexture(bindType, nlt.textureID);
-            ANGLE_TRY(stateManager->setPixelUnpackState(context, unpack));
-
             nativegl::CompressedTexSubImageFormat compressedTexSubImageFormat =
                 nativegl::GetCompressedSubTexImageFormat(functions, features, internalFormat);
 
-            if (nativegl::UseTexImage2D(bindType))
-            {
-                ASSERT(size.depth == 1);
-                ANGLE_GL_TRY(context, functions->compressedTexSubImage2D(
-                                          ToGLenum(nlt.target), nlt.level, 0, 0, size.width,
-                                          size.height, compressedTexSubImageFormat.format,
-                                          static_cast<GLsizei>(imageSize), pixels));
-            }
-            else
-            {
-                ASSERT(nativegl::UseTexImage3D(bindType));
-                ANGLE_GL_TRY(context,
-                             functions->compressedTexSubImage3D(
-                                 ToGLenum(nlt.target), nlt.level, 0, 0, 0, size.width, size.height,
-                                 size.depth, compressedTexSubImageFormat.format,
-                                 static_cast<GLsizei>(imageSize), pixels));
-                if (features.copyImageSubData3DFailsOnTailMipLevels.enabled &&
-                    getType() == gl::TextureType::_3D && size.width == 1 && size.height == 1 &&
-                    !hasUnpackBuffer && pixels != nullptr && unpack.skipImages == 0 &&
-                    unpack.imageHeight == 0 && unpack.skipRows == 0 && unpack.skipPixels == 0 &&
-                    unpack.rowLength == 0)
-                {
-                    VirtualLevelInfo &vLevel =
-                        mVirtualMipChain->virtualLevels[GetLevelInfoIndex(target, level)];
-                    TailMip3DCpuData &cpuInfo = vLevel.tailMip3DCpuData;
-                    // SAFETY: `pixels` points to client memory validated by the GL entry point to
-                    // contain `imageSize` bytes of compressed texture data.
-                    angle::Span<const uint8_t> srcSpan =
-                        ANGLE_UNSAFE_BUFFERS(angle::Span<const uint8_t>(pixels, imageSize));
-                    cpuInfo.data.assign(srcSpan.begin(), srcSpan.end());
-                    cpuInfo.format                  = compressedTexSubImageFormat.format;
-                    cpuInfo.type                    = GL_NONE;
-                    cpuInfo.compressed              = true;
-                    cpuInfo.contiguousSlicesWritten = static_cast<size_t>(size.depth);
-                }
-            }
+            ANGLE_TRY(setCompressedSubImageHelper(
+                context, nlt, target, level, gl::Box(0, 0, 0, size.width, size.height, size.depth),
+                size, originalInternalFormatInfo, compressedTexSubImageFormat.format, unpack,
+                hasUnpackBuffer, imageSize, pixels));
         }
 
         LevelInfoGL levelInfo =
@@ -2024,55 +2300,13 @@ angle::Result TextureGL::setCompressedSubImage(const gl::Context *context,
     nativegl::CompressedTexSubImageFormat compressedTexSubImageFormat =
         nativegl::GetCompressedSubTexImageFormat(functions, features, format);
 
-    NativeLevelTarget nlt    = getNativeLevelTarget(target, level);
-    gl::TextureType bindType = gl::TextureTargetToType(nlt.target);
-    stateManager->bindTexture(bindType, nlt.textureID);
-    ANGLE_TRY(stateManager->setPixelUnpackState(context, unpack));
+    const bool hasUnpackBuffer = stateManager->getBufferID(gl::BufferBinding::PixelUnpack) != 0;
+    const gl::ImageDesc &desc  = mState.getImageDesc(index);
+    NativeLevelTarget nlt      = getNativeLevelTarget(target, level);
 
-    if (nativegl::UseTexImage2D(bindType))
-    {
-        ASSERT(area.z == 0 && area.depth == 1);
-        ANGLE_GL_TRY(context, functions->compressedTexSubImage2D(
-                                  ToGLenum(nlt.target), nlt.level, area.x, area.y, area.width,
-                                  area.height, compressedTexSubImageFormat.format,
-                                  static_cast<GLsizei>(imageSize), pixels));
-    }
-    else
-    {
-        ASSERT(nativegl::UseTexImage3D(bindType));
-        ANGLE_GL_TRY(context,
-                     functions->compressedTexSubImage3D(
-                         ToGLenum(nlt.target), nlt.level, area.x, area.y, area.z, area.width,
-                         area.height, area.depth, compressedTexSubImageFormat.format,
-                         static_cast<GLsizei>(imageSize), pixels));
-        if (features.copyImageSubData3DFailsOnTailMipLevels.enabled &&
-            mVirtualMipChain.has_value() && getType() == gl::TextureType::_3D)
-        {
-            VirtualLevelInfo &vLevel =
-                mVirtualMipChain->virtualLevels[GetLevelInfoIndex(target, level)];
-            TailMip3DCpuData &cpuInfo = vLevel.tailMip3DCpuData;
-            const bool hasUnpackBuffer =
-                stateManager->getBufferID(gl::BufferBinding::PixelUnpack) != 0;
-            if (vLevel.size.width == 1 && vLevel.size.height == 1 && area.x == 0 && area.y == 0 &&
-                area.z == 0 && area.width == 1 && area.height == 1 &&
-                area.depth == vLevel.size.depth && !hasUnpackBuffer && pixels != nullptr &&
-                unpack.skipImages == 0 && unpack.imageHeight == 0 && unpack.skipRows == 0 &&
-                unpack.skipPixels == 0 && unpack.rowLength == 0 &&
-                (vLevel.texID != 0 ||
-                 (!mState.hasBeenBoundAsAttachment() && !mState.hasBeenBoundAsImage())))
-            {
-                // SAFETY: `pixels` points to client memory validated by the GL entry point to
-                // contain `imageSize` bytes of compressed texture data.
-                angle::Span<const uint8_t> srcSpan =
-                    ANGLE_UNSAFE_BUFFERS(angle::Span<const uint8_t>(pixels, imageSize));
-                cpuInfo.data.assign(srcSpan.begin(), srcSpan.end());
-                cpuInfo.format                  = compressedTexSubImageFormat.format;
-                cpuInfo.type                    = GL_NONE;
-                cpuInfo.compressed              = true;
-                cpuInfo.contiguousSlicesWritten = static_cast<size_t>(vLevel.size.depth);
-            }
-        }
-    }
+    ANGLE_TRY(setCompressedSubImageHelper(
+        context, nlt, target, level, area, desc.size, originalInternalFormatInfo,
+        compressedTexSubImageFormat.format, unpack, hasUnpackBuffer, imageSize, pixels));
 
     ASSERT(!getLevelInfo(target, level).lumaWorkaround.enabled &&
            !GetLevelInfo(features, originalInternalFormatInfo, compressedTexSubImageFormat.format)
@@ -3029,6 +3263,20 @@ angle::Result TextureGL::setStorage(const gl::Context *context,
     else
     {
         ASSERT(nativegl::UseTexImage3D(getType()));
+        if (features.recreateTextureOnTexImage3dDepthIncrease.enabled)
+        {
+            // The storage must not be allocated in place over existing levels.  The previous level
+            // sizes have already been replaced in the front-end, so recreate the texture if any
+            // level is defined.
+            for (const LevelInfoGL &levelInfo : mLevelInfo)
+            {
+                if (levelInfo.nativeInternalFormat != GL_NONE)
+                {
+                    ANGLE_TRY(recreateTexture(context));
+                    break;
+                }
+            }
+        }
         const gl::InternalFormat &internalFormatInfo =
             gl::GetSizedInternalFormatInfo(internalFormat);
         const bool bypassTexStorage3D = type == gl::TextureType::_3D &&
@@ -3374,6 +3622,14 @@ angle::Result TextureGL::generateMipmap(const gl::Context *context)
 
     stateManager->bindTexture(getType(), mTextureID);
 
+    // This must run before any level is redefined below, natively by glGenerateMipmap or
+    // explicitly by allocateMipmapLevelsForGeneration().
+    if (features.recreateTextureOnTexImage3dDepthIncrease.enabled &&
+        nativegl::UseTexImage3D(getType()) && !mState.getImmutableFormat())
+    {
+        ANGLE_TRY(recreateTextureOnGenerateMipmapDepthIncreaseWorkaround(context));
+    }
+
     bool recreateMipmapLevelsBeforeGenerate =
         features.recreateMipmapLevelsBeforeGenerate.enabled && !mState.getImmutableFormat();
     if (recreateMipmapLevelsBeforeGenerate)
@@ -3415,6 +3671,64 @@ angle::Result TextureGL::generateMipmap(const gl::Context *context)
     }
     else
     {
+        // On Mesa, st_generate_mipmap silently returns without generating mipmaps if the texture
+        // object's main backing resource (stObj->pt) is null. When effectiveBaseLevel > 0 and the
+        // base image has a mipmapped dimension of 1, Mesa's guess_base_level_size returns false for
+        // the base level and for every level allocated by allocateMipmapLevelsForGeneration,
+        // leaving stObj->pt null (https://crbug.com/579596159). Temporarily specify
+        // effectiveBaseLevel + 1 with mipmapped dimensions of 2 so guess_base_level_size succeeds
+        // and allocates stObj->pt with last_level > 0, then immediately restore its mipmap size.
+        const bool is3D                 = getType() == gl::TextureType::_3D;
+        const bool hasUnitBaseDimension = baseLevelDesc.size.width == 1 ||
+                                          baseLevelDesc.size.height == 1 ||
+                                          (is3D && baseLevelDesc.size.depth == 1);
+        const GLuint tempLevel          = effectiveBaseLevel + 1;
+        const GLuint maxDimension =
+            is3D ? context->getCaps().max3DTextureSize : context->getCaps().max2DTextureSize;
+        if (recreateMipmapLevelsBeforeGenerate && effectiveBaseLevel > 0 &&
+            maxLevel > effectiveBaseLevel && hasUnitBaseDimension &&
+            (maxDimension >> tempLevel) >= 2)
+        {
+            // Immutable textures are excluded by recreateMipmapLevelsBeforeGenerate
+            // (!mState.getImmutableFormat()). Cube maps have square faces, so hasUnitBaseDimension
+            // implies a 1x1 base level where maxLevel == effectiveBaseLevel.
+            ASSERT(!mState.getImmutableFormat());
+            ASSERT(getType() != gl::TextureType::CubeMap &&
+                   getType() != gl::TextureType::CubeMapArray);
+
+            const nativegl::TexImageFormat texImageFormat = nativegl::GetTexImageFormat(
+                functions, features, baseLevelInternalFormat.internalFormat,
+                baseLevelInternalFormat.format, baseLevelInternalFormat.type);
+            stateManager->bindBuffer(gl::BufferBinding::PixelUnpack, 0,
+                                     context->isHardenedContext());
+
+            const gl::Extents tempSize(2, 2, is3D ? 2 : baseLevelDesc.size.depth);
+            const gl::Extents levelSize(
+                std::max(baseLevelDesc.size.width >> 1, 1),
+                std::max(baseLevelDesc.size.height >> 1, 1),
+                is3D ? std::max(baseLevelDesc.size.depth >> 1, 1) : baseLevelDesc.size.depth);
+            for (const gl::Extents &size : {tempSize, levelSize})
+            {
+                if (nativegl::UseTexImage2D(getType()))
+                {
+                    ANGLE_GL_TRY_ALWAYS_CHECK(
+                        context, functions->texImage2D(ToGLenum(getType()), tempLevel,
+                                                       texImageFormat.internalFormat, size.width,
+                                                       size.height, 0, texImageFormat.format,
+                                                       texImageFormat.type, nullptr));
+                }
+                else
+                {
+                    ASSERT(nativegl::UseTexImage3D(getType()));
+                    ANGLE_GL_TRY_ALWAYS_CHECK(
+                        context, functions->texImage3D(
+                                     ToGLenum(getType()), tempLevel, texImageFormat.internalFormat,
+                                     size.width, size.height, size.depth, 0, texImageFormat.format,
+                                     texImageFormat.type, nullptr));
+                }
+            }
+        }
+
         ANGLE_GL_TRY_ALWAYS_CHECK(context, functions->generateMipmap(ToGLenum(getType())));
     }
 
@@ -3447,18 +3761,49 @@ angle::Result TextureGL::allocateMipmapLevelsForGeneration(const gl::Context *co
                                          : NonCubeTextureTypeToTarget(getType());
 
     // Manually allocate the mip levels of this texture if they don't exist
-    GLuint levelCount = maxLevel - effectiveBaseLevel + 1;
+    const GLuint levelCount = maxLevel - effectiveBaseLevel + 1;
+    bool anyLevelAllocated  = false;
     for (GLuint levelIdx = 1; levelIdx < levelCount; levelIdx++)
     {
+        const GLuint level = effectiveBaseLevel + levelIdx;
         gl::Extents levelSize(
             std::max(baseLevelDesc.size.width >> levelIdx, 1),
             std::max(baseLevelDesc.size.height >> levelIdx, 1),
             is3D ? std::max(baseLevelDesc.size.depth >> levelIdx, 1) : baseLevelDesc.size.depth);
 
-        const gl::ImageDesc &levelDesc = mState.getImageDesc(target, effectiveBaseLevel + levelIdx);
-
-        if (levelDesc.size != levelSize || *levelDesc.format.info != baseLevelInternalFormat)
+        bool needsAllocation = false;
+        if (getType() == gl::TextureType::CubeMap)
         {
+            for (gl::TextureTarget face : gl::AllCubeFaceTextureTargets())
+            {
+                const gl::ImageDesc &faceDesc = mState.getImageDesc(face, level);
+                if (faceDesc.size != levelSize || *faceDesc.format.info != baseLevelInternalFormat)
+                {
+                    needsAllocation = true;
+                    break;
+                }
+            }
+        }
+        else
+        {
+            const gl::ImageDesc &levelDesc = mState.getImageDesc(target, level);
+            needsAllocation =
+                levelDesc.size != levelSize || *levelDesc.format.info != baseLevelInternalFormat;
+        }
+
+        // When recreateMipmapLevelsBeforeGenerate is enabled, ensure at least one level in the
+        // mipmap chain is re-specified so that Mesa's backing texture resource is recreated if an
+        // earlier out-of-range level allocation invalidated it (https://crbug.com/579596159).
+        if (!needsAllocation && features.recreateMipmapLevelsBeforeGenerate.enabled &&
+            levelIdx == levelCount - 1 && !anyLevelAllocated)
+        {
+            needsAllocation = true;
+        }
+
+        if (needsAllocation)
+        {
+            anyLevelAllocated = true;
+
             // Make sure no pixel unpack buffer is bound
             stateManager->bindBuffer(gl::BufferBinding::PixelUnpack, 0,
                                      context->isHardenedContext());
@@ -3467,31 +3812,28 @@ angle::Result TextureGL::allocateMipmapLevelsForGeneration(const gl::Context *co
             {
                 case gl::TextureType::_2D:
                     ANGLE_GL_TRY_ALWAYS_CHECK(
-                        context,
-                        functions->texImage2D(ToGLenum(getType()), effectiveBaseLevel + levelIdx,
-                                              texImageFormat.internalFormat, levelSize.width,
-                                              levelSize.height, 0, texImageFormat.format,
-                                              texImageFormat.type, nullptr));
+                        context, functions->texImage2D(
+                                     ToGLenum(getType()), level, texImageFormat.internalFormat,
+                                     levelSize.width, levelSize.height, 0, texImageFormat.format,
+                                     texImageFormat.type, nullptr));
                     break;
                 case gl::TextureType::_3D:
                 case gl::TextureType::_2DArray:
                 case gl::TextureType::CubeMapArray:
                     ANGLE_GL_TRY_ALWAYS_CHECK(
-                        context,
-                        functions->texImage3D(ToGLenum(getType()), effectiveBaseLevel + levelIdx,
-                                              texImageFormat.internalFormat, levelSize.width,
-                                              levelSize.height, levelSize.depth, 0,
-                                              texImageFormat.format, texImageFormat.type, nullptr));
+                        context, functions->texImage3D(
+                                     ToGLenum(getType()), level, texImageFormat.internalFormat,
+                                     levelSize.width, levelSize.height, levelSize.depth, 0,
+                                     texImageFormat.format, texImageFormat.type, nullptr));
                     break;
                 case gl::TextureType::CubeMap:
                     for (gl::TextureTarget face : gl::AllCubeFaceTextureTargets())
                     {
                         ANGLE_GL_TRY_ALWAYS_CHECK(
-                            context,
-                            functions->texImage2D(ToGLenum(face), effectiveBaseLevel + levelIdx,
-                                                  texImageFormat.internalFormat, levelSize.width,
-                                                  levelSize.height, 0, texImageFormat.format,
-                                                  texImageFormat.type, nullptr));
+                            context, functions->texImage2D(
+                                         ToGLenum(face), level, texImageFormat.internalFormat,
+                                         levelSize.width, levelSize.height, 0,
+                                         texImageFormat.format, texImageFormat.type, nullptr));
                     }
                     break;
                 default:
@@ -4756,11 +5098,13 @@ angle::Result TextureGL::recreateTextureOnTexImage3DDepthIncreaseWorkaround(
     const gl::Context *context,
     gl::TextureTarget target,
     size_t level,
-    const gl::Extents &size)
+    const gl::Extents &size,
+    GLenum internalFormat,
+    GLenum format,
+    GLenum type,
+    bool *outLevelAllocated)
 {
-    const FunctionsGL *functions      = GetFunctionsGL(context);
-    const angle::FeaturesGL &features = GetFeaturesGL(context);
-    StateManagerGL *stateManager      = GetStateManagerGL(context);
+    *outLevelAllocated = false;
 
     const gl::ImageDesc &currentDesc = mState.getImageDesc(target, level);
     // Only skip the workaround when the level has never been defined or its depth is not
@@ -4773,6 +5117,111 @@ angle::Result TextureGL::recreateTextureOnTexImage3DDepthIncreaseWorkaround(
         return angle::Result::Continue;
     }
 
+    RedefinedLevelStorage storage;
+    storage.size           = size;
+    storage.internalFormat = internalFormat;
+    storage.format         = format;
+    storage.type           = type;
+    return recreateTextureWithRedefinedLevels(context, target, level, angle::span_from_ref(storage),
+                                              outLevelAllocated);
+}
+
+angle::Result TextureGL::recreateTextureOnGenerateMipmapDepthIncreaseWorkaround(
+    const gl::Context *context)
+{
+    ASSERT(nativegl::UseTexImage3D(getType()));
+    ASSERT(!mState.getImmutableFormat());
+
+    const gl::TextureTarget target     = gl::NonCubeTextureTypeToTarget(getType());
+    const GLuint effectiveBaseLevel    = mState.getEffectiveBaseLevel();
+    const GLuint maxLevel              = mState.getMipmapMaxLevel();
+    const gl::ImageDesc &baseLevelDesc = mState.getBaseLevelDesc();
+
+    // glGenerateMipmap redefines the levels in (effectiveBaseLevel, maxLevel] with the sizes
+    // derived from the base level.  If one of them is already defined with a smaller depth, the
+    // driver increases its depth in place, like glTexImage3D does without the workaround.  As in
+    // recreateTextureOnTexImage3DDepthIncreaseWorkaround(), a level defined with a zero extent
+    // still exists in the driver, so only never-defined levels are ignored.
+    bool increasesDepth = false;
+    for (GLuint level = effectiveBaseLevel + 1; level <= maxLevel && !increasesDepth; ++level)
+    {
+        const gl::ImageDesc &desc = mState.getImageDesc(target, level);
+        const gl::Extents generatedSize =
+            gl::ComputeMipSize(baseLevelDesc.size, level - effectiveBaseLevel, getType());
+        increasesDepth = desc.format.valid() && generatedSize.depth > desc.size.depth;
+    }
+    if (!increasesDepth)
+    {
+        return angle::Result::Continue;
+    }
+
+    // Allocate the whole generated mip chain in the new native texture, with the format of the
+    // base level, so that glGenerateMipmap only fills levels that already have their final size.
+    const gl::InternalFormat &baseLevelFormatInfo = *baseLevelDesc.format.info;
+    const nativegl::TexImageFormat texImageFormat = nativegl::GetTexImageFormat(
+        GetFunctionsGL(context), GetFeaturesGL(context), baseLevelFormatInfo.internalFormat,
+        baseLevelFormatInfo.format, baseLevelFormatInfo.type);
+
+    std::vector<RedefinedLevelStorage> generatedLevels;
+    generatedLevels.reserve(maxLevel - effectiveBaseLevel);
+    for (GLuint level = effectiveBaseLevel + 1; level <= maxLevel; ++level)
+    {
+        RedefinedLevelStorage storage;
+        storage.size =
+            gl::ComputeMipSize(baseLevelDesc.size, level - effectiveBaseLevel, getType());
+        storage.internalFormat = texImageFormat.internalFormat;
+        storage.format         = texImageFormat.format;
+        storage.type           = texImageFormat.type;
+        generatedLevels.push_back(storage);
+    }
+
+    bool recreated = false;
+    ANGLE_TRY(recreateTextureWithRedefinedLevels(context, target, effectiveBaseLevel + 1,
+                                                 generatedLevels, &recreated));
+    if (!recreated)
+    {
+        return angle::Result::Continue;
+    }
+
+    // The front-end synced the texture parameters to the old native texture before generating
+    // mipmaps.  The new native texture only has them flagged as dirty, and its base and max levels
+    // select the levels that glGenerateMipmap reads and writes, so sync them again now.
+    return syncState(context, gl::Texture::DirtyBits(), gl::Command::GenerateMipmap);
+}
+
+angle::Result TextureGL::recreateTextureWithRedefinedLevels(
+    const gl::Context *context,
+    gl::TextureTarget target,
+    size_t firstRedefinedLevel,
+    angle::Span<const RedefinedLevelStorage> redefinedLevels,
+    bool *outRecreated)
+{
+    ASSERT(nativegl::UseTexImage3D(getType()));
+    ASSERT(!mState.getImmutableFormat());
+    ASSERT(!redefinedLevels.empty());
+
+    *outRecreated = false;
+
+    const FunctionsGL *functions      = GetFunctionsGL(context);
+    const angle::FeaturesGL &features = GetFeaturesGL(context);
+    StateManagerGL *stateManager      = GetStateManagerGL(context);
+
+    const size_t endRedefinedLevel = firstRedefinedLevel + redefinedLevels.size();
+    auto isRedefinedLevel          = [firstRedefinedLevel, endRedefinedLevel](size_t l) {
+        return l >= firstRedefinedLevel && l < endRedefinedLevel;
+    };
+
+    // Compressed levels cannot be allocated with glTexImage3D() in the new texture, so do not apply
+    // the workaround to textures with other compressed levels.  http://crbug.com/577360527
+    for (size_t l = 0; l < mState.getImageDescs().size(); ++l)
+    {
+        const gl::ImageDesc &desc = mState.getImageDesc(target, l);
+        if (!isRedefinedLevel(l) && !desc.size.empty() && desc.format.info->compressed)
+        {
+            return angle::Result::Continue;
+        }
+    }
+
     // The contents of the other levels are preserved in the new texture with glCopyImageSubData.
     // If it is unavailable and any other level has contents, fail instead of letting the driver
     // redefine the level in place, which is what triggers the driver bug.  On hardened contexts
@@ -4783,86 +5232,176 @@ angle::Result TextureGL::recreateTextureOnTexImage3DDepthIncreaseWorkaround(
         for (size_t l = 0; l < mState.getImageDescs().size(); ++l)
         {
             ANGLE_CHECK(GetImplAs<ContextGL>(context),
-                        l == level || mState.getImageDesc(target, l).size.empty(),
-                        "Increasing the depth of a level of a 3D texture with other levels "
-                        "defined requires glCopyImageSubData.",
+                        isRedefinedLevel(l) || mState.getImageDesc(target, l).size.empty(),
+                        "Increasing the depth or layer count of a level of a 3D or array texture "
+                        "with other levels defined requires glCopyImageSubData.",
                         GL_INVALID_OPERATION);
         }
     }
 
-    GLuint oldTextureID = mTextureID;
-
-    stateManager->bindTexture(getType(), oldTextureID);
+    // Build the new texture under a local ID, and only replace mTextureID with it once all its
+    // levels are allocated and the contents of the other levels are copied.  If any of this fails,
+    // the new texture is deleted and the current one is kept.
+    ScopedTextureGL newTexture(stateManager);
+    functions->genTextures(1, &newTexture.id);
+    stateManager->bindTexture(getType(), newTexture.id);
     functions->texParameteri(ToGLenum(getType()), GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     functions->texParameteri(ToGLenum(getType()), GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    GLuint newBaseLevel = 0;
+    GLuint newMaxLevel  = gl::kInitialMaxLevel;
 
-    functions->genTextures(1, &mTextureID);
-    stateManager->bindTexture(getType(), mTextureID);
-    functions->texParameteri(ToGLenum(getType()), GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    functions->texParameteri(ToGLenum(getType()), GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    // The filters and BASE_LEVEL/MAX_LEVEL of the current texture are changed to copy its levels.
+    // Track the values that are set, so that syncState() can restore them if the current texture
+    // is kept.
+    bool currentTextureChanged = false;
+    GLuint currentBaseLevel    = mAppliedBaseLevel;
+    GLuint currentMaxLevel     = mAppliedMaxLevel;
 
-    mAppliedSwizzle = gl::SwizzleState();
-    mAppliedSampler = gl::SamplerState::CreateDefaultForTarget(getType());
-    mAppliedSampler.setMinFilter(GL_NEAREST);
-    mAppliedSampler.setMagFilter(GL_NEAREST);
-    mAppliedBaseLevel = 0;
-    mAppliedMaxLevel  = gl::kInitialMaxLevel;
+    const angle::Result result = [&]() -> angle::Result {
+        // The levels of the new texture are allocated without data, which must not be sourced
+        // from the pixel unpack buffer bound by the application.
+        ScopedUnbindPixelUnpackBuffer unbindPixelUnpackBuffer(stateManager,
+                                                              context->isHardenedContext());
 
-    // The levels of the new texture are allocated without data, which must not be sourced from the
-    // pixel unpack buffer bound by the application.
-    GLuint prevUnpackBuffer = stateManager->getBufferID(gl::BufferBinding::PixelUnpack);
-    stateManager->bindBuffer(gl::BufferBinding::PixelUnpack, 0, context->isHardenedContext());
+        // Pre-allocate all non-empty levels in ascending mip order so filling the redefined levels
+        // afterwards, via glTexSubImage3D or glGenerateMipmap, never triggers an in-place
+        // reallocation.
+        for (size_t l = 0; l < mState.getImageDescs().size(); ++l)
+        {
+            if (isRedefinedLevel(l))
+            {
+                const RedefinedLevelStorage &storage = redefinedLevels[l - firstRedefinedLevel];
+                if (!storage.size.empty())
+                {
+                    ANGLE_GL_TRY_ALWAYS_CHECK(
+                        context, functions->texImage3D(ToGLenum(target), static_cast<GLint>(l),
+                                                       storage.internalFormat, storage.size.width,
+                                                       storage.size.height, storage.size.depth, 0,
+                                                       storage.format, storage.type, nullptr));
+                }
+                continue;
+            }
 
-    for (size_t l = 0; l < mState.getImageDescs().size(); ++l)
+            const gl::ImageDesc &desc = mState.getImageDesc(target, l);
+            if (desc.size.empty())
+            {
+                // Zero-extent levels have no contents to copy, so they are not redefined in the
+                // new native texture even though the front-end still tracks them as defined. This
+                // is harmless: queries are answered by the front-end, such levels make the texture
+                // incomplete either way, and a later depth increase on them only recreates again.
+                continue;
+            }
+
+            nativegl::TexImageFormat levelTexImageFormat = nativegl::GetTexImageFormat(
+                functions, features, desc.format.info->sizedInternalFormat,
+                desc.format.info->format, desc.format.info->type);
+            ANGLE_GL_TRY_ALWAYS_CHECK(
+                context, functions->texImage3D(ToGLenum(target), static_cast<GLint>(l),
+                                               levelTexImageFormat.internalFormat, desc.size.width,
+                                               desc.size.height, desc.size.depth, 0,
+                                               levelTexImageFormat.format, levelTexImageFormat.type,
+                                               nullptr));
+        }
+
+        // Copy preserved levels in descending mip order so setting BASE_LEVEL before MAX_LEVEL on
+        // both textures (from MAX_LEVEL = 1000) keeps BASE_LEVEL <= MAX_LEVEL.
+        for (size_t i = mState.getImageDescs().size(); i > 0; --i)
+        {
+            const size_t l = i - 1;
+            if (isRedefinedLevel(l))
+            {
+                continue;
+            }
+
+            const gl::ImageDesc &desc = mState.getImageDesc(target, l);
+            if (desc.size.empty())
+            {
+                continue;
+            }
+
+            stateManager->bindTexture(getType(), mTextureID);
+            if (!currentTextureChanged)
+            {
+                functions->texParameteri(ToGLenum(getType()), GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+                functions->texParameteri(ToGLenum(getType()), GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+                functions->texParameteri(ToGLenum(getType()), GL_TEXTURE_MAX_LEVEL,
+                                         static_cast<GLint>(gl::kInitialMaxLevel));
+                currentTextureChanged = true;
+            }
+            functions->texParameteri(ToGLenum(getType()), GL_TEXTURE_BASE_LEVEL,
+                                     static_cast<GLint>(l));
+            functions->texParameteri(ToGLenum(getType()), GL_TEXTURE_MAX_LEVEL,
+                                     static_cast<GLint>(l));
+            currentBaseLevel = static_cast<GLuint>(l);
+            currentMaxLevel  = static_cast<GLuint>(l);
+
+            stateManager->bindTexture(getType(), newTexture.id);
+            functions->texParameteri(ToGLenum(getType()), GL_TEXTURE_BASE_LEVEL,
+                                     static_cast<GLint>(l));
+            functions->texParameteri(ToGLenum(getType()), GL_TEXTURE_MAX_LEVEL,
+                                     static_cast<GLint>(l));
+            newBaseLevel = static_cast<GLuint>(l);
+            newMaxLevel  = static_cast<GLuint>(l);
+
+            ANGLE_GL_TRY_ALWAYS_CHECK(
+                context, functions->copyImageSubData(
+                             mTextureID, ToGLenum(target), static_cast<GLint>(l), 0, 0, 0,
+                             newTexture.id, ToGLenum(target), static_cast<GLint>(l), 0, 0, 0,
+                             desc.size.width, desc.size.height, desc.size.depth));
+        }
+
+        // Include the redefined levels in the BASE_LEVEL/MAX_LEVEL range of the new texture before
+        // they are filled.  They are in ascending order, so the first non-empty one is the lowest.
+        stateManager->bindTexture(getType(), newTexture.id);
+        for (size_t l = firstRedefinedLevel; l < endRedefinedLevel; ++l)
+        {
+            if (redefinedLevels[l - firstRedefinedLevel].size.empty())
+            {
+                continue;
+            }
+            if (l < newBaseLevel)
+            {
+                functions->texParameteri(ToGLenum(getType()), GL_TEXTURE_BASE_LEVEL,
+                                         static_cast<GLint>(l));
+                newBaseLevel = static_cast<GLuint>(l);
+            }
+            break;
+        }
+        if (newMaxLevel != gl::kInitialMaxLevel)
+        {
+            functions->texParameteri(ToGLenum(getType()), GL_TEXTURE_MAX_LEVEL,
+                                     static_cast<GLint>(gl::kInitialMaxLevel));
+            newMaxLevel = gl::kInitialMaxLevel;
+        }
+        return angle::Result::Continue;
+    }();
+
+    if (result != angle::Result::Continue)
     {
-        if (l == level)
+        // Keep the current texture.  If its filters and BASE_LEVEL/MAX_LEVEL were changed to copy
+        // its levels, track the native values and flag them so syncState() restores them.
+        if (currentTextureChanged)
         {
-            continue;
+            mAppliedSampler.setMinFilter(GL_NEAREST);
+            mAppliedSampler.setMagFilter(GL_NEAREST);
+            mAppliedBaseLevel = currentBaseLevel;
+            mAppliedMaxLevel  = currentMaxLevel;
+            mLocalDirtyBits.set(gl::Texture::DIRTY_BIT_MIN_FILTER);
+            mLocalDirtyBits.set(gl::Texture::DIRTY_BIT_MAG_FILTER);
+            mLocalDirtyBits.set(gl::Texture::DIRTY_BIT_BASE_LEVEL);
+            mLocalDirtyBits.set(gl::Texture::DIRTY_BIT_MAX_LEVEL);
+            onStateChange(angle::SubjectMessage::DirtyBitsFlagged);
         }
-
-        const gl::ImageDesc &desc = mState.getImageDesc(target, l);
-        if (desc.size.empty())
-        {
-            // Zero-extent levels have no contents to copy, so they are not redefined in the new
-            // native texture even though the front-end still tracks them as defined. This is
-            // harmless: queries are answered by the front-end, such levels make the texture
-            // incomplete either way, and a later depth increase on them only recreates again.
-            continue;
-        }
-
-        nativegl::TexImageFormat levelTexImageFormat =
-            nativegl::GetTexImageFormat(functions, features, desc.format.info->sizedInternalFormat,
-                                        desc.format.info->format, desc.format.info->type);
-        ANGLE_GL_TRY_ALWAYS_CHECK(
-            context,
-            functions->texImage3D(ToGLenum(target), static_cast<GLint>(l),
-                                  levelTexImageFormat.internalFormat, desc.size.width,
-                                  desc.size.height, desc.size.depth, 0, levelTexImageFormat.format,
-                                  levelTexImageFormat.type, nullptr));
-
-        stateManager->bindTexture(getType(), oldTextureID);
-        functions->texParameteri(ToGLenum(getType()), GL_TEXTURE_MAX_LEVEL, static_cast<GLint>(l));
-        functions->texParameteri(ToGLenum(getType()), GL_TEXTURE_BASE_LEVEL, static_cast<GLint>(l));
-
+        // Bind the current texture again before newTexture deletes the new one.
         stateManager->bindTexture(getType(), mTextureID);
-        functions->texParameteri(ToGLenum(getType()), GL_TEXTURE_MAX_LEVEL, static_cast<GLint>(l));
-        functions->texParameteri(ToGLenum(getType()), GL_TEXTURE_BASE_LEVEL, static_cast<GLint>(l));
-        mAppliedMaxLevel  = static_cast<GLuint>(l);
-        mAppliedBaseLevel = static_cast<GLuint>(l);
-
-        ANGLE_GL_TRY_ALWAYS_CHECK(
-            context,
-            functions->copyImageSubData(oldTextureID, ToGLenum(target), static_cast<GLint>(l), 0, 0,
-                                        0, mTextureID, ToGLenum(target), static_cast<GLint>(l), 0,
-                                        0, 0, desc.size.width, desc.size.height, desc.size.depth));
+        return result;
     }
 
-    stateManager->bindBuffer(gl::BufferBinding::PixelUnpack, prevUnpackBuffer,
-                             context->isHardenedContext());
-
+    const GLuint oldTextureID = mTextureID;
+    mTextureID                = newTexture.release();
     stateManager->deleteTexture(oldTextureID);
     // deleteTexture() changes the active texture unit if the old texture is bound to another unit.
-    // The caller defines the requested level in the texture bound to the active unit, so make sure
+    // The caller fills the redefined levels of the texture bound to the active unit, so make sure
     // that is the new texture.
     stateManager->bindTexture(getType(), mTextureID);
 
@@ -4871,6 +5410,12 @@ angle::Result TextureGL::recreateTextureOnTexImage3DDepthIncreaseWorkaround(
     // those native values. These states may never have been modified by the application, so they
     // may not be in mAllModifiedDirtyBits; flag them explicitly so syncState() restores them.
     // Pending local dirty bits are preserved, as they may not be in mAllModifiedDirtyBits either.
+    mAppliedSwizzle = gl::SwizzleState();
+    mAppliedSampler = gl::SamplerState::CreateDefaultForTarget(getType());
+    mAppliedSampler.setMinFilter(GL_NEAREST);
+    mAppliedSampler.setMagFilter(GL_NEAREST);
+    mAppliedBaseLevel = newBaseLevel;
+    mAppliedMaxLevel  = newMaxLevel;
     mLocalDirtyBits |= mAllModifiedDirtyBits;
     mLocalDirtyBits.set(gl::Texture::DIRTY_BIT_MIN_FILTER);
     mLocalDirtyBits.set(gl::Texture::DIRTY_BIT_MAG_FILTER);
@@ -4878,6 +5423,7 @@ angle::Result TextureGL::recreateTextureOnTexImage3DDepthIncreaseWorkaround(
     mLocalDirtyBits.set(gl::Texture::DIRTY_BIT_MAX_LEVEL);
     onStateChange(angle::SubjectMessage::SubjectChanged);
 
+    *outRecreated = true;
     return angle::Result::Continue;
 }
 

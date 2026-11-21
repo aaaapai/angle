@@ -12,6 +12,7 @@
 #endif
 
 #include <array>
+#include <atomic>
 
 #include "test_utils/ANGLETest.h"
 #include "test_utils/MultiThreadSteps.h"
@@ -2190,7 +2191,7 @@ TEST_P(ImageTest, ValidationImageBase)
     EXPECT_EGL_ERROR(EGL_BAD_ACCESS);
     */
 
-    // Test validation of eglDestroyImageKHR
+    // Test validation of eglDestroyImageKHR and eglDestroyImage
     // Note: image is now a valid EGL image
     EGLBoolean result = EGL_FALSE;
 
@@ -2200,9 +2201,17 @@ TEST_P(ImageTest, ValidationImageBase)
     EXPECT_EQ(result, static_cast<EGLBoolean>(EGL_FALSE));
     EXPECT_EGL_ERROR(EGL_BAD_DISPLAY);
 
+    result = eglDestroyImage(reinterpret_cast<EGLDisplay>(0xBAADF00D), image);
+    EXPECT_EQ(result, static_cast<EGLBoolean>(EGL_FALSE));
+    EXPECT_EGL_ERROR(EGL_BAD_DISPLAY);
+
     // If <image> is not a valid EGLImageKHR object created with respect to <dpy>, the error
     // EGL_BAD_PARAMETER is generated.
     result = eglDestroyImageKHR(display, reinterpret_cast<EGLImageKHR>(0xBAADF00D));
+    EXPECT_EQ(result, static_cast<EGLBoolean>(EGL_FALSE));
+    EXPECT_EGL_ERROR(EGL_BAD_PARAMETER);
+
+    result = eglDestroyImage(display, reinterpret_cast<EGLImage>(0xBAADF00D));
     EXPECT_EQ(result, static_cast<EGLBoolean>(EGL_FALSE));
     EXPECT_EGL_ERROR(EGL_BAD_PARAMETER);
 
@@ -2210,6 +2219,15 @@ TEST_P(ImageTest, ValidationImageBase)
     result = eglDestroyImageKHR(display, image);
     EXPECT_EQ(result, static_cast<EGLBoolean>(EGL_TRUE));
     EXPECT_EGL_SUCCESS();
+
+    // Destroying an already-destroyed image must fail with EGL_BAD_PARAMETER.
+    result = eglDestroyImageKHR(display, image);
+    EXPECT_EQ(result, static_cast<EGLBoolean>(EGL_FALSE));
+    EXPECT_EGL_ERROR(EGL_BAD_PARAMETER);
+
+    result = eglDestroyImage(display, image);
+    EXPECT_EQ(result, static_cast<EGLBoolean>(EGL_FALSE));
+    EXPECT_EGL_ERROR(EGL_BAD_PARAMETER);
 
     EXPECT_GL_NO_ERROR();
 }
@@ -2994,6 +3012,11 @@ TEST_P(ImageTestES3, SourceAHBTargetTexture2DGenerateMipmap)
     glGenerateMipmap(GL_TEXTURE_2D);
     ASSERT_GL_NO_ERROR();
 
+    // Clean up.  glGenerateMipmap respecifies the texture and detaches it from the image, so these
+    // can be deleted right away.
+    eglDestroyImageKHR(window->getDisplay(), image);
+    destroyAndroidHardwareBuffer(source);
+
     // Attach the texture to fbo2.
     GLTexture tex2;
     glBindTexture(GL_TEXTURE_2D, tex2);
@@ -3016,10 +3039,6 @@ TEST_P(ImageTestES3, SourceAHBTargetTexture2DGenerateMipmap)
 
     // Verify results.
     EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
-
-    // Clean up.
-    eglDestroyImageKHR(window->getDisplay(), image);
-    destroyAndroidHardwareBuffer(source);
 }
 
 // Test that drawing to an AHB works.
@@ -16184,6 +16203,8 @@ TEST_P(ImageTest, CreateImageWithNonCurrentContextTwoThreads)
         ASSERT_TRUE(threadSynchronization.waitForStep(Step::Thread2CreatedImage2));
 
         threadSynchronization.nextStep(Step::Finish);
+
+        ASSERT_EGL_TRUE(eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT));
     });
 
     std::thread thread2([&]() {
@@ -16239,6 +16260,434 @@ TEST_P(ImageTest, CreateImageWithNonCurrentContextTwoThreads)
     ASSERT_NE(currentStep, Step::Abort);
 }
 
+// Test that two threads racing eglDestroyImage[KHR]() on the same EGLImage result in one thread
+// succeeding with EGL_TRUE and the other failing with EGL_BAD_PARAMETER.
+TEST_P(ImageTest, ConcurrentDestroyImage)
+{
+    EGLWindow *window  = getEGLWindow();
+    EGLDisplay display = window->getDisplay();
+
+    ANGLE_SKIP_TEST_IF(!hasOESExt() || !hasBaseExt() || !has2DTextureExt());
+    ANGLE_SKIP_TEST_IF(!platformSupportsMultithreading());
+
+    constexpr size_t kIterations = 16;
+    for (size_t iter = 0; iter < kIterations; ++iter)
+    {
+        GLTexture sourceTex;
+        EGLImageKHR image = EGL_NO_IMAGE_KHR;
+        createEGLImage2DTextureSource(1, 1, GL_RGBA, GL_UNSIGNED_BYTE, kDefaultAttribs,
+                                      kLinearColor, sourceTex, &image);
+        ASSERT_NE(image, EGL_NO_IMAGE_KHR);
+
+        std::atomic<uint32_t> readyCount{0};
+        EGLBoolean result1 = EGL_FALSE;
+        EGLBoolean result2 = EGL_FALSE;
+        EGLint error1      = EGL_SUCCESS;
+        EGLint error2      = EGL_SUCCESS;
+
+        std::thread thread1([&]() {
+            readyCount.fetch_add(1, std::memory_order_acq_rel);
+            while (readyCount.load(std::memory_order_acquire) < 2)
+            {
+            }
+
+            result1 = (iter % 2 == 0) ? eglDestroyImage(display, image)
+                                      : eglDestroyImageKHR(display, image);
+            error1  = eglGetError();
+        });
+
+        std::thread thread2([&]() {
+            readyCount.fetch_add(1, std::memory_order_acq_rel);
+            while (readyCount.load(std::memory_order_acquire) < 2)
+            {
+            }
+
+            result2 = (iter % 2 == 0) ? eglDestroyImageKHR(display, image)
+                                      : eglDestroyImage(display, image);
+            error2  = eglGetError();
+        });
+
+        thread1.join();
+        thread2.join();
+
+        EXPECT_NE(result1, result2);
+        if (result1 == EGL_TRUE)
+        {
+            EXPECT_EQ(error1, EGL_SUCCESS);
+            EXPECT_EQ(result2, static_cast<EGLBoolean>(EGL_FALSE));
+            EXPECT_EQ(error2, EGL_BAD_PARAMETER);
+        }
+        else
+        {
+            EXPECT_EQ(result1, static_cast<EGLBoolean>(EGL_FALSE));
+            EXPECT_EQ(error1, EGL_BAD_PARAMETER);
+            EXPECT_EQ(result2, static_cast<EGLBoolean>(EGL_TRUE));
+            EXPECT_EQ(error2, EGL_SUCCESS);
+        }
+    }
+}
+
+class ImageTestNoFixture : public ANGLETest<>
+{
+  protected:
+    void initializeDisplay()
+    {
+        std::vector<EGLAttrib> displayAttribs = {
+            EGL_PLATFORM_ANGLE_TYPE_ANGLE,
+            GetParam().getRenderer(),
+            EGL_PLATFORM_ANGLE_NATIVE_PLATFORM_TYPE_ANGLE,
+            static_cast<EGLAttrib>(GetPbufferOnlyDefaultPlatformType()),
+            EGL_PLATFORM_ANGLE_PLATFORM_METHODS_ANGLEX,
+            reinterpret_cast<EGLAttrib>(&gDefaultPlatformMethods),
+        };
+        if (GetParam().getDeviceType() != EGL_DONT_CARE)
+        {
+            displayAttribs.push_back(EGL_PLATFORM_ANGLE_DEVICE_TYPE_ANGLE);
+            displayAttribs.push_back(GetParam().getDeviceType());
+        }
+        displayAttribs.push_back(EGL_NONE);
+        mDisplay = eglGetPlatformDisplay(EGL_PLATFORM_ANGLE_ANGLE,
+                                         reinterpret_cast<void *>(EGL_DEFAULT_DISPLAY),
+                                         displayAttribs.data());
+        ASSERT_NE(mDisplay, EGL_NO_DISPLAY);
+    }
+
+    bool checkExtensions() const
+    {
+        bool supported =
+            IsGLExtensionEnabled(kOESExt) && IsEGLDisplayExtensionEnabled(mDisplay, kBaseExt) &&
+            IsEGLDisplayExtensionEnabled(mDisplay, k2DTextureExt) &&
+            (IsEGLDisplayExtensionEnabled(mDisplay, "EGL_ANGLE_context_virtualization") ||
+             IsVulkan());
+        return supported;
+    }
+
+    EGLDisplay mDisplay = EGL_NO_DISPLAY;
+};
+
+// Test that racing eglDestroyImage[KHR]() on one thread with eglTerminate() on another thread does
+// not leak or crash if eglTerminate() runs concurrently with RemoveImageIfValid().
+TEST_P(ImageTestNoFixture, DestroyImageAndTerminateRace)
+{
+    initializeDisplay();
+
+    constexpr size_t kIterations = 5;
+    constexpr size_t kImageCount = 32;
+    // Thread 2 starts calling eglTerminate() once Thread 1 has destroyed this many images.
+    constexpr size_t kDestroyCountBeforeTerminate = 8;
+
+    const EGLint configAttribs[] = {
+        EGL_SURFACE_TYPE, EGL_PBUFFER_BIT, EGL_RENDERABLE_TYPE,
+        (GetParam().majorVersion >= 3) ? EGL_OPENGL_ES3_BIT : EGL_OPENGL_ES2_BIT, EGL_NONE};
+    const EGLint pbufferAttribs[] = {EGL_WIDTH, 1, EGL_HEIGHT, 1, EGL_NONE};
+    const EGLint contextAttribs[] = {EGL_CONTEXT_CLIENT_VERSION, GetParam().majorVersion,
+                                     EGL_CONTEXT_MINOR_VERSION, GetParam().minorVersion, EGL_NONE};
+
+    for (size_t iter = 0; iter < kIterations; ++iter)
+    {
+        ASSERT_EGL_TRUE(eglInitialize(mDisplay, nullptr, nullptr));
+
+        EGLConfig config  = EGL_NO_CONFIG_KHR;
+        EGLint numConfigs = 0;
+        ASSERT_EGL_TRUE(eglChooseConfig(mDisplay, configAttribs, &config, 1, &numConfigs));
+        ASSERT_GT(numConfigs, 0);
+
+        EGLSurface surface = eglCreatePbufferSurface(mDisplay, config, pbufferAttribs);
+        ASSERT_NE(surface, EGL_NO_SURFACE);
+
+        EGLContext context = eglCreateContext(mDisplay, config, EGL_NO_CONTEXT, contextAttribs);
+        ASSERT_NE(context, EGL_NO_CONTEXT);
+
+        ASSERT_EGL_TRUE(eglMakeCurrent(mDisplay, surface, surface, context));
+
+        if (iter == 0)
+        {
+            const bool supported = checkExtensions();
+            if (!supported)
+            {
+                EXPECT_EGL_TRUE(
+                    eglMakeCurrent(mDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT));
+                EXPECT_EGL_TRUE(eglDestroySurface(mDisplay, surface));
+                EXPECT_EGL_TRUE(eglDestroyContext(mDisplay, context));
+                EXPECT_EGL_TRUE(eglTerminate(mDisplay));
+                ANGLE_SKIP_TEST_IF(!supported);
+            }
+        }
+
+        std::array<GLTexture, kImageCount> textures;
+        std::array<EGLImageKHR, kImageCount> images{};
+        for (size_t i = 0; i < kImageCount; ++i)
+        {
+            glBindTexture(GL_TEXTURE_2D, textures[i]);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+                         kLinearColor);
+            images[i] = eglCreateImageKHR(
+                mDisplay, context, EGL_GL_TEXTURE_2D_KHR,
+                reinterpret_cast<EGLClientBuffer>(static_cast<uintptr_t>(textures[i].get())),
+                kDefaultAttribs);
+            ASSERT_NE(images[i], EGL_NO_IMAGE_KHR);
+            textures[i].reset();
+        }
+
+        // Release and destroy context/surface so eglTerminate() immediately performs full teardown.
+        ASSERT_EGL_TRUE(eglMakeCurrent(mDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT));
+        ASSERT_EGL_TRUE(eglDestroySurface(mDisplay, surface));
+        ASSERT_EGL_TRUE(eglDestroyContext(mDisplay, context));
+
+        std::atomic<uint32_t> readyCount{0};
+        std::atomic<bool> destroyingStarted{false};
+
+        // Thread 1 repeatedly calls eglDestroyImage[KHR]() while Thread 2 calls eglTerminate().
+        std::thread thread1([&]() {
+            readyCount.fetch_add(1, std::memory_order_acq_rel);
+            while (readyCount.load(std::memory_order_acquire) < 2)
+            {
+            }
+
+            for (size_t i = 0; i < kImageCount; ++i)
+            {
+                if (i == kDestroyCountBeforeTerminate)
+                {
+                    destroyingStarted.store(true, std::memory_order_release);
+                }
+                EGLBoolean destroyed = (i % 2 == 0) ? eglDestroyImage(mDisplay, images[i])
+                                                    : eglDestroyImageKHR(mDisplay, images[i]);
+                if (destroyed == EGL_FALSE)
+                {
+                    // Destroying an image can only fail after Thread 2 was allowed to call
+                    // eglTerminate().
+                    EXPECT_GE(i, kDestroyCountBeforeTerminate) << "EGL error " << eglGetError();
+                    break;
+                }
+            }
+
+            // Unblock Thread 2 even if the loop ended early, so the test fails instead of hanging.
+            destroyingStarted.store(true, std::memory_order_release);
+        });
+
+        std::thread thread2([&]() {
+            readyCount.fetch_add(1, std::memory_order_acq_rel);
+            while (!destroyingStarted.load(std::memory_order_acquire))
+            {
+            }
+
+            EXPECT_EGL_TRUE(eglTerminate(mDisplay));
+        });
+
+        thread1.join();
+        thread2.join();
+    }
+}
+
+// Test that racing glEGLImageTargetTexture2DOES() on one thread with eglDestroyImage[KHR]() on
+// another thread (with a shared context current) neither deadlocks nor crashes.
+TEST_P(ImageTest, EGLImageTargetAndDestroyImageRace)
+{
+    ANGLE_SKIP_TEST_IF(!hasOESExt() || !hasBaseExt() || !has2DTextureExt());
+    ANGLE_SKIP_TEST_IF(!platformSupportsMultithreading());
+
+    constexpr size_t kIterations = 16;
+    std::mutex mutex;
+    std::condition_variable condVar;
+    size_t preparedIter     = 0;
+    size_t finishedIter     = 0;
+    bool aborted            = false;
+    EGLImageKHR sharedImage = EGL_NO_IMAGE_KHR;
+    std::atomic<uint32_t> go{0};
+
+    auto signalAbort = [&]() {
+        {
+            std::lock_guard<std::mutex> lock(mutex);
+            aborted = true;
+        }
+        go.fetch_add(2, std::memory_order_acq_rel);
+        condVar.notify_all();
+    };
+
+    LockStepThreadFunc thread0 = [&](EGLDisplay dpy, EGLSurface surface, EGLContext context) {
+        if (!eglMakeCurrent(dpy, surface, surface, context))
+        {
+            signalAbort();
+            FAIL() << "eglMakeCurrent failed for thread0";
+        }
+
+        for (size_t iter = 1; iter <= kIterations; ++iter)
+        {
+            GLTexture sourceTex;
+            glBindTexture(GL_TEXTURE_2D, sourceTex);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+                         kLinearColor);
+            EGLImageKHR image =
+                eglCreateImageKHR(dpy, context, EGL_GL_TEXTURE_2D_KHR,
+                                  reinterpretHelper<EGLClientBuffer>(sourceTex), kDefaultAttribs);
+            if (image == EGL_NO_IMAGE_KHR)
+            {
+                signalAbort();
+                FAIL() << "eglCreateImageKHR failed";
+            }
+
+            {
+                std::lock_guard<std::mutex> lock(mutex);
+                if (aborted)
+                {
+                    eglDestroyImageKHR(dpy, image);
+                    return;
+                }
+                sharedImage = image;
+                go.store(0, std::memory_order_relaxed);
+                preparedIter = iter;
+            }
+            condVar.notify_one();
+
+            go.fetch_add(1, std::memory_order_acq_rel);
+            while (go.load(std::memory_order_acquire) < 2)
+            {
+            }
+
+            GLTexture targetTex;
+            glBindTexture(GL_TEXTURE_2D, targetTex);
+            glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, image);
+            GLenum err = glGetError();
+            EXPECT_TRUE(err == GL_NO_ERROR || err == GL_INVALID_VALUE);
+
+            {
+                std::unique_lock<std::mutex> lock(mutex);
+                condVar.wait(lock, [&]() { return finishedIter == iter || aborted; });
+                if (aborted)
+                {
+                    return;
+                }
+            }
+        }
+
+        EXPECT_EGL_TRUE(eglMakeCurrent(dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT));
+    };
+
+    LockStepThreadFunc thread1 = [&](EGLDisplay dpy, EGLSurface surface, EGLContext context) {
+        if (!eglMakeCurrent(dpy, surface, surface, context))
+        {
+            signalAbort();
+            FAIL() << "eglMakeCurrent failed for thread1";
+        }
+
+        for (size_t iter = 1; iter <= kIterations; ++iter)
+        {
+            EGLImageKHR image = EGL_NO_IMAGE_KHR;
+            {
+                std::unique_lock<std::mutex> lock(mutex);
+                condVar.wait(lock, [&]() { return preparedIter == iter || aborted; });
+                if (aborted)
+                {
+                    return;
+                }
+                image = sharedImage;
+            }
+
+            go.fetch_add(1, std::memory_order_acq_rel);
+            while (go.load(std::memory_order_acquire) < 2)
+            {
+            }
+
+            EGLBoolean destroyed =
+                (iter % 2 == 0) ? eglDestroyImage(dpy, image) : eglDestroyImageKHR(dpy, image);
+            EXPECT_EGL_TRUE(destroyed);
+
+            {
+                std::lock_guard<std::mutex> lock(mutex);
+                finishedIter = iter;
+            }
+            condVar.notify_one();
+        }
+
+        EXPECT_EGL_TRUE(eglMakeCurrent(dpy, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT));
+    };
+
+    std::array<LockStepThreadFunc, 2> threadFuncs = {
+        std::move(thread0),
+        std::move(thread1),
+    };
+
+    RunLockStepThreads(getEGLWindow(), threadFuncs.size(), threadFuncs.data());
+}
+
+// Verify that an EGLImage handle is not reused while a GL target sibling still keeps the underlying
+// egl::Image alive after eglDestroyImageKHR(), and that the handle is released once the last
+// sibling is destroyed.
+TEST_P(ImageTest, HandleNotReusedWhileTargetSiblingAlive)
+{
+    ANGLE_SKIP_TEST_IF(!hasOESExt() || !hasBaseExt() || !has2DTextureExt());
+
+    EGLDisplay display = getEGLWindow()->getDisplay();
+
+    // Because the EGLDisplay is shared across tests in this suite, drain any previously released
+    // handles from ImageMap's HandleAllocator FIFO first (verified when a create/destroy/create
+    // sequence immediately reuses the same handle).
+    std::vector<GLTexture> drainTextures;
+    std::vector<EGLImageKHR> drainImages;
+    constexpr size_t kMaxDrainIterations = 1024;
+    bool drained                         = false;
+    for (size_t i = 0; i < kMaxDrainIterations; ++i)
+    {
+        GLTexture probeTex;
+        EGLImageKHR probe1 = EGL_NO_IMAGE_KHR;
+        createEGLImage2DTextureSource(1, 1, GL_RGBA, GL_UNSIGNED_BYTE, kDefaultAttribs,
+                                      kLinearColor, probeTex, &probe1);
+        ASSERT_NE(probe1, EGL_NO_IMAGE_KHR);
+        ASSERT_EGL_TRUE(eglDestroyImageKHR(display, probe1));
+
+        drainTextures.emplace_back();
+        EGLImageKHR probe2 = EGL_NO_IMAGE_KHR;
+        createEGLImage2DTextureSource(1, 1, GL_RGBA, GL_UNSIGNED_BYTE, kDefaultAttribs,
+                                      kLinearColor, drainTextures.back(), &probe2);
+        ASSERT_NE(probe2, EGL_NO_IMAGE_KHR);
+        drainImages.push_back(probe2);
+        if (probe2 == probe1)
+        {
+            drained = true;
+            break;
+        }
+    }
+    ASSERT_TRUE(drained);
+
+    GLTexture sourceTex1;
+    EGLImageKHR image1 = EGL_NO_IMAGE_KHR;
+    createEGLImage2DTextureSource(1, 1, GL_RGBA, GL_UNSIGNED_BYTE, kDefaultAttribs, kLinearColor,
+                                  sourceTex1, &image1);
+    ASSERT_NE(image1, EGL_NO_IMAGE_KHR);
+
+    GLTexture targetTex1;
+    createEGLImageTargetTexture2D(image1, targetTex1);
+
+    // Destroy the EGL handle while targetTex1 still holds a reference to image1.
+    EXPECT_EGL_TRUE(eglDestroyImageKHR(display, image1));
+
+    // A new image must not reuse image1's handle while image1 is still alive via targetTex1.
+    GLTexture sourceTex2;
+    EGLImageKHR image2 = EGL_NO_IMAGE_KHR;
+    createEGLImage2DTextureSource(1, 1, GL_RGBA, GL_UNSIGNED_BYTE, kDefaultAttribs, kLinearColor,
+                                  sourceTex2, &image2);
+    ASSERT_NE(image2, EGL_NO_IMAGE_KHR);
+    EXPECT_NE(image2, image1);
+
+    // Dropping targetTex1 releases the last reference to image1 and returns its handle.
+    targetTex1.reset();
+    ASSERT_GL_NO_ERROR();
+
+    GLTexture sourceTex3;
+    EGLImageKHR image3 = EGL_NO_IMAGE_KHR;
+    createEGLImage2DTextureSource(1, 1, GL_RGBA, GL_UNSIGNED_BYTE, kDefaultAttribs, kLinearColor,
+                                  sourceTex3, &image3);
+    ASSERT_NE(image3, EGL_NO_IMAGE_KHR);
+    EXPECT_EQ(image3, image1);
+
+    EXPECT_EGL_TRUE(eglDestroyImageKHR(display, image2));
+    EXPECT_EGL_TRUE(eglDestroyImageKHR(display, image3));
+    for (EGLImageKHR image : drainImages)
+    {
+        EXPECT_EGL_TRUE(eglDestroyImageKHR(display, image));
+    }
+}
+
 ANGLE_INSTANTIATE_TEST_ES2_AND_ES3_AND(ImageTest,
                                        ES3_VULKAN().enable(Feature::AllocateNonZeroMemory));
 
@@ -16263,4 +16712,19 @@ ANGLE_INSTANTIATE_TEST_ES3_AND(ImageTestSampleOnlyES3,
                                ES3_VULKAN().enable(Feature::AllocateNonZeroMemory),
                                ES3_VULKAN().enable(Feature::PreferBGR565ToRGB565),
                                ES3_VULKAN().enable(Feature::ForceRenderableFallbackFormat));
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(ImageTestNoFixture);
+ANGLE_INSTANTIATE_TEST(ImageTestNoFixture,
+                       WithNoFixture(ES2_D3D11()),
+                       WithNoFixture(ES3_D3D11()),
+                       WithNoFixture(ES2_METAL()),
+                       WithNoFixture(ES3_METAL()),
+                       WithNoFixture(ES2_OPENGL()),
+                       WithNoFixture(ES3_OPENGL()),
+                       WithNoFixture(ES2_OPENGLES()),
+                       WithNoFixture(ES3_OPENGLES()),
+                       WithNoFixture(ES2_VULKAN()),
+                       WithNoFixture(ES3_VULKAN()),
+                       WithNoFixture(ES2_VULKAN_SWIFTSHADER()),
+                       WithNoFixture(ES3_VULKAN_SWIFTSHADER()));
 }  // namespace angle

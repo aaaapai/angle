@@ -737,7 +737,7 @@ angle::Result HardwareBufferImageSiblingVkAndroid::initImpl(DisplayVk *displayVk
     return angle::Result::Continue;
 }
 
-void HardwareBufferImageSiblingVkAndroid::onDestroy(const egl::Display *display)
+void HardwareBufferImageSiblingVkAndroid::onDestroy(const egl::ThreadSafeDisplay *display)
 {
     const AHBFunctions &functions = GetImplAs<DisplayVkAndroid>(display)->getAHBFunctions();
     ASSERT(functions.valid());

@@ -95,6 +95,17 @@
             "issue": "http://crbug.com/529867799"
         },
         {
+            "name": "pack_last_row_separately_when_filling_pack_buffer",
+            "category": "Workarounds",
+            "description": [
+                "When a readPixels pack could reach the end of the bound pixel pack buffer and does ",
+                "not write every byte up to its end, read its last row separately. Some Mali drivers ",
+                "do not retain the previous contents of bytes the pack leaves unwritten when it fills ",
+                "the buffer, and count the last row's alignment padding against the buffer's size."
+            ],
+            "issue": "crbug.com/551017142"
+        },
+        {
             "name": "initialize_current_vertex_attributes",
             "category": "Workarounds",
             "description": [
@@ -355,8 +366,9 @@
             "name": "recreate_texture_on_tex_image_3d_depth_increase",
             "category": "Workarounds",
             "description": [
-                "Recreate texture and copy existing levels when glTexImage3D is called on a mutable ",
-                "TEXTURE_3D texture with an increased depth to work around Qualcomm driver bug."
+                "Recreate texture and copy existing levels when glTexImage3D or glGenerateMipmap ",
+                "increases the depth of a level of a mutable 3D or array texture to work around ",
+                "Qualcomm driver bug."
             ],
             "issue": "http://anglebug.com/530045332"
         },
@@ -1064,10 +1076,10 @@
             "issue": "http://crbug.com/553172761"
         },
         {
-            "name": "double_clear_for_robust_init",
+            "name": "double_clear",
             "category": "Workarounds",
             "description": [
-                "Issue a two-step clear with distinct values during robust resource init to prevent value-collision driver clear-dedup elision on invalidate."
+                "Issue a two-step clear with distinct values after framebuffer invalidation to prevent value-collision driver clear-dedup elision."
             ],
             "issue": "http://crbug.com/550489336"
         },
@@ -1141,6 +1153,26 @@
                 "avoid stale cross-framebuffer state in PowerVR drivers."
             ],
             "issue": "https://crbug.com/584036299"
+        },
+        {
+            "name": "ensure_previous_framebuffer_not_deleted",
+            "category": "Workarounds",
+            "description": [
+                "Bind the always-complete placeholder framebuffer before every framebuffer bind ",
+                "transition so drivers that reference the previously bound complete framebuffer ",
+                "never reference a deleted one."
+            ],
+            "issue": "http://crbug.com/569156483"
+        },
+        {
+            "name": "finish_before_deleting_EGL_image_renderbuffer",
+            "category": "Workarounds",
+            "description": [
+                "Finish before deleting a renderbuffer whose storage is an EGLImage, so the driver ",
+                "doesn't keep it as a ghost that frees the EGLImage's compression metadata after ",
+                "the EGLImage source may have already freed it."
+            ],
+            "issue": "https://crbug.com/587099668"
         }
     ]
 }

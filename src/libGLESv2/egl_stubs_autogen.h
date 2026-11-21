@@ -28,6 +28,7 @@ class Device;
 class Display;
 class ThreadSafeDisplay;
 class Image;
+class LabeledObject;
 class Stream;
 class Surface;
 class Sync;
@@ -40,7 +41,7 @@ EGLBoolean BindTexImage(Thread *thread,
                         egl::Surface *surfacePacked,
                         EGLint buffer);
 EGLBoolean ChooseConfig(Thread *thread,
-                        egl::Display *dpyPacked,
+                        egl::ThreadSafeDisplay *dpyPacked,
                         const AttributeMap &attrib_listPacked,
                         EGLConfig *configs,
                         EGLint config_size,
@@ -60,7 +61,7 @@ EGLContext CreateContext(Thread *thread,
                          gl::Context *share_contextPacked,
                          const AttributeMap &attrib_listPacked);
 EGLImage CreateImage(Thread *thread,
-                     egl::Display *dpyPacked,
+                     egl::ThreadSafeDisplay *dpyPacked,
                      gl::Context *ctxPacked,
                      EGLenum target,
                      EGLClientBuffer buffer,
@@ -100,18 +101,18 @@ EGLSurface CreateWindowSurface(Thread *thread,
                                EGLNativeWindowType win,
                                const AttributeMap &attrib_listPacked);
 EGLBoolean DestroyContext(Thread *thread, egl::Display *dpyPacked, gl::Context *ctxPacked);
-EGLBoolean DestroyImage(Thread *thread, egl::Display *dpyPacked, ImageID imagePacked);
+EGLBoolean DestroyImage(Thread *thread, egl::ThreadSafeDisplay *dpyPacked, egl::Image *imagePacked);
 EGLBoolean DestroySurface(Thread *thread,
                           egl::ThreadSafeDisplay *dpyPacked,
                           egl::Surface *surfacePacked);
 EGLBoolean DestroySync(Thread *thread, egl::ThreadSafeDisplay *dpyPacked, egl::Sync *syncPacked);
 EGLBoolean GetConfigAttrib(Thread *thread,
-                           egl::Display *dpyPacked,
+                           egl::ThreadSafeDisplay *dpyPacked,
                            egl::Config *configPacked,
                            EGLint attribute,
                            EGLint *value);
 EGLBoolean GetConfigs(Thread *thread,
-                      egl::Display *dpyPacked,
+                      egl::ThreadSafeDisplay *dpyPacked,
                       EGLConfig *configs,
                       EGLint config_size,
                       EGLint *num_config);
@@ -138,11 +139,11 @@ EGLBoolean MakeCurrent(Thread *thread,
                        gl::Context *ctxPacked);
 EGLenum QueryAPI(Thread *thread);
 EGLBoolean QueryContext(Thread *thread,
-                        egl::Display *dpyPacked,
+                        egl::ThreadSafeDisplay *dpyPacked,
                         gl::Context *ctxPacked,
                         EGLint attribute,
                         EGLint *value);
-const char *QueryString(Thread *thread, egl::Display *dpyPacked, EGLint name);
+const char *QueryString(Thread *thread, egl::ThreadSafeDisplay *dpyPacked, EGLint name);
 EGLBoolean QuerySurface(Thread *thread,
                         egl::ThreadSafeDisplay *dpyPacked,
                         egl::Surface *surfacePacked,
@@ -162,7 +163,7 @@ EGLBoolean SwapBuffers(Thread *thread,
                        egl::ThreadSafeDisplay *dpyPacked,
                        egl::Surface *surfacePacked);
 EGLBoolean SwapInterval(Thread *thread,
-                        egl::Display *dpyPacked,
+                        egl::ThreadSafeDisplay *dpyPacked,
                         egl::Surface *drawSurface,
                         EGLint interval);
 EGLBoolean Terminate(Thread *thread, egl::Display *dpyPacked);

@@ -139,52 +139,16 @@ bool GraphicsPipelineHasFragmentOutput(GraphicsPipelineSubset subset)
 
 uint8_t PackGLBlendOp(gl::BlendEquationType blendOp)
 {
-    switch (blendOp)
+    const VkBlendOp blendOpVk = gl_vk::GetBlendOp(blendOp);
+    if (blendOpVk > VK_BLEND_OP_MAX)
     {
-        case gl::BlendEquationType::Add:
-            return static_cast<uint8_t>(VK_BLEND_OP_ADD);
-        case gl::BlendEquationType::Subtract:
-            return static_cast<uint8_t>(VK_BLEND_OP_SUBTRACT);
-        case gl::BlendEquationType::ReverseSubtract:
-            return static_cast<uint8_t>(VK_BLEND_OP_REVERSE_SUBTRACT);
-        case gl::BlendEquationType::Min:
-            return static_cast<uint8_t>(VK_BLEND_OP_MIN);
-        case gl::BlendEquationType::Max:
-            return static_cast<uint8_t>(VK_BLEND_OP_MAX);
-        case gl::BlendEquationType::Multiply:
-            return static_cast<uint8_t>(VK_BLEND_OP_MULTIPLY_EXT - VK_BLEND_OP_ZERO_EXT);
-        case gl::BlendEquationType::Screen:
-            return static_cast<uint8_t>(VK_BLEND_OP_SCREEN_EXT - VK_BLEND_OP_ZERO_EXT);
-        case gl::BlendEquationType::Overlay:
-            return static_cast<uint8_t>(VK_BLEND_OP_OVERLAY_EXT - VK_BLEND_OP_ZERO_EXT);
-        case gl::BlendEquationType::Darken:
-            return static_cast<uint8_t>(VK_BLEND_OP_DARKEN_EXT - VK_BLEND_OP_ZERO_EXT);
-        case gl::BlendEquationType::Lighten:
-            return static_cast<uint8_t>(VK_BLEND_OP_LIGHTEN_EXT - VK_BLEND_OP_ZERO_EXT);
-        case gl::BlendEquationType::Colordodge:
-            return static_cast<uint8_t>(VK_BLEND_OP_COLORDODGE_EXT - VK_BLEND_OP_ZERO_EXT);
-        case gl::BlendEquationType::Colorburn:
-            return static_cast<uint8_t>(VK_BLEND_OP_COLORBURN_EXT - VK_BLEND_OP_ZERO_EXT);
-        case gl::BlendEquationType::Hardlight:
-            return static_cast<uint8_t>(VK_BLEND_OP_HARDLIGHT_EXT - VK_BLEND_OP_ZERO_EXT);
-        case gl::BlendEquationType::Softlight:
-            return static_cast<uint8_t>(VK_BLEND_OP_SOFTLIGHT_EXT - VK_BLEND_OP_ZERO_EXT);
-        case gl::BlendEquationType::Difference:
-            return static_cast<uint8_t>(VK_BLEND_OP_DIFFERENCE_EXT - VK_BLEND_OP_ZERO_EXT);
-        case gl::BlendEquationType::Exclusion:
-            return static_cast<uint8_t>(VK_BLEND_OP_EXCLUSION_EXT - VK_BLEND_OP_ZERO_EXT);
-        case gl::BlendEquationType::HslHue:
-            return static_cast<uint8_t>(VK_BLEND_OP_HSL_HUE_EXT - VK_BLEND_OP_ZERO_EXT);
-        case gl::BlendEquationType::HslSaturation:
-            return static_cast<uint8_t>(VK_BLEND_OP_HSL_SATURATION_EXT - VK_BLEND_OP_ZERO_EXT);
-        case gl::BlendEquationType::HslColor:
-            return static_cast<uint8_t>(VK_BLEND_OP_HSL_COLOR_EXT - VK_BLEND_OP_ZERO_EXT);
-        case gl::BlendEquationType::HslLuminosity:
-            return static_cast<uint8_t>(VK_BLEND_OP_HSL_LUMINOSITY_EXT - VK_BLEND_OP_ZERO_EXT);
-        default:
-            UNREACHABLE();
-            return 0;
+        // The first advanced blend used by GLES (multiply) is far enough from the first Vulkan
+        // advanced blend (zero) that the following is still larger than the basic blends.  The
+        // range of blend ops can be reduced this way to fit in fewer bits.
+        ASSERT(blendOpVk - VK_BLEND_OP_ZERO_EXT > VK_BLEND_OP_MAX);
+        return static_cast<uint8_t>(blendOpVk - VK_BLEND_OP_ZERO_EXT);
     }
+    return static_cast<uint8_t>(blendOpVk);
 }
 
 VkBlendOp UnpackBlendOp(uint8_t packedBlendOp)
@@ -198,50 +162,7 @@ VkBlendOp UnpackBlendOp(uint8_t packedBlendOp)
 
 uint8_t PackGLBlendFactor(gl::BlendFactorType blendFactor)
 {
-    switch (blendFactor)
-    {
-        case gl::BlendFactorType::Zero:
-            return static_cast<uint8_t>(VK_BLEND_FACTOR_ZERO);
-        case gl::BlendFactorType::One:
-            return static_cast<uint8_t>(VK_BLEND_FACTOR_ONE);
-        case gl::BlendFactorType::SrcColor:
-            return static_cast<uint8_t>(VK_BLEND_FACTOR_SRC_COLOR);
-        case gl::BlendFactorType::DstColor:
-            return static_cast<uint8_t>(VK_BLEND_FACTOR_DST_COLOR);
-        case gl::BlendFactorType::OneMinusSrcColor:
-            return static_cast<uint8_t>(VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR);
-        case gl::BlendFactorType::SrcAlpha:
-            return static_cast<uint8_t>(VK_BLEND_FACTOR_SRC_ALPHA);
-        case gl::BlendFactorType::OneMinusSrcAlpha:
-            return static_cast<uint8_t>(VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA);
-        case gl::BlendFactorType::DstAlpha:
-            return static_cast<uint8_t>(VK_BLEND_FACTOR_DST_ALPHA);
-        case gl::BlendFactorType::OneMinusDstAlpha:
-            return static_cast<uint8_t>(VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA);
-        case gl::BlendFactorType::OneMinusDstColor:
-            return static_cast<uint8_t>(VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR);
-        case gl::BlendFactorType::SrcAlphaSaturate:
-            return static_cast<uint8_t>(VK_BLEND_FACTOR_SRC_ALPHA_SATURATE);
-        case gl::BlendFactorType::ConstantColor:
-            return static_cast<uint8_t>(VK_BLEND_FACTOR_CONSTANT_COLOR);
-        case gl::BlendFactorType::ConstantAlpha:
-            return static_cast<uint8_t>(VK_BLEND_FACTOR_CONSTANT_ALPHA);
-        case gl::BlendFactorType::OneMinusConstantColor:
-            return static_cast<uint8_t>(VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_COLOR);
-        case gl::BlendFactorType::OneMinusConstantAlpha:
-            return static_cast<uint8_t>(VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_ALPHA);
-        case gl::BlendFactorType::Src1Color:
-            return static_cast<uint8_t>(VK_BLEND_FACTOR_SRC1_COLOR);
-        case gl::BlendFactorType::Src1Alpha:
-            return static_cast<uint8_t>(VK_BLEND_FACTOR_SRC1_ALPHA);
-        case gl::BlendFactorType::OneMinusSrc1Color:
-            return static_cast<uint8_t>(VK_BLEND_FACTOR_ONE_MINUS_SRC1_COLOR);
-        case gl::BlendFactorType::OneMinusSrc1Alpha:
-            return static_cast<uint8_t>(VK_BLEND_FACTOR_ONE_MINUS_SRC1_ALPHA);
-        default:
-            UNREACHABLE();
-            return 0;
-    }
+    return static_cast<uint8_t>(gl_vk::GetBlendFactor(blendFactor));
 }
 
 // A struct that contains render pass information derived from RenderPassDesc.  It contains dynamic
@@ -3834,6 +3755,8 @@ void GraphicsPipelineDesc::initializePipelineShadersState(
     GraphicsPipelineShadersVulkanStructs *stateOut,
     GraphicsPipelineDynamicStateList *dynamicStateListOut) const
 {
+    Renderer *renderer = context->getRenderer();
+
     // Vertex shader is always expected to be present.
     const ShaderModule &vertexModule = *shaders[gl::ShaderType::Vertex];
     ASSERT(vertexModule.valid());
@@ -3947,7 +3870,8 @@ void GraphicsPipelineDesc::initializePipelineShadersState(
     }
 
     // Always set provoking vertex mode to last if available.
-    if (context->getFeatures().provokingVertex.enabled)
+    if (context->getFeatures().provokingVertex.enabled &&
+        !renderer->useProvokingVertexModeDynamicState())
     {
         stateOut->provokingVertexState.sType =
             VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_PROVOKING_VERTEX_STATE_CREATE_INFO_EXT;
@@ -3957,7 +3881,8 @@ void GraphicsPipelineDesc::initializePipelineShadersState(
         pNextPtr  = &stateOut->provokingVertexState.pNext;
     }
 
-    if (context->getFeatures().supportsGeometryStreamsCapability.enabled)
+    if (context->getFeatures().supportsGeometryStreamsCapability.enabled &&
+        !renderer->useRasterizationStreamDynamicState())
     {
         stateOut->rasterStreamState.sType =
             VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_STREAM_CREATE_INFO_EXT;
@@ -3996,17 +3921,22 @@ void GraphicsPipelineDesc::initializePipelineShadersState(
     // tessellation State
     if (tessControlPointer && tessEvaluationPointer)
     {
-        stateOut->domainOriginState.sType =
-            VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_DOMAIN_ORIGIN_STATE_CREATE_INFO;
-        stateOut->domainOriginState.pNext        = NULL;
-        stateOut->domainOriginState.domainOrigin = VK_TESSELLATION_DOMAIN_ORIGIN_LOWER_LEFT;
-
         stateOut->tessellationState.sType =
             VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO;
+        stateOut->tessellationState.pNext = nullptr;
         stateOut->tessellationState.flags = 0;
-        stateOut->tessellationState.pNext = &stateOut->domainOriginState;
         stateOut->tessellationState.patchControlPoints =
             static_cast<uint32_t>(mShaders.shaders.bits.patchVertices);
+
+        if (!renderer->useTessellationDomainOriginDynamicState())
+        {
+            stateOut->domainOriginState.sType =
+                VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_DOMAIN_ORIGIN_STATE_CREATE_INFO;
+            stateOut->domainOriginState.pNext        = NULL;
+            stateOut->domainOriginState.domainOrigin = VK_TESSELLATION_DOMAIN_ORIGIN_LOWER_LEFT;
+
+            stateOut->tessellationState.pNext = &stateOut->domainOriginState;
+        }
     }
 
     // Dynamic state
@@ -4073,7 +4003,7 @@ void GraphicsPipelineDesc::initializePipelineShadersState(
     if (context->getFeatures().supportsLineRasterizationModeDynamicState.enabled)
     {
         dynamicStateListOut->push_back(VK_DYNAMIC_STATE_LINE_RASTERIZATION_MODE_EXT);
-        if (context->getRenderer()->supportsStippledLines())
+        if (renderer->supportsStippledLines())
         {
             dynamicStateListOut->push_back(VK_DYNAMIC_STATE_LINE_STIPPLE_ENABLE_EXT);
         }
@@ -4081,6 +4011,18 @@ void GraphicsPipelineDesc::initializePipelineShadersState(
     if (context->getFeatures().supportsPolygonModeDynamicState.enabled)
     {
         dynamicStateListOut->push_back(VK_DYNAMIC_STATE_POLYGON_MODE_EXT);
+    }
+    if (renderer->useProvokingVertexModeDynamicState())
+    {
+        dynamicStateListOut->push_back(VK_DYNAMIC_STATE_PROVOKING_VERTEX_MODE_EXT);
+    }
+    if (renderer->useRasterizationStreamDynamicState())
+    {
+        dynamicStateListOut->push_back(VK_DYNAMIC_STATE_RASTERIZATION_STREAM_EXT);
+    }
+    if (renderer->useTessellationDomainOriginDynamicState())
+    {
+        dynamicStateListOut->push_back(VK_DYNAMIC_STATE_TESSELLATION_DOMAIN_ORIGIN_EXT);
     }
 }
 
@@ -4161,14 +4103,20 @@ void GraphicsPipelineDesc::initializePipelineFragmentOutputState(
             VK_PIPELINE_COLOR_BLEND_STATE_CREATE_RASTERIZATION_ORDER_ATTACHMENT_ACCESS_BIT_EXT;
     }
 
-    // If blend-enable is dynamic state, we cannot tell which attachments might need blending later
-    // so static state for blend equation/function must be set for all attachments of the render
-    // pass.
-    // TODO(http://anglebug.com/575891833): When blend equation/function is also dynamic state,
-    // there is no need to set any static blend state (unless advanced blend is not dynamic), in
-    // which case this mask could be zero instead.
+    // If all blend state is dynamic state, there is no static state to provide.
+    //
+    // If only blend-enable is dynamic state, we cannot tell which attachments might need blending
+    // later so static state for blend equation/function must be set for all attachments of the
+    // render pass.
+    const bool isBlendEnableDynamic =
+        context->getFeatures().supportsColorBlendEnableDynamicState.enabled;
+    const bool isBlendEquationDynamic =
+        context->getFeatures().supportsColorBlendEquationDynamicState.enabled;
+    // Blend equation is only dynamic if blend enable is.
+    ASSERT(!isBlendEquationDynamic || isBlendEnableDynamic);
     const gl::DrawBufferMask staticBlendMask =
-        context->getFeatures().supportsColorBlendEnableDynamicState.enabled
+        isBlendEquationDynamic ? gl::DrawBufferMask()
+        : isBlendEnableDynamic
             ? gl::DrawBufferMask().set()
             : gl::DrawBufferMask(mFragmentOutput.blendMaskAndLogic.bits.blendEnableMask);
 
@@ -4187,6 +4135,8 @@ void GraphicsPipelineDesc::initializePipelineFragmentOutputState(
 
         if (staticBlendMask[colorIndexGL])
         {
+            ASSERT(!isBlendEquationDynamic);
+
             // To avoid triggering valid usage error, blending must be disabled for formats that do
             // not have VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT feature bit set.
             // From OpenGL ES clients, this means disabling blending for integer formats.
@@ -4231,6 +4181,14 @@ void GraphicsPipelineDesc::initializePipelineFragmentOutputState(
     if (context->getFeatures().supportsColorBlendEnableDynamicState.enabled)
     {
         dynamicStateListOut->push_back(VK_DYNAMIC_STATE_COLOR_BLEND_ENABLE_EXT);
+    }
+    if (context->getFeatures().supportsColorBlendEquationDynamicState.enabled)
+    {
+        dynamicStateListOut->push_back(VK_DYNAMIC_STATE_COLOR_BLEND_EQUATION_EXT);
+        if (context->getFeatures().supportsBlendOperationAdvanced.enabled)
+        {
+            dynamicStateListOut->push_back(VK_DYNAMIC_STATE_COLOR_BLEND_ADVANCED_EXT);
+        }
     }
     if (context->getFeatures().supportsColorWriteMaskDynamicState.enabled)
     {
@@ -5323,8 +5281,8 @@ bool FramebufferDesc::hasFragmentShadingRateAttachment() const
 size_t FramebufferDesc::hash() const
 {
     return angle::ComputeGenericHash(angle::as_bytes(angle::Span(mSerials).first(mMaxIndex))) ^
-           mHasColorFramebufferFetch << 26 ^ mIsRenderToTexture << 25 ^ mLayerCount << 16 ^
-           mUnresolveAttachmentMask;
+           mIsLegacyDitherEnabled << 27 ^ mHasColorFramebufferFetch << 26 ^
+           mIsRenderToTexture << 25 ^ mLayerCount << 16 ^ mUnresolveAttachmentMask;
 }
 
 void FramebufferDesc::reset()
@@ -5336,6 +5294,7 @@ void FramebufferDesc::reset()
     mSrgbWriteControlMode     = 0;
     mUnresolveAttachmentMask  = 0;
     mIsRenderToTexture        = 0;
+    mIsLegacyDitherEnabled    = 0;
     // An empty FramebufferDesc is still a valid desc. It becomes invalid when it is explicitly
     // destroyed or released by SharedFramebufferCacheKey.
     mIsValid = 1;
@@ -5348,7 +5307,8 @@ bool FramebufferDesc::operator==(const FramebufferDesc &other) const
         mUnresolveAttachmentMask != other.mUnresolveAttachmentMask ||
         mHasColorFramebufferFetch != other.mHasColorFramebufferFetch ||
         mSrgbWriteControlMode != other.mSrgbWriteControlMode ||
-        mIsRenderToTexture != other.mIsRenderToTexture)
+        mIsRenderToTexture != other.mIsRenderToTexture ||
+        mIsLegacyDitherEnabled != other.mIsLegacyDitherEnabled)
     {
         return false;
     }
@@ -5383,6 +5343,11 @@ void FramebufferDesc::updateLayerCount(uint32_t layerCount)
 void FramebufferDesc::setColorFramebufferFetchMode(bool hasColorFramebufferFetch)
 {
     SetBitField(mHasColorFramebufferFetch, hasColorFramebufferFetch);
+}
+
+void FramebufferDesc::setLegacyDitherEnabled(bool isLegacyDitherEnabled)
+{
+    SetBitField(mIsLegacyDitherEnabled, isLegacyDitherEnabled);
 }
 
 void FramebufferDesc::updateRenderToTexture(bool isRenderToTexture)
@@ -6487,9 +6452,10 @@ void DescriptorSetDescBuilder::updateOneUniformBufferOffset(
     SetBitField(mDynamicOffsets[infoDescIndex], newOffset);
 }
 
+template <typename CommandBufferHelperT>
 void DescriptorSetDescBuilder::updateOneStorageBuffer(
-    Context *context,
-    CommandBufferHelperCommon *commandBufferHelper,
+    ContextVk *contextVk,
+    CommandBufferHelperT *commandBufferHelper,
     const size_t blockIndex,
     const gl::InterfaceBlock &block,
     const gl::OffsetBindingPointer<gl::Buffer> &bufferBinding,
@@ -6511,7 +6477,7 @@ void DescriptorSetDescBuilder::updateOneStorageBuffer(
         return;
     }
 
-    updateOneShaderBuffer(context, commandBufferHelper, infoDescIndex, block, bufferBinding,
+    updateOneShaderBuffer(contextVk, commandBufferHelper, infoDescIndex, block, bufferBinding,
                           descriptorType, maxBoundBufferRange, emptyBuffer);
 
     // Insert necessary barriers
@@ -6522,11 +6488,32 @@ void DescriptorSetDescBuilder::updateOneStorageBuffer(
         // marked read-only.  This also helps BufferVk make better decisions during
         // buffer data uploads and copies by knowing that the buffers are not actually
         // being written to.
-        commandBufferHelper->bufferRead(context, VK_ACCESS_SHADER_READ_BIT, block.activeShaders(),
+        commandBufferHelper->bufferRead(contextVk, VK_ACCESS_SHADER_READ_BIT, block.activeShaders(),
                                         &bufferHelper, memoryBarrierBits);
+        return;
     }
-    else if (bufferHelper.canShaderWriteBarrierSkipped(block.activeShaders()) &&
-             (memoryBarrierBits & kBufferMemoryBarrierBits) == 0)
+
+    if constexpr (std::is_same_v<CommandBufferHelperT, OutsideRenderPassCommandBufferHelper>)
+    {
+        if (contextVk->isRenderPassStartedAndUsesBuffer(bufferHelper))
+        {
+            // If a buffer is used in an open render pass and subsequently written by a compute
+            // shader, the application should have called glMemoryBarrier, which detects the hazard
+            // and ends the render pass. If glMemoryBarrier is missing, the driver is allowed to
+            // reorder the buffer access between the compute dispatch (recorded in the
+            // outside-render-pass command buffer) and the render pass access. Since the open render
+            // pass has a larger QueueSerial, record the write without setting the buffer's mUse
+            // QueueSerial backwards.
+            ASSERT(bufferHelper.getResourceUse() > commandBufferHelper->getQueueSerial());
+            VkAccessFlags accessFlags = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+            commandBufferHelper->bufferWriteWhileUsedInRenderPass(
+                contextVk, accessFlags, block.activeShaders(), &bufferHelper, memoryBarrierBits);
+            return;
+        }
+    }
+
+    if (bufferHelper.canShaderWriteBarrierSkipped(block.activeShaders()) &&
+        (memoryBarrierBits & kBufferMemoryBarrierBits) == 0)
     {
         // Buffer is already in shader write access, and this is not from memoryBarrier call,
         // then skip the WAW barrier since GL spec says driver is not required to insert barrier
@@ -6543,14 +6530,15 @@ void DescriptorSetDescBuilder::updateOneStorageBuffer(
     {
         // We set the SHADER_READ_BIT to be conservative.
         VkAccessFlags accessFlags = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
-        commandBufferHelper->bufferWrite(context, accessFlags, block.activeShaders(), &bufferHelper,
-                                         memoryBarrierBits);
+        commandBufferHelper->bufferWrite(contextVk, accessFlags, block.activeShaders(),
+                                         &bufferHelper, memoryBarrierBits);
     }
 }
 
+template <typename CommandBufferHelperT>
 void DescriptorSetDescBuilder::updateStorageBuffers(
-    Context *context,
-    CommandBufferHelperCommon *commandBufferHelper,
+    ContextVk *contextVk,
+    CommandBufferHelperT *commandBufferHelper,
     const gl::ProgramExecutable &executable,
     const gl::BufferVector &buffers,
     const std::vector<gl::InterfaceBlock> &blocks,
@@ -6565,11 +6553,34 @@ void DescriptorSetDescBuilder::updateStorageBuffers(
     {
         const GLuint binding = executable.getShaderStorageBlockBinding(blockIndex);
 
-        updateOneStorageBuffer(context, commandBufferHelper, blockIndex, blocks[blockIndex],
+        updateOneStorageBuffer(contextVk, commandBufferHelper, blockIndex, blocks[blockIndex],
                                buffers[binding], descriptorType, maxBoundBufferRange, emptyBuffer,
                                writeDescriptorDescs, memoryBarrierBits);
     }
 }
+
+template void DescriptorSetDescBuilder::updateStorageBuffers<RenderPassCommandBufferHelper>(
+    ContextVk *contextVk,
+    RenderPassCommandBufferHelper *commandBufferHelper,
+    const gl::ProgramExecutable &executable,
+    const gl::BufferVector &buffers,
+    const std::vector<gl::InterfaceBlock> &blocks,
+    VkDescriptorType descriptorType,
+    VkDeviceSize maxBoundBufferRange,
+    const BufferHelper &emptyBuffer,
+    const WriteDescriptorDescs &writeDescriptorDescs,
+    const GLbitfield memoryBarrierBits);
+template void DescriptorSetDescBuilder::updateStorageBuffers<OutsideRenderPassCommandBufferHelper>(
+    ContextVk *contextVk,
+    OutsideRenderPassCommandBufferHelper *commandBufferHelper,
+    const gl::ProgramExecutable &executable,
+    const gl::BufferVector &buffers,
+    const std::vector<gl::InterfaceBlock> &blocks,
+    VkDescriptorType descriptorType,
+    VkDeviceSize maxBoundBufferRange,
+    const BufferHelper &emptyBuffer,
+    const WriteDescriptorDescs &writeDescriptorDescs,
+    const GLbitfield memoryBarrierBits);
 
 void DescriptorSetDescBuilder::updateAtomicCounters(
     Context *context,

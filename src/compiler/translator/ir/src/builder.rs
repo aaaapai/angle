@@ -214,30 +214,22 @@ impl CFGBuilder {
         if !self.current_block.new_instructions_are_dead_code {
             self.current_block.block.add_variable_declaration(variable_id);
         } else {
-        // GLSL supports declaring a variable in one case and using it in the next, even if the
-        // declaration is in dead code! To support this, the variable declaration is added to
-        // the block anyway if inside a switch case.
-        let mut non_merge_blocks =
-            self.interm_blocks.iter().rev().filter(|&block| !block.is_merge_block);
-
-        let first_block = match non_merge_blocks.next() {
-            Some(block) => block,
-            None => return,
-        };
-
-        let parent_is_switch = matches!(
-            first_block.block.get_terminating_op(),
-            OpCode::Switch(..)
-        );
-
-        let grandparent_is_switch = non_merge_blocks
-            .next()
-            .map(|block| matches!(block.block.get_terminating_op(), OpCode::Switch(..)))
-            .unwrap_or(false);
-
-        if parent_is_switch || grandparent_is_switch {
-            self.current_block.block.add_variable_declaration(variable_id);
-        }
+            // GLSL supports declaring a variable in one case and using it in the next, even if the
+            // declaration is in dead code!  To support this, the variable declaration is added to
+            // the block anyway if inside a switch case.
+            let mut non_merge_blocks =
+                self.interm_blocks.iter().rev().filter(|&block| !block.is_merge_block);
+            // If this is the first block of the first `case`, the parent would be the `switch`.
+            let parent_is_switch = non_merge_blocks.next().is_some_and(|block| {
+                matches!(block.block.get_terminating_op(), OpCode::Switch(..))
+            });
+            // Otherwise the grandparent is the `switch`.
+            let grandparent_is_switch = non_merge_blocks.next().is_some_and(|block| {
+                matches!(block.block.get_terminating_op(), OpCode::Switch(..))
+            });
+            if parent_is_switch || grandparent_is_switch {
+                self.current_block.block.add_variable_declaration(variable_id);
+            }
         }
     }
 
@@ -452,9 +444,14 @@ impl CFGBuilder {
             //     while (bool var = ...) { use(var); }
             //
             // To support this, pull the variable declaration to the parent scope so it's not
-            // declared only in the condition block.
+            // declared only in the condition block.  If the initializer contains short-circuiting
+            // or ternary operations, `var` is declared in a merge block of `condition_block`.
             let loop_block = &mut self.interm_blocks.last_mut().unwrap().block;
-            loop_block.variables.append(&mut std::mem::take(&mut condition_block.variables));
+            let mut condition_block_iter = Some(&mut condition_block);
+            while let Some(block) = condition_block_iter {
+                loop_block.variables.append(&mut std::mem::take(&mut block.variables));
+                condition_block_iter = block.merge_block.as_deref_mut();
+            }
             loop_block.set_loop_condition_block(condition_block);
         }
     }
@@ -514,16 +511,21 @@ impl CFGBuilder {
 
         match loop_condition {
             Some(condition) if condition == CONSTANT_ID_FALSE => {
-                // Remove the loop instruction from the block and revive it as the current block.
+                // Remove the loop instruction and any unreachable continue block, but keep the
+                // condition block's instructions as the condition is still evaluated once before
+                // exiting the loop.
                 loop_block.block.unterminate();
+                debug_assert!(
+                    loop_block.block.block1.is_none(),
+                    "Internal error: Unexpected loop body block"
+                );
+                loop_block.block.block2.take();
+
+                let mut condition_block = *loop_block.block.loop_condition.take().unwrap();
+                condition_block.get_merge_chain_last_block_mut().unterminate();
+                loop_block.block.append_block(condition_block);
+
                 self.restore_block_as_current(loop_block);
-
-                // Remove the condition block.
-                self.current_block.block.loop_condition.take();
-
-                // Remove the continue block that might have been added, if any.
-                debug_assert!(self.current_block.block.block1.is_none());
-                self.current_block.block.block2.take();
             }
             _ => {
                 // Not a constant false, push the loop block back and make the current block a

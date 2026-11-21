@@ -521,6 +521,81 @@ void SetNonDefaultBits(const FramebufferState &state,
     }
 }
 
+// Advances a readPixels destination by `bytes`. When a pixel pack buffer is bound, `pixels` is an
+// offset into that buffer rather than a pointer to memory, and is null for offset 0. Pointer
+// arithmetic on a null pointer is undefined behavior, so the offset is advanced as an integer
+// instead. For client memory, the caller must ensure that `pixels + bytes` stays within the
+// destination's pack extent.
+// TODO(anglebug.com/584647615): Pass client memory destinations as a span so this can use
+// subspan() instead of pointer arithmetic.
+ANGLE_UNSAFE_BUFFER_USAGE GLubyte *AdvanceReadPixelsDestination(GLubyte *pixels,
+                                                                size_t bytes,
+                                                                bool isPackBufferOffset)
+{
+    if (isPackBufferOffset)
+    {
+        return reinterpret_cast<GLubyte *>(reinterpret_cast<uintptr_t>(pixels) + bytes);
+    }
+    // SAFETY: The caller guarantees that `pixels + bytes` stays within the destination.
+    return ANGLE_UNSAFE_BUFFERS(pixels + bytes);
+}
+
+// Some Mali GLES drivers do not retain the previous contents of pixel pack buffer bytes that a
+// readPixels pack leaves unwritten (row padding and the last row's alignment padding) when the
+// pack fills the buffer. These drivers also count the last row's GL_PACK_ALIGNMENT padding, which
+// the spec does not, so a pack into a buffer that ends at the spec's end byte fails with
+// GL_INVALID_OPERATION when the last row has alignment padding.
+//
+// Reading the last row separately avoids both. The first call stops one row pitch short of the
+// pack's end, and the last row's alignment padding is smaller than a row pitch, so the first call
+// cannot reach the end of the buffer. The last row is then read with GL_PACK_ALIGNMENT 1, so it is
+// tightly packed and can only fill the buffer by writing all of it. Do this whenever the pack,
+// including its last row's alignment padding, could reach the end of the buffer, unless the pack
+// writes every byte up to its end anyway.
+angle::Result ShouldReadLastRowSeparatelyWhenFillingPackBuffer(ContextGL *contextGL,
+                                                               const gl::Extents &size,
+                                                               const gl::PixelPackState &packState,
+                                                               const gl::Buffer *packBuffer,
+                                                               GLenum format,
+                                                               GLenum type,
+                                                               const void *pixels,
+                                                               bool *shouldReadLastRowSeparatelyOut)
+{
+    if (packBuffer == nullptr)
+    {
+        *shouldReadLastRowSeparatelyOut = false;
+        return angle::Result::Continue;
+    }
+
+    const gl::InternalFormat &glFormat = gl::GetInternalFormatInfo(format, type);
+    GLuint rowPitch                    = 0;
+    ANGLE_CHECK_GL_MATH(contextGL, glFormat.computeRowPitch(type, size.width, packState.alignment,
+                                                            packState.rowLength, &rowPitch));
+    GLuint tightRowBytes = 0;
+    ANGLE_CHECK_GL_MATH(contextGL, glFormat.computeRowPitch(type, size.width, /*alignment=*/1,
+                                                            /*rowLength=*/0, &tightRowBytes));
+    GLuint alignedRowBytes = 0;
+    ANGLE_CHECK_GL_MATH(contextGL, glFormat.computeRowPitch(type, size.width, packState.alignment,
+                                                            /*rowLength=*/0, &alignedRowBytes));
+    GLuint endByte = 0;
+    ANGLE_CHECK_GL_MATH(contextGL, glFormat.computePackUnpackEndByte(type, size, packState,
+                                                                     /*is3D=*/false, &endByte));
+
+    const uint64_t lastRowPadding = alignedRowBytes - tightRowBytes;
+    const uint64_t endByteWithLastRowPadding =
+        static_cast<uint64_t>(reinterpret_cast<uintptr_t>(pixels)) + endByte + lastRowPadding;
+    // A tightly packed read at offset 0 with no skips writes every byte up to its end, so it
+    // cannot leave anything unwritten even when it fills the buffer. A single row is tightly
+    // packed whatever the row pitch (for example, with a GL_PACK_ROW_LENGTH larger than the
+    // width), because the row pitch only affects where later rows go.
+    const bool packIsTight = pixels == nullptr && packState.skipRows == 0 &&
+                             packState.skipPixels == 0 && lastRowPadding == 0 &&
+                             (size.height == 1 || rowPitch == tightRowBytes);
+    *shouldReadLastRowSeparatelyOut =
+        !packIsTight && endByteWithLastRowPadding >= static_cast<uint64_t>(packBuffer->getSize());
+    return angle::Result::Continue;
+}
+
 }  // namespace
 
 bool IsEmulatedAlphaChannelTextureAttachment(const gl::FramebufferAttachment *attachment)
@@ -595,19 +670,24 @@ angle::Result FramebufferGL::invalidate(const gl::Context *context,
         features.dontInvalidateIncompleteFBOs.enabled && !checkStatus(context).isComplete();
 
     // Since this function is just a hint, only call a native function if it exists.
-    if (!skipInvalidate)
+    if (!skipInvalidate && (functions->invalidateFramebuffer || functions->discardFramebufferEXT))
     {
+        stateManager->bindFramebuffer(GL_FRAMEBUFFER, mFramebufferID);
         if (functions->invalidateFramebuffer)
         {
-            stateManager->bindFramebuffer(GL_FRAMEBUFFER, mFramebufferID);
             functions->invalidateFramebuffer(GL_FRAMEBUFFER, static_cast<GLsizei>(count),
                                              finalAttachmentsPtr);
         }
-        else if (functions->discardFramebufferEXT)
+        else
         {
-            stateManager->bindFramebuffer(GL_FRAMEBUFFER, mFramebufferID);
             functions->discardFramebufferEXT(GL_FRAMEBUFFER, static_cast<GLsizei>(count),
                                              finalAttachmentsPtr);
+        }
+        if (features.doubleClear.enabled)
+        {
+            // SAFETY: Framebuffer::invalidate() ensures |attachments| has |count| elements.
+            markAttachmentsNeedDoubleClear(
+                ANGLE_UNSAFE_BUFFERS(angle::Span<const GLenum>(attachments, count)));
         }
     }
     ContextGL *contextGL = GetImplAs<ContextGL>(context);
@@ -645,9 +725,148 @@ angle::Result FramebufferGL::invalidateSub(const gl::Context *context,
         functions->invalidateSubFramebuffer(GL_FRAMEBUFFER, static_cast<GLsizei>(count),
                                             finalAttachmentsPtr, area.x, area.y, area.width,
                                             area.height);
+        const gl::Box dimensions = mState.getDimensions();
+        if (features.doubleClear.enabled &&
+            area.encloses(gl::Rectangle(0, 0, dimensions.width, dimensions.height)))
+        {
+            // SAFETY: Framebuffer::invalidateSub() ensures |attachments| has |count| elements.
+            markAttachmentsNeedDoubleClear(
+                ANGLE_UNSAFE_BUFFERS(angle::Span<const GLenum>(attachments, count)));
+        }
     }
 
     return angle::Result::Continue;
+}
+
+void FramebufferGL::markAttachmentsNeedDoubleClear(angle::Span<const GLenum> attachments)
+{
+    // On Mali and older Adreno drivers (doubleClear), glInvalidateFramebuffer
+    // marks the attachment store op as DISCARD without resetting the driver's cached clear values
+    // on the FBO pass. Because the ANGLE frontend treats a full application clear as sufficient
+    // resource initialization and skips ensureAttachmentsInitialized() (or in non-robust contexts
+    // never calls it), we record invalidated slots here so clear() / clearBuffer*() can run
+    // BlitGL's double-clear before the application's clear.
+    for (const GLenum attachment : attachments)
+    {
+        if (attachment == GL_COLOR || attachment == GL_BACK)
+        {
+            mColorAttachmentsNeedDoubleClear.set(0);
+        }
+        else if (attachment >= GL_COLOR_ATTACHMENT0 &&
+                 attachment < GL_COLOR_ATTACHMENT0 + gl::IMPLEMENTATION_MAX_DRAW_BUFFERS)
+        {
+            mColorAttachmentsNeedDoubleClear.set(attachment - GL_COLOR_ATTACHMENT0);
+        }
+        else if (attachment == GL_DEPTH || attachment == GL_DEPTH_ATTACHMENT)
+        {
+            mDepthNeedsDoubleClear = true;
+        }
+        else if (attachment == GL_STENCIL || attachment == GL_STENCIL_ATTACHMENT)
+        {
+            mStencilNeedsDoubleClear = true;
+        }
+        else if (attachment == GL_DEPTH_STENCIL || attachment == GL_DEPTH_STENCIL_ATTACHMENT)
+        {
+            mDepthNeedsDoubleClear   = true;
+            mStencilNeedsDoubleClear = true;
+        }
+    }
+}
+
+void FramebufferGL::resetNeedsDoubleClear(gl::DrawBufferMask colorAttachments,
+                                          bool depth,
+                                          bool stencil)
+{
+    mColorAttachmentsNeedDoubleClear &= ~colorAttachments;
+    if (depth)
+    {
+        mDepthNeedsDoubleClear = false;
+    }
+    if (stencil)
+    {
+        mStencilNeedsDoubleClear = false;
+    }
+}
+
+angle::Result FramebufferGL::prepareForClear(const gl::Context *context,
+                                             gl::DrawBufferMask colorAttachments,
+                                             bool depth,
+                                             bool stencil)
+{
+    if (!GetFeaturesGL(context).doubleClear.enabled)
+    {
+        return angle::Result::Continue;
+    }
+
+    const gl::DrawBufferMask colorToClear = mColorAttachmentsNeedDoubleClear & colorAttachments;
+    const bool depthToClear               = mDepthNeedsDoubleClear && depth;
+    const bool stencilToClear             = mStencilNeedsDoubleClear && stencil;
+    if (colorToClear.none() && !depthToClear && !stencilToClear)
+    {
+        return angle::Result::Continue;
+    }
+
+    // Issue BlitGL's burn + zero clear even though the frontend already marked the attachments
+    // Initialized during prepareForClear(), then re-sync StateManagerGL to restore the
+    // application's clear values, masks, and scissor state.
+    BlitGL *blitter = GetBlitGL(context);
+    ANGLE_TRY(blitter->clearFramebuffer(context, colorToClear, depthToClear, stencilToClear, this,
+                                        /*forceClear=*/true));
+    resetNeedsDoubleClear(colorToClear, depthToClear, stencilToClear);
+    return GetStateManagerGL(context)->syncState(
+        context, gl::state::DirtyBits(), gl::state::DirtyBits().set(),
+        gl::state::ExtendedDirtyBits(), gl::state::ExtendedDirtyBits());
+}
+
+angle::Result FramebufferGL::prepareForClear(const gl::Context *context,
+                                             GLenum buffer,
+                                             GLint drawbuffer)
+{
+    if (!GetFeaturesGL(context).doubleClear.enabled)
+    {
+        return angle::Result::Continue;
+    }
+
+    gl::DrawBufferMask colorMask;
+    bool depth   = false;
+    bool stencil = false;
+    switch (buffer)
+    {
+        case GL_COLOR:
+            if (isDefault())
+            {
+                if (drawbuffer == 0)
+                {
+                    colorMask.set(0);
+                }
+            }
+            else if (drawbuffer >= 0 &&
+                     static_cast<size_t>(drawbuffer) < mState.getDrawBufferStates().size())
+            {
+                const GLenum buf = mState.getDrawBufferStates()[drawbuffer];
+                if (buf >= GL_COLOR_ATTACHMENT0 &&
+                    buf < GL_COLOR_ATTACHMENT0 + gl::IMPLEMENTATION_MAX_DRAW_BUFFERS)
+                {
+                    colorMask.set(buf - GL_COLOR_ATTACHMENT0);
+                }
+            }
+            break;
+        case GL_DEPTH:
+            depth = true;
+            break;
+        case GL_STENCIL:
+            stencil = true;
+            break;
+        case GL_DEPTH_STENCIL:
+            depth   = true;
+            stencil = true;
+            break;
+        default:
+            UNREACHABLE();
+            break;
+    }
+
+    return prepareForClear(context, colorMask, depth, stencil);
 }
 
 angle::Result FramebufferGL::clear(const gl::Context *context, GLbitfield mask)
@@ -655,6 +874,11 @@ angle::Result FramebufferGL::clear(const gl::Context *context, GLbitfield mask)
     ContextGL *contextGL         = GetImplAs<ContextGL>(context);
     const FunctionsGL *functions = GetFunctionsGL(context);
     StateManagerGL *stateManager = GetStateManagerGL(context);
+
+    const gl::DrawBufferMask colorMask =
+        (mask & GL_COLOR_BUFFER_BIT) != 0 ? mState.getEnabledDrawBuffers() : gl::DrawBufferMask();
+    ANGLE_TRY(prepareForClear(context, colorMask, (mask & GL_DEPTH_BUFFER_BIT) != 0,
+                              (mask & GL_STENCIL_BUFFER_BIT) != 0));
 
     syncClearState(context, mask);
     stateManager->bindFramebuffer(GL_FRAMEBUFFER, mFramebufferID);
@@ -693,6 +917,8 @@ angle::Result FramebufferGL::clearBufferfv(const gl::Context *context,
     const FunctionsGL *functions = GetFunctionsGL(context);
     StateManagerGL *stateManager = GetStateManagerGL(context);
 
+    ANGLE_TRY(prepareForClear(context, buffer, drawbuffer));
+
     syncClearBufferState(context, buffer, drawbuffer);
     stateManager->bindFramebuffer(GL_FRAMEBUFFER, mFramebufferID);
 
@@ -730,6 +956,8 @@ angle::Result FramebufferGL::clearBufferuiv(const gl::Context *context,
     const FunctionsGL *functions = GetFunctionsGL(context);
     StateManagerGL *stateManager = GetStateManagerGL(context);
 
+    ANGLE_TRY(prepareForClear(context, buffer, drawbuffer));
+
     syncClearBufferState(context, buffer, drawbuffer);
     stateManager->bindFramebuffer(GL_FRAMEBUFFER, mFramebufferID);
 
@@ -766,6 +994,8 @@ angle::Result FramebufferGL::clearBufferiv(const gl::Context *context,
     ContextGL *contextGL         = GetImplAs<ContextGL>(context);
     const FunctionsGL *functions = GetFunctionsGL(context);
     StateManagerGL *stateManager = GetStateManagerGL(context);
+
+    ANGLE_TRY(prepareForClear(context, buffer, drawbuffer));
 
     syncClearBufferState(context, buffer, drawbuffer);
     stateManager->bindFramebuffer(GL_FRAMEBUFFER, mFramebufferID);
@@ -805,6 +1035,8 @@ angle::Result FramebufferGL::clearBufferfi(const gl::Context *context,
     ContextGL *contextGL         = GetImplAs<ContextGL>(context);
     const FunctionsGL *functions = GetFunctionsGL(context);
     StateManagerGL *stateManager = GetStateManagerGL(context);
+
+    ANGLE_TRY(prepareForClear(context, buffer, drawbuffer));
 
     syncClearBufferState(context, buffer, drawbuffer);
     stateManager->bindFramebuffer(GL_FRAMEBUFFER, mFramebufferID);
@@ -932,7 +1164,10 @@ angle::Result FramebufferGL::readPixelsImpl(const gl::Context *context,
     if (leftClip || topClip)
     {
         // Adjust destination to match portion clipped off left and/or top.
-        ANGLE_UNSAFE_TODO(outPtr += leftClip * glFormat.pixelBytes + topClip * rowBytes);
+        // SAFETY: `clippedArea` is non-empty and inside `area`, so this is the position of a
+        // pixel of the unclipped pack, which the destination holds.
+        outPtr = ANGLE_UNSAFE_BUFFERS(AdvanceReadPixelsDestination(
+            outPtr, leftClip * glFormat.pixelBytes + topClip * rowBytes, packBuffer != nullptr));
     }
 
     if (packState.rowLength == 0 && clippedArea.width != area.width)
@@ -956,16 +1191,22 @@ angle::Result FramebufferGL::readPixelsImpl(const gl::Context *context,
                                   outPtr);
     }
 
-    bool useLastRowPaddingWorkaround = false;
+    bool readLastRowSeparately = false;
     if (features.packLastRowSeparatelyForPaddingInclusion.enabled)
     {
         ANGLE_TRY(ShouldApplyLastRowPaddingWorkaround(
             contextGL, gl::Extents(clippedArea.width, clippedArea.height, 1), packState, packBuffer,
-            format, type, false, outPtr, &useLastRowPaddingWorkaround));
+            format, type, false, outPtr, &readLastRowSeparately));
+    }
+    if (features.packLastRowSeparatelyWhenFillingPackBuffer.enabled && !readLastRowSeparately)
+    {
+        ANGLE_TRY(ShouldReadLastRowSeparatelyWhenFillingPackBuffer(
+            contextGL, gl::Extents(clippedArea.width, clippedArea.height, 1), packState, packBuffer,
+            format, type, outPtr, &readLastRowSeparately));
     }
 
     return readPixelsAllAtOnce(context, clippedArea, originalReadFormat, format, type, packState,
-                               outPtr, useLastRowPaddingWorkaround);
+                               outPtr, readLastRowSeparately);
 }
 
 angle::Result FramebufferGL::blit(const gl::Context *context,
@@ -1524,7 +1765,9 @@ angle::Result FramebufferGL::ensureAttachmentsInitialized(
     }
 
     BlitGL *blitter = GetBlitGL(context);
-    return blitter->clearFramebuffer(context, colorAttachments, depth, stencil, this);
+    ANGLE_TRY(blitter->clearFramebuffer(context, colorAttachments, depth, stencil, this));
+    resetNeedsDoubleClear(colorAttachments, depth, stencil);
+    return angle::Result::Continue;
 }
 
 angle::Result FramebufferGL::onAttachmentLayerCountChange(gl::FramebufferAttachment *attachment)
@@ -1967,8 +2210,12 @@ angle::Result FramebufferGL::readPixelsAllAtOnce(const gl::Context *context,
         directPack.alignment = 1;
         ANGLE_TRY(stateManager->setPixelPackState(context, directPack));
 
+        const bool isPackBufferOffset =
+            context->getState().getTargetBuffer(gl::BufferBinding::PixelPack) != nullptr;
         GLubyte *readbackPixels = workaround.Pixels();
-        ANGLE_UNSAFE_TODO(readbackPixels += skipBytes + (area.height - 1) * rowBytes);
+        // SAFETY: This is the start of the pack's last row, which the destination holds.
+        readbackPixels = ANGLE_UNSAFE_BUFFERS(AdvanceReadPixelsDestination(
+            readbackPixels, skipBytes + (area.height - 1) * rowBytes, isPackBufferOffset));
         ANGLE_GL_TRY_ALWAYS_CHECK(
             context, functions->readPixels(area.x, area.y + area.height - 1, area.width, 1, format,
                                            type, readbackPixels));

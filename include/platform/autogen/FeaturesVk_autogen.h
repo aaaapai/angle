@@ -878,6 +878,12 @@ struct FeaturesVk : FeatureSetBase
         &members,
     };
 
+    FeatureInfo supportsColorBlendEquationDynamicState = {
+        "supportsColorBlendEquationDynamicState",
+        FeatureCategory::VulkanFeatures,
+        &members,
+    };
+
     FeatureInfo supportsColorWriteMaskDynamicState = {
         "supportsColorWriteMaskDynamicState",
         FeatureCategory::VulkanFeatures,
@@ -922,6 +928,12 @@ struct FeaturesVk : FeatureSetBase
 
     FeatureInfo supportsSampleMaskDynamicState = {
         "supportsSampleMaskDynamicState",
+        FeatureCategory::VulkanFeatures,
+        &members,
+    };
+
+    FeatureInfo supportsFixedStateDynamicState = {
+        "supportsFixedStateDynamicState",
         FeatureCategory::VulkanFeatures,
         &members,
     };

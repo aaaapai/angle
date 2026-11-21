@@ -7,6 +7,7 @@
 
 #include <array>
 
+#include "common/span.h"
 #include "common/unsafe_buffers.h"
 #include "test_utils/ANGLETest.h"
 
@@ -3078,11 +3079,9 @@ TEST_P(RobustResourceInitTestES3, RGBASwizzleBaseLevelStateChangeWithPBOUnpack)
     glUniform1f(lodLoc, 0.0f);
 
     std::vector<GLColor> red64(64 * 64, GLColor::red);
-    std::vector<GLColor> green64(64 * 64, GLColor::green);
     std::vector<GLColor> blue64(64 * 64, GLColor::blue);
     std::vector<GLColor> red32(32 * 32, GLColor::red);
     std::vector<GLColor> green32(32 * 32, GLColor::green);
-    std::vector<GLColor> red16(16 * 16, GLColor::red);
     std::vector<GLColor> green16(16 * 16, GLColor::green);
     std::vector<GLColor> blue16(16 * 16, GLColor::blue);
 
@@ -4967,7 +4966,7 @@ TEST_P(RobustResourceInitTestES3, LargeCompressedImage2DArray)
     static_assert(kSubImageByteSize % 8 == 0);
     for (size_t i = 0; i < kSubImageByteSize; i += 8)
     {
-        ANGLE_UNSAFE_TODO(memcpy(&subData[i], kRed_4x4_rgb_dxt1, sizeof(kRed_4x4_rgb_dxt1)));
+        Span(subData).subspan(i, sizeof(kRed_4x4_rgb_dxt1)).copy_from(Span(kRed_4x4_rgb_dxt1));
     }
     glCompressedTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, 0, kSubWidth, kSubHeight, kSubDepth,
                               GL_COMPRESSED_RGB_S3TC_DXT1_EXT, kSubImageByteSize, subData.data());
@@ -6857,8 +6856,8 @@ ANGLE_INSTANTIATE_TEST_ES3_AND(RobustResourceInitTestES3,
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(RobustResourceInitWithInvalidationTest);
 ANGLE_INSTANTIATE_TEST_ES3_AND(RobustResourceInitWithInvalidationTest,
-                               ES3_OPENGL().enable(Feature::DoubleClearForRobustInit),
-                               ES3_OPENGLES().enable(Feature::DoubleClearForRobustInit));
+                               ES3_OPENGL().enable(Feature::DoubleClear),
+                               ES3_OPENGLES().enable(Feature::DoubleClear));
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(RobustResourceInitTestES31);
 ANGLE_INSTANTIATE_TEST_ES31_AND(RobustResourceInitTestES31,

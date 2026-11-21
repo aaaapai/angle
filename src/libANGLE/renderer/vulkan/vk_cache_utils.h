@@ -801,7 +801,7 @@ struct GraphicsPipelineFragmentOutputVulkanStructs
 
 ANGLE_ENABLE_STRUCT_PADDING_WARNINGS
 
-using GraphicsPipelineDynamicStateList = angle::FixedVector<VkDynamicState, 37>;
+using GraphicsPipelineDynamicStateList = angle::FixedVector<VkDynamicState, 42>;
 
 enum class PipelineRobustness
 {
@@ -2041,8 +2041,9 @@ class DescriptorSetDescBuilder final
                                 VkDeviceSize maxBoundBufferRange,
                                 const BufferHelper &emptyBuffer,
                                 const WriteDescriptorDescs &writeDescriptorDescs);
-    void updateOneStorageBuffer(Context *context,
-                                CommandBufferHelperCommon *commandBufferHelper,
+    template <typename CommandBufferHelperT>
+    void updateOneStorageBuffer(ContextVk *contextVk,
+                                CommandBufferHelperT *commandBufferHelper,
                                 const size_t blockIndex,
                                 const gl::InterfaceBlock &block,
                                 const gl::OffsetBindingPointer<gl::Buffer> &bufferBinding,
@@ -2059,8 +2060,9 @@ class DescriptorSetDescBuilder final
                                VkDescriptorType descriptorType,
                                VkDeviceSize maxBoundBufferRange,
                                const BufferHelper &emptyBuffer);
-    void updateStorageBuffers(Context *context,
-                              CommandBufferHelperCommon *commandBufferHelper,
+    template <typename CommandBufferHelperT>
+    void updateStorageBuffers(ContextVk *contextVk,
+                              CommandBufferHelperT *commandBufferHelper,
                               const gl::ProgramExecutable &executable,
                               const gl::BufferVector &buffers,
                               const std::vector<gl::InterfaceBlock> &blocks,
@@ -2191,6 +2193,8 @@ class FramebufferDesc
     uint32_t getLayerCount() const { return mLayerCount; }
     void setColorFramebufferFetchMode(bool hasColorFramebufferFetch);
     bool hasColorFramebufferFetch() const { return mHasColorFramebufferFetch; }
+    void setLegacyDitherEnabled(bool isLegacyDitherEnabled);
+    bool isLegacyDitherEnabled() const { return mIsLegacyDitherEnabled; }
 
     bool isMultiview() const { return mIsMultiview; }
 
@@ -2233,8 +2237,9 @@ class FramebufferDesc
 
     // Whether this is a multisampled-render-to-single-sampled framebuffer.  Only used when using
     // VK_EXT_multisampled_render_to_single_sampled.  Only one bit is used and the rest is padding.
-    uint16_t mIsRenderToTexture : 14 - kMaxFramebufferNonResolveAttachments;
+    uint16_t mIsRenderToTexture : 13 - kMaxFramebufferNonResolveAttachments;
 
+    uint16_t mIsLegacyDitherEnabled : 1;
     uint16_t mIsMultiview : 1;
     // Used by SharedFramebufferCacheKey to indicate if this cache key is valid or not.
     uint16_t mIsValid : 1;
