@@ -1561,6 +1561,31 @@ gl::Rectangle ClipRectToScissor(const gl::State &glState, const gl::Rectangle &r
     return clippedRect;
 }
 
+namespace
+{
+bool ParseFeatureOverrideValue(const std::string &value, bool *enabledOut)
+{
+    std::string lowerValue = value;
+    angle::ToLower(&lowerValue);
+
+    if (lowerValue == "1" || lowerValue == "true" || lowerValue == "on" || lowerValue == "yes" ||
+        lowerValue == "enable" || lowerValue == "enabled")
+    {
+        *enabledOut = true;
+        return true;
+    }
+
+    if (lowerValue == "0" || lowerValue == "false" || lowerValue == "off" || lowerValue == "no" ||
+        lowerValue == "disable" || lowerValue == "disabled")
+    {
+        *enabledOut = false;
+        return true;
+    }
+
+    return false;
+}
+}  // namespace
+
 void ApplyFeatureOverrides(angle::FeatureSetBase *features,
                            const angle::FeatureOverrides &overrides)
 {
@@ -1572,10 +1597,13 @@ void ApplyFeatureOverrides(angle::FeatureSetBase *features,
     // Override with environment as well.
     constexpr char kAngleFeatureOverridesEnabledEnvName[]  = "ANGLE_FEATURE_OVERRIDES_ENABLED";
     constexpr char kAngleFeatureOverridesDisabledEnvName[] = "ANGLE_FEATURE_OVERRIDES_DISABLED";
+    constexpr char kAngleFeatureOverridesEnvName[]         = "ANGLE_FEATURE_OVERRIDES";
     constexpr char kAngleFeatureOverridesEnabledPropertyName[] =
         "debug.angle.feature_overrides_enabled";
     constexpr char kAngleFeatureOverridesDisabledPropertyName[] =
         "debug.angle.feature_overrides_disabled";
+    constexpr char kAngleFeatureOverridesPropertyName[] = "debug.angle.feature_overrides";
+
     std::vector<std::string> overridesEnabled =
         angle::GetCachedStringsFromEnvironmentVarOrAndroidProperty(
             kAngleFeatureOverridesEnabledEnvName, kAngleFeatureOverridesEnabledPropertyName, ":");
@@ -1585,6 +1613,41 @@ void ApplyFeatureOverrides(angle::FeatureSetBase *features,
 
     featureStream << features->overrideFeatures(overridesEnabled, true);
     featureStream << features->overrideFeatures(overridesDisabled, false);
+
+    // The legacy variables hold feature-name lists.  ANGLE_FEATURE_OVERRIDES additionally accepts
+    // explicit "name=true|false" entries, which is convenient for boolean switches:
+    //
+    //   ANGLE_FEATURE_OVERRIDES=exposeEs31OnEs30=false:someFeature=true
+    //
+    // These explicit overrides are applied last so they take precedence over the legacy lists.
+    std::vector<std::string> explicitOverridesEnabled;
+    std::vector<std::string> explicitOverridesDisabled;
+    std::vector<std::string> explicitOverrides =
+        angle::GetCachedStringsFromEnvironmentVarOrAndroidProperty(
+            kAngleFeatureOverridesEnvName, kAngleFeatureOverridesPropertyName, ":");
+    for (const std::string &entry : explicitOverrides)
+    {
+        const size_t separator = entry.find('=');
+        if (separator == std::string::npos)
+        {
+            explicitOverridesEnabled.push_back(entry);
+            continue;
+        }
+
+        const std::string name  = entry.substr(0, separator);
+        const std::string value = entry.substr(separator + 1);
+        bool enabled            = false;
+        if (name.empty() || !ParseFeatureOverrideValue(value, &enabled))
+        {
+            WARN() << "Ignoring invalid feature override: " << entry;
+            continue;
+        }
+
+        (enabled ? explicitOverridesEnabled : explicitOverridesDisabled).push_back(name);
+    }
+
+    featureStream << features->overrideFeatures(explicitOverridesEnabled, true);
+    featureStream << features->overrideFeatures(explicitOverridesDisabled, false);
 
     if (!featureStream.str().empty())
     {
