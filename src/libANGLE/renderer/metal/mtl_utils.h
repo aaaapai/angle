@@ -180,7 +180,7 @@ NSUInteger GetMaxNumberOfRenderTargetsForDevice(const mtl::ContextDevice &device
 bool DeviceHasMaximumRenderTargetSize(id<MTLDevice> device);
 
 // Whether the device supports MTLTextureTypeTextureBuffer.
-bool DeviceHasTextureBufferSupport(const mtl::ContextDevice &device);
+bool DeviceHasTextureBufferSupport(id<MTLDevice> device);
 
 // Useful to set clear color for texture originally having no alpha in GL, but backend's format
 // has alpha channel.
