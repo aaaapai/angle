@@ -289,7 +289,7 @@ target_os = "ios"
 target_environment = "device"
 ios_enable_code_signing = false
 enable_unused_resource_stripping = false
-
+ios_deployment_target = "12.0"
 
 # 保持 Chromium 自带 libc++（base 的 use_custom_libcxx = true）。
 # 关掉它会让 bundled libc++abi 在缺少 -nostdinc++ / -isystem 的情况下继续参与编译，
@@ -317,6 +317,10 @@ angle_extra_ldflags = [
   "-Wl,-O3",
 ]
 
+# ==SECTION:platform-ios-x64==
+# iOS 模拟器（Intel Mac）：target_environment 必须改成 simulator。
+target_environment = "simulator"
+
 
 # ==SECTION:platform-linux==
 target_os = "linux"
@@ -332,7 +336,6 @@ use_ozone = false
 target_cpu = "arm64"
 arm_use_neon = true
 arm_version = 8
-ios_deployment_target = "12.0"
 
 
 # ==SECTION:arch-arm32==

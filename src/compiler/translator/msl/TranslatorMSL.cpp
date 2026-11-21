@@ -1280,8 +1280,39 @@ bool TranslatorMSL::translateImpl(TInfoSinkBase &sink,
     }
     else if (getShaderType() == GL_COMPUTE_SHADER)
     {
-        // Compute-specific AST rewrites (gl_GlobalInvocationID injection, SSBO lowering) land
-        // in Step 3; EmitMetal handles builtins inline in the meantime.
+        // ====================================================================
+        // ES 3.1: 计算着色器
+        // --------------------------------------------------------------------
+        // 与 Vulkan 后端不同，Metal 的 compute 支持不依赖 AST 级的 SSBO lowering
+        // 或 builtin 注入；这些工作由 EmitMetal 在遍历阶段直接完成：
+        //
+        //   • emitFunctionReturn        → 输出 "kernel" 修饰符
+        //   • emitFunctionSignature     → 在 main 参数表中追加
+        //                                  uint3 ANGLE_gl_GlobalInvocationID
+        //                                    [[thread_position_in_grid]], ...
+        //   • visitFunctionDefinition   → 为 gl_GlobalInvocationID /
+        //                                  gl_LocalInvocationID / gl_WorkGroupID /
+        //                                  gl_NumWorkGroups / gl_WorkGroupSize
+        //                                  注册 mRenamedSymbols 重命名
+        //   • emitFunctionParameter     → 将 SSBO (EbtInterfaceBlock)
+        //                                  生成为 "device T *p [[buffer(N)]]"
+        //   • visitBinary (EOpIndexDirectInterfaceBlock)
+        //                                → 对 SSBO 指针成员访问输出 "->"
+        //   • visitAggregate            → 原子操作 (atomic_fetch_*_explicit)、
+        //                                  内存屏障 (threadgroup_barrier)、
+        //                                  imageLoad / imageStore
+        //
+        // 因此这里不需要额外的 AST 重写；空分支即代表"让流程继续走到
+        // EmitMetal"。GLSL 编译器已保证 builtin 变量在 symbolTable 中可查，
+        // EmitMetal 的 visitFunctionDefinition 在进入 main 时会统一完成
+        // 重命名注册，从而覆盖 main 体内的所有引用。
+        //
+        // 对于仍不支持的 ES 3.1 算子（如 bitfieldExtract / findLSB / emitVertex
+        // 等），EmitMetal::GetOperatorString 已返回 nullptr，
+        // GenMetalTraverser::visitAggregate 会输出
+        // "ANGLE_UNSUPPORTED_BUILTIN_<op>(...)" 并让 Metal 编译阶段失败，
+        // 但不会在翻译阶段触发 UNIMPLEMENTED()/断言。
+        // ====================================================================
     }
 
     if (!validateAST(root))

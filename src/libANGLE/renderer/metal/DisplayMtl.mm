@@ -958,7 +958,15 @@ void DisplayMtl::ensureCapsInitialized() const
     mNativeCaps.maxImageUnits                   = 0;
     mNativeCaps.maxCombinedImageUniforms        = 0;
     // ES 3.2 新增 Caps
-    mNativeCaps.maxFramebufferLayers = 2048;       // 至少 256，默认设为和 ArrayTextureLayers 一致
+    mNativeCaps.maxFramebufferLayers = 2048;
+    if (mtl::DeviceHasTextureBufferSupport(getMetalDevice()))
+    {
+        mNativeCaps.maxTextureBufferSize = 1u << 27;  // 128 MB
+    }
+    else
+    {
+        mNativeCaps.maxTextureBufferSize = 0;
+    }
     mNativeCaps.layerProvokingVertex = GL_LAST_VERTEX_CONVENTION; // 默认给 0x8E4D
 
     mNativeCaps.lineWidthGranularity    = 1.0f;
@@ -1240,9 +1248,10 @@ void DisplayMtl::initializeTextureCaps() const
     mNativeExtensions.readDepthNV         = false;
     mNativeExtensions.readStencilNV       = false;
 
-    // Metal exposes buffer textures through MTLTextureTypeTextureBuffer.
-    mNativeExtensions.textureBufferEXT = true;
-    mNativeExtensions.textureBufferOES = true;
+    const bool supportsTextureBuffer = mtl::DeviceHasTextureBufferSupport(getMetalDevice());
+    mNativeExtensions.textureBuffer    = supportsTextureBuffer;
+    mNativeExtensions.textureBufferEXT = supportsTextureBuffer;
+    mNativeExtensions.textureBufferOES = supportsTextureBuffer;
 }
 
 void DisplayMtl::initializeFeatures()

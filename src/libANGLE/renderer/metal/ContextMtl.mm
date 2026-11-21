@@ -1441,12 +1441,23 @@ angle::Result ContextMtl::syncState(const gl::Context *context,
                 break;
             case gl::state::DIRTY_BIT_MULTISAMPLING:
                 // NOTE(hqle): MSAA on/off.
+                invalidateRenderPipeline();
+                invalidateDriverUniforms();
                 break;
             case gl::state::DIRTY_BIT_SAMPLE_ALPHA_TO_ONE:
                 // NOTE(hqle): this is part of EXT_multisample_compatibility.
                 // NOTE(hqle): MSAA feature.
+                if (getDisplay()->getFeatures().emulateAlphaToCoverage.enabled)
+                {
+                    invalidateDriverUniforms();
+                }
+                else
+                {
+                    invalidateRenderPipeline();
+                }
                 break;
             case gl::state::DIRTY_BIT_FRAMEBUFFER_SRGB_WRITE_CONTROL_MODE:
+                invalidateRenderPipeline();
                 break;
             case gl::state::DIRTY_BIT_CURRENT_VALUES:
             {
@@ -2781,18 +2792,25 @@ angle::Result ContextMtl::setupDrawImpl(const gl::Context *context,
         mRenderEncoder.setVertexData(mDriverUniforms, mtl::kDriverUniformsBindingIndex);
     }
 
-    mDirtyBits.reset();
     // Check to see if our state would lead to a no-op draw.
     // If so, skip program setup until we end up with a state that requires a program.
     if (isDrawNoOp(mRenderPipelineDesc, this, mContextDevice))
     {
         *isNoOp = true;
+        // Safe to clear dirty bits here: no pipeline or program state was bound.
+        mDirtyBits.reset();
     }
     else
     {
         ANGLE_TRY(mExecutable->setupDraw(context, &mRenderEncoder, mRenderPipelineDesc,
                                          isPipelineDescChanged, textureChanged,
                                          uniformBuffersDirty));
+        // Reset dirty bits only after program setup succeeds. If setupDraw fails
+        // (e.g. program link failure, encoder flush, or command buffer error), the
+        // dirty bits must remain set so the state gets re-applied on the next draw
+        // call. Otherwise the next draw would use an incomplete/invalid pipeline state
+        // and could trigger a Metal API validation error or crash.
+        mDirtyBits.reset();
     }
 
     return checkCommandBufferError();

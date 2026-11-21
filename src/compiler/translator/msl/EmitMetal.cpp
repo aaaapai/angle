@@ -239,7 +239,41 @@ GenMetalTraverser::GenMetalTraverser(const TCompiler &compiler,
       mRasterOrderGroupsSupported(compileOptions.pls.fragmentSyncType ==
                                   ShFragmentSynchronizationType::RasterOrderGroups_Metal),
       mWriteHelperSampleMask(ppc.writeHelperSampleMask)
-{}
+{
+    // ES 3.1: 在遍历任何节点之前预注册 compute builtin 的重命名。
+    //
+    // 如果等到 visitFunctionDefinition 里 main 才开始注册，会出现下面的问题：
+    // 当用户源码里 helper() 定义在 main() 之前，并引用了 gl_GlobalInvocationID，
+    // 遍历 helper 的 body 时 mRenamedSymbols 还是空的，builtin 会以原样
+    // "gl_GlobalInvocationID" 漏到 MSL 源码里——MSL 不认识这个标识符，编译失败。
+    //
+    // 预注册后，任何位置的引用都会被改写成 "ANGLE_gl_GlobalInvocationID"。
+    // emitFunctionSignature 已在 kernel main 的参数表里生成了
+    //   uint3 ANGLE_gl_GlobalInvocationID [[thread_position_in_grid]]
+    // 等入口参数，因此 main 体内的引用可正确解析。
+    //
+    if (mCompiler.getShaderType() == GL_COMPUTE_SHADER)
+    {
+        const TSymbolTable &symbolTable = mCompiler.getSymbolTable();
+        const char *builtinNames[] = {
+            "gl_GlobalInvocationID",
+            "gl_LocalInvocationID",
+            "gl_WorkGroupID",
+            "gl_NumWorkGroups",
+            "gl_WorkGroupSize",
+        };
+        for (const char *name : builtinNames)
+        {
+            const TVariable *var = static_cast<const TVariable *>(
+                symbolTable.findBuiltIn(ImmutableString(name), mCompiler.getShaderVersion()));
+            if (var != nullptr)
+            {
+                mRenamedSymbols[var] =
+                    Name(ImmutableString(std::string("ANGLE_") + name), SymbolType::AngleInternal);
+            }
+        }
+    }
+}
 
 void GenMetalTraverser::emitIndentation()
 {
@@ -2096,7 +2130,10 @@ void GenMetalTraverser::emitFunctionSignature(const TFunction &func)
         mOut << " @@XFB-Bindings@@ ";
     }
 
-    // 追加 compute builtin 参数
+    // ES 3.1: compute kernel 的内置输入通过 [[...]] 属性参数注入，
+    // 与 GLSL 中的 gl_GlobalInvocationID 等 builtin 相对应。
+    // mRenamedSymbols 在 GenMetalTraverser 构造函数里预先注册，
+    // 使得这些 builtin 在任意函数内的引用都会被改名为这里生成的参数名。
     if (isMain && mCompiler.getShaderType() == GL_COMPUTE_SHADER)
     {
         mOut << (paramCount ? ", " : "")
@@ -2117,28 +2154,31 @@ void GenMetalTraverser::emitFunctionReturn(const TFunction &func)
     const TType &returnType = func.getReturnType();
     if (isMain)
     {
-        const TStructure *structure = returnType.getStruct();
-        if (mPipelineStructs.fragmentOut.matches(*structure))
-        {
-            if (mCompiler.isEarlyFragmentTestsSpecified())
-            {
-                mOut << "[[early_fragment_tests]]\n";
-            }
-            mOut << "fragment ";
-        }
-        else if (mPipelineStructs.vertexOut.matches(*structure))
-        {
-            ASSERT(structure != nullptr);
-            mOut << "vertex __VERTEX_OUT(";
-            isVertexMain = true;
-        }
-        else if (mCompiler.getShaderType() == GL_COMPUTE_SHADER)
+        if (mCompiler.getShaderType() == GL_COMPUTE_SHADER)
         {
             mOut << "kernel ";
         }
         else
         {
-            UNIMPLEMENTED();
+            const TStructure *structure = returnType.getStruct();
+            if (structure != nullptr && mPipelineStructs.fragmentOut.matches(*structure))
+            {
+                if (mCompiler.isEarlyFragmentTestsSpecified())
+                {
+                    mOut << "[[early_fragment_tests]]\n";
+                }
+                mOut << "fragment ";
+            }
+            else if (structure != nullptr && mPipelineStructs.vertexOut.matches(*structure))
+            {
+                ASSERT(structure != nullptr);
+                mOut << "vertex __VERTEX_OUT(";
+                isVertexMain = true;
+            }
+            else
+            {
+                UNIMPLEMENTED();
+            }
         }
     }
     emitType(returnType, EmitTypeConfig());
@@ -2244,26 +2284,12 @@ bool GenMetalTraverser::visitFunctionDefinition(Visit, TIntermFunctionDefinition
     const TFunction &func = *funcDefNode->getFunction();
     TIntermBlock &body    = *funcDefNode->getBody();
 
-    // 重命名 compute builtin 变量
-    if (func.isMain() && mCompiler.getShaderType() == GL_COMPUTE_SHADER)
-    {
-        const TSymbolTable &symbolTable = mCompiler.getSymbolTable();
-        for (const char *builtinName : {"gl_GlobalInvocationID", "gl_LocalInvocationID", "gl_WorkGroupID", "gl_NumWorkGroups", "gl_WorkGroupSize"})
-        {
-            const TVariable *var = static_cast<const TVariable *>(
-                symbolTable.findBuiltIn(ImmutableString(builtinName), mCompiler.getShaderVersion()));
-            if (var)
-            {
-                mRenamedSymbols[var] = Name(ImmutableString(std::string("ANGLE_") + builtinName), SymbolType::AngleInternal);
-            }
-        }
-    }
-
     if (func.isMain())
     {
         const TType &returnType     = func.getReturnType();
         const TStructure *structure = returnType.getStruct();
-        isTraversingVertexMain      = (mPipelineStructs.vertexOut.matches(*structure)) &&
+        isTraversingVertexMain      = (structure != nullptr &&
+                                  mPipelineStructs.vertexOut.matches(*structure)) &&
                                  mCompiler.getShaderType() == GL_VERTEX_SHADER;
     }
     emitIndentation();

@@ -114,12 +114,17 @@ const char *DisplayEGL::getEGLPath() const
     // The value may be either an absolute path (e.g. "/path/to/libEGL.so") or a library
     // name (e.g. "libEGL.so" or "libEGL.so.1") that will be resolved via the system search
     // paths by dlopen()/LoadLibrary() inside FunctionsEGLDL::initialize().
-    if (const char *envPath = angle::GetEnvironmentVar("ANGLE_LIBEGL"))
+    //
+    // getEGLPath returns a raw const char*, so the backing std::string must outlive the
+    // call. A function-local static is used for that: it is initialized on first call (so
+    // the environment is read once at startup, which is the only point at which changing
+    // ANGLE_LIBEGL could reasonably take effect anyway) and its storage lives for the
+    // lifetime of the process. A plain local std::string would make the returned c_str()
+    // dangle as soon as this function returns.
+    static const std::string sEnvLibEGL = angle::GetEnvironmentVar("ANGLE_LIBEGL");
+    if (!sEnvLibEGL.empty())
     {
-        if (envPath[0] != '\0')
-        {
-            return envPath;
-        }
+        return sEnvLibEGL.c_str();
     }
 
 #if defined(ANGLE_PLATFORM_ANDROID)
@@ -128,8 +133,14 @@ const char *DisplayEGL::getEGLPath() const
 #    else
     return "/system/lib/libEGL.so";
 #    endif
-#else
+#elif defined(ANGLE_PLATFORM_LINUX)
     return "libEGL.so.1";
+#elif defined(ANGLE_PLATFORM_APPLE)
+    return "libEGL.dylib";
+#elif defined(ANGLE_PLATFORM_WINDOWS)
+    return "libEGL.dll";
+#else
+    return "libEGL.so";
 #endif
 }
 

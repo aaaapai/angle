@@ -42,7 +42,30 @@ egl::Error DeviceEGL::initialize()
 
 egl::Error DeviceEGL::getAttribute(const egl::Display *display, EGLint attribute, void **outValue)
 {
-    UNREACHABLE();
+    // eglQueryDeviceAttribEXT can only return numeric device attributes.
+    // The device extensions ANGLE currently enables on this backend define
+    // string attributes only:
+    //   - EGL_EXT_device_drm:             EGL_DRM_DEVICE_FILE_EXT
+    //   - EGL_EXT_device_drm_render_node: EGL_DRM_RENDER_NODE_FILE_EXT
+    // Those must be queried through eglQueryDeviceStringEXT, which is
+    // dispatched to getDeviceString() and never reaches this method.
+    //
+    // There is therefore no numeric attribute to report. Return
+    // EGL_BAD_ATTRIBUTE instead of UNREACHABLE(): the EGL spec says callers
+    // must be able to recover from an unknown attribute, and trapping here
+    // crashes any application that probes device attributes defensively.
+    //
+    // The pointer is EGLAttrib* reinterpret_cast-ed to void** by
+    // egl::Display::queryDeviceAttrib. Clearing *outValue makes sure a
+    // caller that inspects the value even after seeing an error (some do,
+    // for logging) does not read uninitialised memory.
+    (void)display;
+
+    if (outValue != nullptr)
+    {
+        *outValue = nullptr;
+    }
+
     return egl::Error(EGL_BAD_ATTRIBUTE);
 }
 

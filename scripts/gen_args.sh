@@ -4,16 +4,23 @@
 #
 #   platform : android | ios | linux
 #   arch     : arm64 | arm32 | x86 | x86_64
-#   mode     : release | debug | fastdebug   (fastdebug 仅 android-arm64)
+#   mode     : release | debug | fastdebug
 #   out-dir  : GN 输出目录名，例如 Android-arm64-fastdebug
 #
 # 流程：
 #   1. 从 out/args.gn.in 按 section 优先级合并 -> 扁平 key=value
-#        优先级（高→低）：platform-*  >  mode-*  >  arch-*  >  base
+#        优先级（高→低）：
+#          platform-<X>-<ARCH>  >  platform-<X>  >  mode-<X>  >  arch-<X>  >  base
 #        即同名 key 出现在多个 section 时，优先级最高的生效
 #   2. release 且非 iOS 时，把 #@POLLY@ 占位符替换为 polly 插件参数
 #      其余情况删除该占位行
 #   3. 写出 out/<out-dir>/args.gn（纯 key=value，GN 可直接解析）
+#
+# 设计约束：
+#   - mode 与平台/架构解耦：release / debug / fastdebug 三种模式在全平台
+#     全架构通用。某平台/架构是否需要屏蔽某个 mode 特有的编译开关，
+#     由 args.gn.in 的 platform-* / arch-* section 覆盖来完成，脚本不再
+#     硬编码平台白名单。这样后续新增平台/架构或 mode 都不会牵连本脚本。
 #
 set -euo pipefail
 
@@ -38,10 +45,10 @@ case "$MODE" in
   *) echo "[gen_args] 未知模式: $MODE" >&2; exit 1 ;;
 esac
 
-if [ "$MODE" = "fastdebug" ] && { [ "$PLATFORM" != "android" ] || [ "$ARCH" != "arm64" ]; }; then
-  echo "[gen_args] fastdebug 仅支持 android-arm64，当前: $PLATFORM-$ARCH" >&2
-  exit 1
-fi
+case "$PLATFORM" in
+  android|ios|linux) ;;
+  *) echo "[gen_args] 未知平台: $PLATFORM" >&2; exit 1 ;;
+esac
 
 case "$ARCH" in
   x86_64|x64) ARCH_KEY=x64 ;;
@@ -57,9 +64,13 @@ mkdir -p "$(dirname "$OUT_FILE")"
 #  步骤 1：按 section 优先级合并 -> 扁平 key=value
 #
 #  priority 列表（逗号分隔，越靠前优先级越高）：
-#    platform-<X>, mode-<X>, arch-<X>, base
+#    platform-<X>-<ARCH>, platform-<X>, mode-<X>, arch-<X>, base
+#
+#  platform-<X>-<ARCH> 用于 platform 内部按架构细分的差异
+#  （典型例子：iOS 真机 vs iOS 模拟器的 target_environment）。
+#  该 section 可以不存在，匹配不到只是不生效，不影响其它 section。
 # ============================================================
-PRIORITY="platform-$PLATFORM,mode-$MODE,arch-$ARCH_KEY,base"
+PRIORITY="platform-$PLATFORM-$ARCH_KEY,platform-$PLATFORM,mode-$MODE,arch-$ARCH_KEY,base"
 
 awk -v priority="$PRIORITY" '
 BEGIN {
