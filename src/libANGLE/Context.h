@@ -767,6 +767,10 @@ class Context final : public egl::LabeledObject, angle::NonCopyable, public angl
     const State &getState() const { return mState; }
     const PrivateState &getPrivateState() const { return mState.privateState(); }
     const Version &getClientVersion() const { return mState.getClientVersion(); }
+
+    // The version that the context reports to the application.  This can be lower than
+    // getClientVersion(), which is the version whose feature set is used internally.
+    const Version &getReportedClientVersion() const { return mReportedClientVersion; }
     const Caps &getCaps() const { return mState.getCaps(); }
     const TextureCapsMap &getTextureCaps() const { return mState.getTextureCaps(); }
     const Extensions &getExtensions() const { return mState.getExtensions(); }
@@ -1092,6 +1096,7 @@ class Context final : public egl::LabeledObject, angle::NonCopyable, public angl
     void invalidateTransformFeedbackCapacities(const Buffer *buffer) const;
 
     State mState;
+    const Version mReportedClientVersion;
     bool mShared;
     std::atomic<bool> mSharedContext;
     bool mDisplayTextureShareGroup;

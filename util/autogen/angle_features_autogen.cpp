@@ -191,6 +191,7 @@ constexpr PackedEnumMap<Feature, const char *> kFeatureNames = {{
     {Feature::ExpandIntegerPowExpressions, "expandIntegerPowExpressions"},
     {Feature::ExplicitFragmentLocations, "explicitFragmentLocations"},
     {Feature::ExplicitlyEnablePerSampleShading, "explicitlyEnablePerSampleShading"},
+    {Feature::ExposeEs31OnEs30, "exposeEs31OnEs30"},
     {Feature::ExposeES32ForTesting, "exposeES32ForTesting"},
     {Feature::ExposeNonConformantExtensionsAndVersions, "exposeNonConformantExtensionsAndVersions"},
     {Feature::ExternallySynchronizePipelineCacheAccess, "externallySynchronizePipelineCacheAccess"},
