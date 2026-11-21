@@ -1685,7 +1685,7 @@ angle::Result ContextMtl::dispatchCompute(const gl::Context *context,
 {
     ASSERT(mExecutable);
     mtl::ComputeCommandEncoder *enc = getComputeCommandEncoder();
-    ANGLE_TRY(mExecutable->setupDispatch(this, enc, numGroupsX, numGroupsY, numGroupsZ));
+    ANGLE_TRY(mExecutable->setupDispatch(context, enc, numGroupsX, numGroupsY, numGroupsZ));
     return checkCommandBufferError();
 }
 
@@ -1705,7 +1705,7 @@ angle::Result ContextMtl::dispatchComputeIndirect(const gl::Context *context, GL
     size_t offset = static_cast<size_t>(indirect);
 
     mtl::ComputeCommandEncoder *enc = getComputeCommandEncoder();
-    ANGLE_TRY(mExecutable->setupDispatchIndirect(this, enc, bufferRef, offset));
+    ANGLE_TRY(mExecutable->setupDispatchIndirect(context, enc, bufferRef, offset));
 
     return checkCommandBufferError();
 }

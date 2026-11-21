@@ -1092,11 +1092,18 @@ void GenMetalTraverser::emitBareTypeName(const TType &type, const EmitTypeConfig
                         UNIMPLEMENTED();
                         break;
                 }
-                if (type.getMemoryQualifier().readonly || type.getMemoryQualifier().writeonly)
+                if (type.getMemoryQualifier().readonly)
                 {
-                    UNIMPLEMENTED();
+                    mOut << ", metal::access::read>";
                 }
-                mOut << ", metal::access::read_write>";
+                else if (type.getMemoryQualifier().writeonly)
+                {
+                    mOut << ", metal::access::write>";
+                }
+                else
+                {
+                    mOut << ", metal::access::read_write>";
+                }
             }
             else
             {

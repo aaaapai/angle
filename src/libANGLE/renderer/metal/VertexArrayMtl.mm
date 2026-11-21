@@ -100,13 +100,18 @@ void StreamIndexData(ContextMtl *contextMtl,
 }
 
 size_t GetVertexCount(BufferMtl *srcBuffer,
-                      const gl::VertexBinding &binding,
+                      uintptr_t attribOffset,
+                      uint32_t srcStride,
                       uint32_t srcFormatSize)
 {
     // Bytes usable for vertex data.
-    GLint64 bytes = srcBuffer->size() - binding.getOffset();
+    GLint64 bytes = static_cast<GLint64>(srcBuffer->size()) - static_cast<GLint64>(attribOffset);
     if (bytes < srcFormatSize)
         return 0;
+
+    // A zero stride means every vertex reads the same element (allowed by glBindVertexBuffer).
+    if (srcStride == 0)
+        return 1;
 
     // Count the last vertex.  It may occupy less than a full stride.
     size_t numVertices = 1;
@@ -114,21 +119,27 @@ size_t GetVertexCount(BufferMtl *srcBuffer,
 
     // Count how many strides fit remaining space.
     if (bytes > 0)
-        numVertices += static_cast<size_t>(bytes) / binding.getStride();
+        numVertices += static_cast<size_t>(bytes) / srcStride;
 
     return numVertices;
 }
 
 size_t GetVertexCountWithConversion(BufferMtl *srcBuffer,
                                     VertexConversionBufferMtl *conversionBuffer,
-                                    const gl::VertexBinding &binding,
+                                    uintptr_t attribOffset,
+                                    uint32_t srcStride,
                                     uint32_t srcFormatSize)
 {
     // Bytes usable for vertex data.
-    GLint64 bytes = srcBuffer->size() -
-                    MIN(static_cast<uintptr_t>(conversionBuffer->offset), binding.getOffset());
+    GLint64 bytes = static_cast<GLint64>(srcBuffer->size()) -
+                    static_cast<GLint64>(MIN(static_cast<uintptr_t>(conversionBuffer->offset),
+                                             attribOffset));
     if (bytes < srcFormatSize)
         return 0;
+
+    // A zero stride means every vertex reads the same element (allowed by glBindVertexBuffer).
+    if (srcStride == 0)
+        return 1;
 
     // Count the last vertex.  It may occupy less than a full stride.
     size_t numVertices = 1;
@@ -136,7 +147,7 @@ size_t GetVertexCountWithConversion(BufferMtl *srcBuffer,
 
     // Count how many strides fit remaining space.
     if (bytes > 0)
-        numVertices += static_cast<size_t>(bytes) / binding.getStride();
+        numVertices += static_cast<size_t>(bytes) / srcStride;
 
     return numVertices;
 }
@@ -606,20 +617,25 @@ angle::Result VertexArrayMtl::syncDirtyAttrib(const gl::Context *glContext,
             // even non-converted buffers need to be observed for potential
             // data rebinds.
             mContentsObserverBindingsMask.set(attrib.bindingIndex);
+            // The attribute's address is the binding base offset plus its own relative offset
+            // (glVertexAttribFormat).  Several attributes may share one binding, so the relative
+            // offset must always be included.
+            const uintptr_t attribOffset = binding.getOffset() + attrib.relativeOffset;
             bool needConversion =
                 format.actualFormatId != format.intendedFormatId ||
-                (binding.getOffset() % mtl::kVertexAttribBufferStrideAlignment) != 0 ||
+                (attribOffset % mtl::kVertexAttribBufferStrideAlignment) != 0 ||
                 (binding.getStride() < format.actualAngleFormat().pixelBytes) ||
                 (binding.getStride() % mtl::kVertexAttribBufferStrideAlignment) != 0;
 
             if (needConversion)
             {
-                ANGLE_TRY(convertVertexBuffer(glContext, bufferMtl, binding, attribIndex, format));
+                ANGLE_TRY(convertVertexBuffer(glContext, bufferMtl, binding, attribOffset,
+                                              attribIndex, format));
             }
             else
             {
                 mCurrentArrayBuffers[attribIndex]       = bufferMtl;
-                mCurrentArrayBufferOffsets[attribIndex] = binding.getOffset();
+                mCurrentArrayBufferOffsets[attribIndex] = attribOffset;
                 mCurrentArrayBufferStrides[attribIndex] = binding.getStride();
 
                 mCurrentArrayBufferFormats[attribIndex] = &format;
@@ -1080,12 +1096,14 @@ angle::Result VertexArrayMtl::streamIndexBufferFromClient(const gl::Context *con
 angle::Result VertexArrayMtl::convertVertexBuffer(const gl::Context *glContext,
                                                   BufferMtl *srcBuffer,
                                                   const gl::VertexBinding &binding,
+                                                  uintptr_t attribOffset,
                                                   size_t attribIndex,
                                                   const mtl::VertexFormat &srcVertexFormat)
 {
     unsigned srcFormatSize = srcVertexFormat.intendedAngleFormat().pixelBytes;
 
-    size_t numVertices = GetVertexCount(srcBuffer, binding, srcFormatSize);
+    size_t numVertices =
+        GetVertexCount(srcBuffer, attribOffset, binding.getStride(), srcFormatSize);
     if (numVertices == 0)
     {
         // Out of bound buffer access, can return any values.
@@ -1105,26 +1123,35 @@ angle::Result VertexArrayMtl::convertVertexBuffer(const gl::Context *glContext,
         GetVertexConversionFormat(contextMtl, srcVertexFormat.intendedFormatId, &stride);
 
     ConversionBufferMtl *conversion = srcBuffer->getVertexConversionBuffer(
-        contextMtl, srcVertexFormat.intendedFormatId, binding.getStride(), binding.getOffset());
+        contextMtl, srcVertexFormat.intendedFormatId, binding.getStride(), attribOffset);
+
+    // A zero source stride means every vertex reads the same element, so the converted stream must
+    // also be bound with a zero stride.
+    const bool constantVertex = binding.getStride() == 0;
 
     // Has the content of the buffer has changed since last conversion?
     if (!conversion->dirty)
     {
         VertexConversionBufferMtl *vertexConversionMtl =
             static_cast<VertexConversionBufferMtl *>(conversion);
-        ASSERT((binding.getOffset() - vertexConversionMtl->offset) % binding.getStride() == 0);
+        size_t convertedIndex = 0;
+        if (!constantVertex)
+        {
+            ASSERT((attribOffset - vertexConversionMtl->offset) % binding.getStride() == 0);
+            convertedIndex = (attribOffset - vertexConversionMtl->offset) / binding.getStride();
+        }
         mConvertedArrayBufferHolders[attribIndex].set(conversion->buffer.buffer());
         mCurrentArrayBufferOffsets[attribIndex] =
-            conversion->buffer.offset() +
-            stride * ((binding.getOffset() - vertexConversionMtl->offset) / binding.getStride());
+            conversion->buffer.offset() + stride * convertedIndex;
 
         mCurrentArrayBuffers[attribIndex]       = &mConvertedArrayBufferHolders[attribIndex];
         mCurrentArrayBufferFormats[attribIndex] = &convertedFormat;
-        mCurrentArrayBufferStrides[attribIndex] = stride;
+        mCurrentArrayBufferStrides[attribIndex] = constantVertex ? 0 : stride;
         return angle::Result::Continue;
     }
     numVertices = GetVertexCountWithConversion(
-        srcBuffer, static_cast<VertexConversionBufferMtl *>(conversion), binding, srcFormatSize);
+        srcBuffer, static_cast<VertexConversionBufferMtl *>(conversion), attribOffset,
+        binding.getStride(), srcFormatSize);
 
     const angle::Format &convertedAngleFormat = convertedFormat.actualAngleFormat();
     bool canConvertToFloatOnGPU =
@@ -1137,25 +1164,21 @@ angle::Result VertexArrayMtl::convertVertexBuffer(const gl::Context *glContext,
 
     if (canConvertToFloatOnGPU || canExpandComponentsOnGPU)
     {
-        ANGLE_TRY(convertVertexBufferGPU(glContext, srcBuffer, binding, attribIndex,
+        ANGLE_TRY(convertVertexBufferGPU(glContext, srcBuffer, binding, attribOffset, attribIndex,
                                          convertedFormat, stride, numVertices,
                                          canExpandComponentsOnGPU, conversion));
     }
     else
     {
-        ANGLE_TRY(convertVertexBufferCPU(contextMtl, srcBuffer, binding, attribIndex,
+        ANGLE_TRY(convertVertexBufferCPU(contextMtl, srcBuffer, binding, attribOffset, attribIndex,
                                          convertedFormat, stride, numVertices, conversion));
     }
 
     mConvertedArrayBufferHolders[attribIndex].set(conversion->buffer.buffer());
-    mCurrentArrayBufferOffsets[attribIndex] =
-        conversion->buffer.offset() +
-        stride *
-            ((binding.getOffset() - static_cast<VertexConversionBufferMtl *>(conversion)->offset) /
-             binding.getStride());
+    mCurrentArrayBufferOffsets[attribIndex] = conversion->buffer.offset();
     mCurrentArrayBuffers[attribIndex]       = &mConvertedArrayBufferHolders[attribIndex];
     mCurrentArrayBufferFormats[attribIndex] = &convertedFormat;
-    mCurrentArrayBufferStrides[attribIndex] = stride;
+    mCurrentArrayBufferStrides[attribIndex] = constantVertex ? 0 : stride;
 
     ASSERT(conversion->dirty);
     conversion->dirty = false;
@@ -1165,7 +1188,7 @@ angle::Result VertexArrayMtl::convertVertexBuffer(const gl::Context *glContext,
     {
         mConvertedArrayBufferHolders[attribIndex].getCurrentBuffer()->get().label =
             [NSString stringWithFormat:@"Converted from %p offset=%zu stride=%u", srcBuffer,
-                                       binding.getOffset(), binding.getStride()];
+                                       static_cast<size_t>(attribOffset), binding.getStride()];
     }
 #endif
 
@@ -1175,6 +1198,7 @@ angle::Result VertexArrayMtl::convertVertexBuffer(const gl::Context *glContext,
 angle::Result VertexArrayMtl::convertVertexBufferCPU(ContextMtl *contextMtl,
                                                      BufferMtl *srcBuffer,
                                                      const gl::VertexBinding &binding,
+                                                     uintptr_t attribOffset,
                                                      size_t attribIndex,
                                                      const mtl::VertexFormat &convertedFormat,
                                                      GLuint targetStride,
@@ -1183,7 +1207,7 @@ angle::Result VertexArrayMtl::convertVertexBufferCPU(ContextMtl *contextMtl,
 {
     VertexConversionBufferMtl *vertexConverison =
         static_cast<VertexConversionBufferMtl *>(conversion);
-    size_t srcOffset = MIN(binding.getOffset(), static_cast<uintptr_t>(vertexConverison->offset));
+    size_t srcOffset = MIN(attribOffset, static_cast<uintptr_t>(vertexConverison->offset));
     angle::Span<const uint8_t> srcBytes = srcBuffer->getBufferDataReadOnly(contextMtl, srcOffset);
     ANGLE_CHECK_GL_ALLOC(contextMtl, !srcBytes.empty());
     mtl::BufferSlice convertedBuffer;
@@ -1197,6 +1221,7 @@ angle::Result VertexArrayMtl::convertVertexBufferCPU(ContextMtl *contextMtl,
 angle::Result VertexArrayMtl::convertVertexBufferGPU(const gl::Context *glContext,
                                                      BufferMtl *srcBuffer,
                                                      const gl::VertexBinding &binding,
+                                                     uintptr_t attribOffset,
                                                      size_t attribIndex,
                                                      const mtl::VertexFormat &convertedFormat,
                                                      GLuint targetStride,
@@ -1209,7 +1234,7 @@ angle::Result VertexArrayMtl::convertVertexBufferGPU(const gl::Context *glContex
     mtl::BufferSlice newBuffer;
     ANGLE_TRY(conversion->bufferPool.allocate(contextMtl, numVertices * targetStride, &newBuffer));
 
-    ANGLE_CHECK_GL_MATH(contextMtl, binding.getOffset() <= std::numeric_limits<uint32_t>::max());
+    ANGLE_CHECK_GL_MATH(contextMtl, attribOffset <= std::numeric_limits<uint32_t>::max());
     ANGLE_CHECK_GL_MATH(contextMtl, newBuffer.offset() <= std::numeric_limits<uint32_t>::max());
     ANGLE_CHECK_GL_MATH(contextMtl, numVertices <= std::numeric_limits<uint32_t>::max());
 
@@ -1218,7 +1243,7 @@ angle::Result VertexArrayMtl::convertVertexBufferGPU(const gl::Context *glContex
         static_cast<VertexConversionBufferMtl *>(conversion);
     params.srcBuffer            = srcBuffer->getCurrentBuffer();
     params.srcBufferStartOffset = static_cast<uint32_t>(
-        MIN(static_cast<uintptr_t>(vertexConversion->offset), binding.getOffset()));
+        MIN(static_cast<uintptr_t>(vertexConversion->offset), attribOffset));
     params.srcStride           = binding.getStride();
     params.srcDefaultAlphaData = convertedFormat.defaultAlpha;
 
