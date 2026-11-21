@@ -118,13 +118,6 @@ class DisplayImpl : public EGLImplFactory, public angle::Subject
     virtual egl::Error waitNative(const gl::Context *context, EGLint engine) = 0;
     virtual gl::Version getMaxSupportedESVersion() const                     = 0;
     virtual gl::Version getMaxConformantESVersion() const                    = 0;
-    // Returns the version whose feature set the context should use internally.  Backends may
-    // return a higher version than the one reported to the application to make implemented
-    // features of a newer API level available from a lower-versioned context.
-    virtual gl::Version getInternalESVersion(const gl::Version &reportedVersion) const
-    {
-        return reportedVersion;
-    }
     const egl::Caps &getCaps() const;
 
     virtual void setBlobCacheFuncs(EGLSetBlobFuncANDROID set, EGLGetBlobFuncANDROID get) {}

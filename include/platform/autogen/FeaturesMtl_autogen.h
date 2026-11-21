@@ -344,12 +344,6 @@ struct FeaturesMtl : FeatureSetBase
         &members,
     };
 
-    FeatureInfo exposeEs31OnEs30 = {
-        "exposeEs31OnEs30",
-        FeatureCategory::MetalFeatures,
-        &members,
-    };
-
 };
 
 inline FeaturesMtl::FeaturesMtl()  = default;

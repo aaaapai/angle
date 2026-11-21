@@ -191,7 +191,6 @@ enum class Feature
     ExpandIntegerPowExpressions,
     ExplicitFragmentLocations,
     ExplicitlyEnablePerSampleShading,
-    ExposeEs31OnEs30,
     ExposeES32ForTesting,
     ExposeNonConformantExtensionsAndVersions,
     ExternallySynchronizePipelineCacheAccess,

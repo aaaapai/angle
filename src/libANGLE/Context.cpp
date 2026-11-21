@@ -281,7 +281,7 @@ bool GetHardenedContext(const egl::AttributeMap &attribs)
     return (attribs.get(EGL_CONTEXT_HARDENED_ANGLE, EGL_FALSE) == EGL_TRUE);
 }
 
-Version GetReportedClientVersion(egl::Display *display, const egl::AttributeMap &attribs)
+Version GetClientVersion(egl::Display *display, const egl::AttributeMap &attribs)
 {
     const Version requestedVersion(static_cast<uint8_t>(GetClientMajorVersion(attribs)),
                                    static_cast<uint8_t>(GetClientMinorVersion(attribs)));
@@ -307,22 +307,6 @@ Version GetReportedClientVersion(egl::Display *display, const egl::AttributeMap 
         std::max(display->getImplementation()->getMaxConformantESVersion(), requestedVersion);
 
     return conformantVersion;
-}
-
-Version GetClientVersion(egl::Display *display, const egl::AttributeMap &attribs)
-{
-    const Version reportedVersion = GetReportedClientVersion(display, attribs);
-
-    // WebGL contexts must not be upgraded implicitly: their specification and shader versions are
-    // tied to the reported version.
-    if (GetWebGLContext(attribs))
-    {
-        return reportedVersion;
-    }
-
-    // Backends may expose a newer feature set internally while reporting the lower version that
-    // the application asked for.  See DisplayMtl::getInternalESVersion().
-    return display->getImplementation()->getInternalESVersion(reportedVersion);
 }
 
 GLenum GetResetStrategy(const egl::AttributeMap &attribs)
@@ -723,7 +707,6 @@ Context::Context(egl::Display *display,
              GetProtectedContent(attribs),
              GetIsExternal(attribs),
              GetPassthroughShaders(display, attribs)),
-      mReportedClientVersion(GetReportedClientVersion(display, attribs)),
       mShared(shareContext != nullptr || shareTextures != nullptr || shareSemaphores != nullptr),
       mSharedContext(shareContext != nullptr),
       mDisplayTextureShareGroup(shareTextures != nullptr),
@@ -806,7 +789,7 @@ egl::Error Context::initialize()
     // validation is always done even with EGL validation disabled because it's not possible to
     // detect ahead of time if an ES 3.1 context is supported (no ES_31_BIT) or if
     // KHR_no_config_context is used.
-    if (getReportedClientVersion() > getDisplay()->getMaxSupportedESVersion())
+    if (getClientVersion() > getDisplay()->getMaxSupportedESVersion())
     {
         return egl::Error(EGL_BAD_ATTRIBUTE, "Requested version is not supported");
     }
@@ -2242,10 +2225,10 @@ void Context::getIntegervImpl(GLenum pname, GLint *params) const
             *params = mState.getCaps().maxProgramTexelOffset;
             break;
         case GL_MAJOR_VERSION:
-            *params = getReportedClientVersion().getMajor();
+            *params = getClientVersion().getMajor();
             break;
         case GL_MINOR_VERSION:
-            *params = getReportedClientVersion().getMinor();
+            *params = getClientVersion().getMinor();
             break;
         case GL_MAX_ELEMENTS_INDICES:
             *params = mState.getCaps().maxElementsIndices;
@@ -3732,7 +3715,7 @@ void Context::initVendorString()
 
 void Context::initVersionStrings()
 {
-    const Version &clientVersion = getReportedClientVersion();
+    const Version &clientVersion = getClientVersion();
 
     std::ostringstream versionString;
 
