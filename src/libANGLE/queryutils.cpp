@@ -4741,10 +4741,10 @@ void QueryContextAttrib(const gl::Context *context, EGLint attribute, EGLint *va
             break;
         case EGL_CONTEXT_MAJOR_VERSION:
             static_assert(EGL_CONTEXT_MAJOR_VERSION == EGL_CONTEXT_CLIENT_VERSION);
-            *value = context->getClientVersion().getMajor();
+            *value = context->getReportedClientVersion().getMajor();
             break;
         case EGL_CONTEXT_MINOR_VERSION:
-            *value = context->getClientVersion().getMinor();
+            *value = context->getReportedClientVersion().getMinor();
             break;
         case EGL_RENDER_BUFFER:
             *value = context->getRenderBuffer();

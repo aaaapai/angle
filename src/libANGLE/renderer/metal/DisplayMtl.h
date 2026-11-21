@@ -115,6 +115,7 @@ class DisplayMtl : public DisplayImpl, public ThreadSafeDisplayMtl
                                                          const egl::AttributeMap &attribs) override;
     gl::Version getMaxSupportedESVersion() const override;
     gl::Version getMaxConformantESVersion() const override;
+    gl::Version getInternalESVersion(const gl::Version &reportedVersion) const override;
 
     void initializeFrontendFeatures(angle::FrontendFeatures *features) const override;
 

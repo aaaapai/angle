@@ -437,6 +437,22 @@ gl::Version DisplayMtl::getMaxConformantESVersion() const
     return std::min(getMaxSupportedESVersion(), gl::Version(3, 0));
 }
 
+gl::Version DisplayMtl::getInternalESVersion(const gl::Version &reportedVersion) const
+{
+    // The Metal backend implements a subset of ES 3.1 (compute, SSBOs, texture buffers, indirect
+    // draws and the ES 3.1 extensions that are enabled in initializeExtensions()).  When the
+    // application gets an ES 3.0 context, keep reporting 3.0, but select the ES 3.1 feature set
+    // internally so the implemented entry points, extensions and 310 shaders remain reachable.
+    // Features that are not implemented fail through their normal limits (for example
+    // MAX_IMAGE_UNITS remains 0) instead of being silently emulated.
+    if (reportedVersion == gl::Version(3, 0) && mFeatures.exposeEs31OnEs30.enabled)
+    {
+        return gl::Version(3, 1);
+    }
+
+    return reportedVersion;
+}
+
 EGLSyncImpl *ThreadSafeDisplayMtl::createSync()
 {
     return new EGLSyncMtl();
@@ -858,12 +874,14 @@ void DisplayMtl::ensureCapsInitialized() const
     mNativeCaps.minProgramTexelOffset = -8;
     mNativeCaps.maxProgramTexelOffset = 7;
 
-    // NOTE(hqle): support storage buffer.
+    // SSBOs are bound by the compute path only (ProgramExecutableMtl::setupDispatch).  Graphics
+    // pipelines do not bind them yet, so keep the graphics limits at zero instead of advertising
+    // storage buffers that would read undefined data.
     const uint32_t maxPerStageStorageBuffers                     = mtl::kMaxShaderSSBOs;
-    mNativeCaps.maxShaderStorageBlocks[gl::ShaderType::Vertex]   = maxPerStageStorageBuffers;
-    mNativeCaps.maxShaderStorageBlocks[gl::ShaderType::Fragment] = maxPerStageStorageBuffers;
+    mNativeCaps.maxShaderStorageBlocks[gl::ShaderType::Vertex]   = 0;
+    mNativeCaps.maxShaderStorageBlocks[gl::ShaderType::Fragment] = 0;
     mNativeCaps.maxShaderStorageBlocks[gl::ShaderType::Compute]  = maxPerStageStorageBuffers;
-    mNativeCaps.maxCombinedShaderStorageBlocks                   = maxPerStageStorageBuffers * 3;
+    mNativeCaps.maxCombinedShaderStorageBlocks                   = maxPerStageStorageBuffers;
 
     // Fill in additional limits for UBOs and SSBOs.
     mNativeCaps.maxUniformBufferBindings = mNativeCaps.maxCombinedUniformBlocks;
@@ -1258,6 +1276,8 @@ void DisplayMtl::initializeFeatures()
     {
         return;
     }
+
+    ANGLE_FEATURE_CONDITION((&mFeatures), exposeEs31OnEs30, true);
 
     ANGLE_FEATURE_CONDITION((&mFeatures), allowGenMultipleMipsPerPass, true);
 

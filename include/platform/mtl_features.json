@@ -414,6 +414,15 @@
                 "Some GPUs have bugs when sampling depth/stencil views of cube map or array texture views during blit. Work around by using a full size temp copy."
             ],
             "issue": "http://crbug.com/577571797"
+        },
+        {
+            "name": "expose_es31_on_es30",
+            "category": "Features",
+            "description": [
+                "Keep reporting an OpenGL ES 3.0 context, but internally use the OpenGL ES 3.1",
+                "feature set so entry points, extensions and shaders implemented by the Metal",
+                "backend are usable without advertising an ES 3.1 version."
+            ]
         }
     ]
 }

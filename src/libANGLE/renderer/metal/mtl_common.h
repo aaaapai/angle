@@ -177,9 +177,11 @@ constexpr int kEmulatedAlphaValue = 1;
 constexpr size_t kOcclusionQueryResultSize = sizeof(uint64_t);
 
 // Forced ES 3.0 mode (Amethyst): report 3.0 so an ES context is created and the GL path is
-// selected.  The Metal backend implements the ES 3.0 feature set; ES 3.1/3.2-only operations
-// that an application actually calls remain unimplemented and will fail.  Keep this in sync
-// with DisplayMtl::getMaxConformantESVersion() (conformant must never exceed supported).
+// selected.  The context still uses the ES 3.1 feature set internally (see
+// DisplayMtl::getInternalESVersion()) so the ES 3.1 features implemented by this backend are
+// available.  Unimplemented ES 3.1/3.2 features remain unavailable through their caps and
+// extension flags.  Keep this in sync with DisplayMtl::getMaxConformantESVersion() (conformant
+// must never exceed supported).
 constexpr gl::Version kMaxSupportedGLVersion = gl::Version(3, 0);
 
 enum class PixelType
