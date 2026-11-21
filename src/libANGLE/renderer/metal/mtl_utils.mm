@@ -1386,6 +1386,31 @@ bool DeviceHasMaximumRenderTargetSize(id<MTLDevice> device)
     return !SupportsMacGPUFamily(device, 1);
 }
 
+bool DeviceHasTextureBufferSupport(const mtl::ContextDevice &device)
+{
+    if (!device.get())
+    {
+        return false;
+    }
+#if TARGET_OS_OSX || TARGET_OS_MACCATALYST
+    if (@available(macOS 10.14, macCatalyst 13.0, *))
+    {
+        return [device.get() respondsToSelector:
+                    @selector(minimumTextureBufferAlignmentForPixelFormat:)];
+    }
+    return false;
+#elif TARGET_OS_IOS || TARGET_OS_TV
+    if (@available(iOS 14.0, tvOS 14.0, *))
+    {
+        return [device.get() respondsToSelector:
+                    @selector(minimumTextureBufferAlignmentForPixelFormat:)];
+    }
+    return false;
+#else
+    return false;
+#endif
+}
+
 bool SupportsAppleGPUFamily(id<MTLDevice> device, uint8_t appleFamily)
 {
     MTLGPUFamily family;

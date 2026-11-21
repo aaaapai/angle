@@ -161,6 +161,8 @@ void TranslatedShaderInfo::reset()
     {
         binding = mtl::kMaxShaderBuffers;
     }
+
+    actualSSBOBindings.clear();
 }
 
 // Original mapping of front end from sampler name to multiple sampler slots (in form of
@@ -629,8 +631,19 @@ angle::Result MTLGetMSL(const angle::FeaturesMtl &features,
         originalSamplerBindings[mappedSamplerName].push_back(
             {textureIndex, static_cast<uint32_t>(samplerBinding.textureUnitsCount)});
     }
-    for (gl::ShaderType type : {gl::ShaderType::Vertex, gl::ShaderType::Fragment})
+
+    for (gl::ShaderType type : gl::AllShaderTypes())
     {
+        // Compute (or any other stage) may be absent from the program.  The front end's
+        // SharedCompiledShaderState is null in that case, and there is nothing to rewrite or to
+        // reflect on.
+        if (!shadersState[type])
+        {
+            (*mslShaderInfoOut)[type].metalShaderSource =
+                std::make_shared<const std::string>();
+            continue;
+        }
+
         std::string source;
         if (type == gl::ShaderType::Vertex)
         {
@@ -652,16 +665,33 @@ angle::Result MTLGetMSL(const angle::FeaturesMtl &features,
                 }
             }
         }
-        else
+        else if (type == gl::ShaderType::Fragment)
         {
-            ASSERT(type == gl::ShaderType::Fragment);
             const bool defineAlpha0 = features.emulateAlphaToCoverage.enabled;
             source = UpdateFragmentShaderOutputs(shaderSources[type], executable, defineAlpha0);
         }
+        else
+        {
+            ASSERT(type == gl::ShaderType::Compute);
+            // Compute has no pipeline output to rewrite; use the translated source as-is.
+            source = shaderSources[type];
+        }
+
         (*mslShaderInfoOut)[type].metalShaderSource =
             std::make_shared<const std::string>(std::move(source));
+
         const sh::TranslatorMetalReflection *reflection =
             &shadersState[type]->translatorMetalReflection;
+
+        if (type == gl::ShaderType::Compute)
+        {
+            for (auto &binding : reflection->getInterfaceBlockBindings())
+            {
+                (*mslShaderInfoOut)[type].actualSSBOBindings.push_back(
+                    {binding.first, binding.second, static_cast<uint32_t>(mtl::kSSBOBindingIndexStart + binding.second)});
+            }
+        }
+
         if (reflection->hasUBOs)
         {
             (*mslShaderInfoOut)[type].hasUBOArgumentBuffer = true;

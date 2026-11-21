@@ -1,11 +1,11 @@
 #!/usr/bin/env vpython3
 #
-# /// script
-# requires-python = '>=3.11,<3.12'
-# dependencies = [
-#   'perfect-hash==0.2.1'
-# ]
-# ///
+# [VPYTHON:BEGIN]
+# wheel: <
+#   name: "infra/python/wheels/perfect-hash-py2_py3"
+#   version: "version:0.2.1"
+# >
+# [VPYTHON:END]
 #
 # Copyright 2018 The ANGLE Project Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
@@ -1932,9 +1932,8 @@ def generate_files(args, functions_txt_filename, variables_json_filename,
     # Hashing mangled names
     mangled_names = list(dict.fromkeys(mangled_names))
     num_mangled_names = len(mangled_names)
-    mangled_names_dict = dict(zip(mangled_names, range(0, len(mangled_names))))
     # Generate the perfect hash function
-    f1, f2, mangled_G = generate_hash(mangled_names_dict, Hash2)
+    f1, f2, mangled_G = generate_hash(mangled_names, Hash2)
     mangled_hashfn = HashFunction(f1, f2, mangled_G)
     mangled_S1 = f1.salt
     mangled_S2 = f2.salt
@@ -1944,9 +1943,8 @@ def generate_files(args, functions_txt_filename, variables_json_filename,
     # Hashing unmangled names
     unmangled_names = list(dict.fromkeys(unmangled_names))
     num_unmangled_names = len(unmangled_names)
-    unmangled_names_dict = dict(zip(unmangled_names, range(0, len(unmangled_names))))
     # Generate the perfect hash function
-    f1, f2, unmangled_G = generate_hash(unmangled_names_dict, Hash2)
+    f1, f2, unmangled_G = generate_hash(unmangled_names, Hash2)
     unmangled_hashfn = HashFunction(f1, f2, unmangled_G)
     unmangled_S1 = f1.salt
     unmangled_S2 = f2.salt
@@ -2081,7 +2079,7 @@ def main():
     parser.add_argument('auto_script_command', nargs='?', default='')
     args = parser.parse_args()
 
-    test_filename = '../../tests/compiler_tests/ImmutableString_test_autogen.cpp'
+    test_filename = 'ImmutableString_test_autogen.cpp'
     variables_json_filename = 'builtin_variables.json'
     functions_txt_filename = 'builtin_function_declarations.txt'
 
@@ -2111,7 +2109,7 @@ def main():
 
     # Generate files based on ESSL symbols
     generate_files(args, functions_txt_filename, variables_json_filename,
-                   'ImmutableString_autogen.cpp', test_filename, 'tree_util/BuiltIn_autogen.h',
+                   'ImmutableString_autogen.cpp', test_filename, 'BuiltIn_autogen.h',
                    'SymbolTable_autogen.cpp', 'Operator_autogen.h', 'SymbolTable_autogen.h')
 
     return 0

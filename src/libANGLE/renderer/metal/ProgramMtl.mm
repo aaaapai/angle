@@ -247,6 +247,7 @@ void ProgramMtl::setBinaryRetrievableHint(bool retrievable) {}
 
 void ProgramMtl::setSeparable(bool separable)
 {
+    (void)separable;
     UNIMPLEMENTED();
 }
 

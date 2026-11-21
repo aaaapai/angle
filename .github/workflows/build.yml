@@ -1,0 +1,107 @@
+name: BUILD ANGLE
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Platform to build'
+        required: true
+        default: 'android'
+        type: choice
+        options:
+          - android
+          - ios
+          - linux
+          - all
+      android_arch:
+        description: 'Android architectures (ignored unless platform is android or all)'
+        required: true
+        default: 'arm64+arm64-fastdebug'
+        type: choice
+        options:
+          - 'arm64+arm64-fastdebug'
+          - 'x86_64+x86_64-fastdebug'
+          - 'all'
+      ios_arch:
+        description: 'iOS architectures (ignored unless platform is ios or all)'
+        required: true
+        default: 'arm64'
+        type: choice
+        options:
+          - 'arm64'
+          - 'x86_64'
+          - 'arm64-fastdebug'
+          - 'x86_64-fastdebug'
+          - 'all'
+      linux_arch:
+        description: 'Linux architectures (ignored unless platform is linux or all)'
+        required: true
+        default: 'x86_64'
+        type: choice
+        options:
+          - 'x86_64'
+          - 'x86_64-fastdebug'
+          - 'all'
+
+jobs:
+  android:
+    if: ${{ inputs.platform == 'android' || inputs.platform == 'all' }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: ${{ fromJSON(inputs.android_arch == 'all' && '["x86","x86_64","x86_64-debug","arm32","arm64","arm64-fastdebug"]' || (inputs.android_arch == 'x86_64+x86_64-fastdebug' && '["x86_64","x86_64-debug"]') || '["arm64","arm64-fastdebug"]') }}
+    steps:
+      - uses: actions/checkout@main
+        with:
+          fetch-depth: 1
+      - uses: ./.github/actions/angle-build
+        with:
+          platform: android
+          arch: ${{ matrix.arch }}
+          out-dir: Android-${{ matrix.arch }}
+          upload-path: '*.so'
+
+  # ---------------------------------------------------------------------------
+  # Linux：x86_64 release / x86_64-fastdebug，由 inputs.linux_arch 单值或 'all' 展开。
+  # 默认值 'x86_64' 时 out-dir 与旧版完全一致（linux-x86_64），保持向后兼容。
+  # ---------------------------------------------------------------------------
+  linux:
+    if: ${{ inputs.platform == 'linux' || inputs.platform == 'all' }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: ${{ fromJSON(inputs.linux_arch == 'all' && '["x86_64","x86_64-fastdebug"]' || format('["{0}"]', inputs.linux_arch)) }}
+    steps:
+      - uses: actions/checkout@main
+        with:
+          fetch-depth: 1
+      - uses: ./.github/actions/angle-build
+        with:
+          platform: linux
+          arch: ${{ matrix.arch }}
+          out-dir: linux-${{ matrix.arch }}
+          upload-path: '*.so'
+
+  # ---------------------------------------------------------------------------
+  # iOS：arm64 / x86_64 以及两者的 -fastdebug 变体，
+  #      由 inputs.ios_arch 单值或 'all' 展开为 matrix。
+  # ---------------------------------------------------------------------------
+  ios:
+    if: ${{ inputs.platform == 'ios' || inputs.platform == 'all' }}
+    runs-on: macos-15
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: ${{ fromJSON(inputs.ios_arch == 'all' && '["arm64","x86_64","arm64-fastdebug","x86_64-fastdebug"]' || format('["{0}"]', inputs.ios_arch)) }}
+    steps:
+      - uses: actions/checkout@main
+        with:
+          fetch-depth: 1
+      - uses: ./.github/actions/angle-build
+        with:
+          platform: ios
+          arch: ${{ matrix.arch }}
+          out-dir: ios-${{ matrix.arch }}
+          upload-path: '*.framework'

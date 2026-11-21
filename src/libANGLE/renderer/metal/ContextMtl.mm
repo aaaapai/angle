@@ -953,18 +953,112 @@ angle::Result ContextMtl::drawArraysIndirect(const gl::Context *context,
                                              gl::PrimitiveMode mode,
                                              const void *indirect)
 {
-    // NOTE(hqle): ES 3.0
-    UNIMPLEMENTED();
-    return angle::Result::Stop;
+    ANGLE_TRY(resyncDrawFramebufferIfNeeded(context));
+
+    // Metal has native single-draw indirect commands but no multi-draw command.  This entry point
+    // performs one native indirect draw; multi-draw repeats it.
+    ANGLE_CHECK(this, !context->hasAnyActiveClientAttrib(),
+                "Indirect draw cannot use client-side vertex data.", GL_INVALID_OPERATION);
+    ANGLE_CHECK(this, !getState().isTransformFeedbackActiveUnpaused(),
+                "Indirect draw with active transform feedback is not supported.",
+                GL_INVALID_OPERATION);
+    ANGLE_CHECK(this, mode != gl::PrimitiveMode::LineLoop && mode != gl::PrimitiveMode::TriangleFan,
+                "Metal indirect draw cannot close line loops or emulate triangle fans.",
+                GL_INVALID_OPERATION);
+
+    const MTLPrimitiveType primitiveType = mtl::GetPrimitiveType(mode);
+    ANGLE_CHECK(this, primitiveType != mtl::MTLPrimitiveTypeInvalid,
+                "Unsupported primitive mode for indirect draw.", GL_INVALID_OPERATION);
+
+    gl::Buffer *indirectBuffer = getState().getTargetBuffer(gl::BufferBinding::DrawIndirect);
+    ANGLE_CHECK(this, indirectBuffer != nullptr, "No indirect draw buffer is bound.",
+                GL_INVALID_OPERATION);
+
+    const size_t indirectOffset = reinterpret_cast<size_t>(indirect);
+    ANGLE_CHECK(this, (indirectOffset % 4) == 0, "Indirect draw offset must be a multiple of 4.",
+                GL_INVALID_VALUE);
+
+    bool isNoOp = false;
+    ANGLE_TRY(setupDraw(context, /*firstVertex=*/-1, /*vertexOrIndexCount=*/0,
+                        /*instances=*/0, gl::DrawElementsType::InvalidEnum, nullptr, false,
+                        &isNoOp));
+    if (isNoOp)
+    {
+        return angle::Result::Continue;
+    }
+
+    BufferMtl *indirectBufferMtl           = mtl::GetImpl(indirectBuffer);
+    const mtl::BufferRef indirectBufferRef = indirectBufferMtl->getCurrentBuffer();
+    ANGLE_CHECK(this, indirectBufferRef != nullptr, "Indirect draw buffer has no native storage.",
+                GL_INVALID_OPERATION);
+    mRenderEncoder.drawIndirect(primitiveType, indirectBufferRef, indirectOffset);
+
+    return angle::Result::Continue;
 }
+
 angle::Result ContextMtl::drawElementsIndirect(const gl::Context *context,
                                                gl::PrimitiveMode mode,
                                                gl::DrawElementsType type,
                                                const void *indirect)
 {
-    // NOTE(hqle): ES 3.0
-    UNIMPLEMENTED();
-    return angle::Result::Stop;
+    ANGLE_TRY(resyncDrawFramebufferIfNeeded(context));
+
+    ANGLE_CHECK(this, !context->hasAnyActiveClientAttrib(),
+                "Indirect draw cannot use client-side vertex data.", GL_INVALID_OPERATION);
+    ANGLE_CHECK(this, !getState().isTransformFeedbackActiveUnpaused(),
+                "Indirect draw with active transform feedback is not supported.",
+                GL_INVALID_OPERATION);
+    ANGLE_CHECK(this, mode != gl::PrimitiveMode::LineLoop && mode != gl::PrimitiveMode::TriangleFan,
+                "Metal indirect draw cannot close line loops or emulate triangle fans.",
+                GL_INVALID_OPERATION);
+
+    const MTLPrimitiveType primitiveType = mtl::GetPrimitiveType(mode);
+    ANGLE_CHECK(this, primitiveType != mtl::MTLPrimitiveTypeInvalid,
+                "Unsupported primitive mode for indirect draw.", GL_INVALID_OPERATION);
+
+    // Metal has no 8-bit index type.  Converting it would require knowing the draw count, which is
+    // stored in the indirect buffer and is not read on the CPU.
+    const MTLIndexType indexType = mtl::GetIndexType(type);
+    ANGLE_CHECK(this, indexType != mtl::MTLIndexTypeInvalid,
+                "Metal indirect indexed draw requires 16-bit or 32-bit indices.",
+                GL_INVALID_OPERATION);
+
+    gl::Buffer *indirectBuffer = getState().getTargetBuffer(gl::BufferBinding::DrawIndirect);
+    ANGLE_CHECK(this, indirectBuffer != nullptr, "No indirect draw buffer is bound.",
+                GL_INVALID_OPERATION);
+
+    const gl::VertexArray *vertexArray = getState().getVertexArray();
+    gl::Buffer *indexBuffer            = vertexArray->getElementArrayBuffer();
+    ANGLE_CHECK(this, indexBuffer != nullptr, "No element array buffer is bound.",
+                GL_INVALID_OPERATION);
+
+    const size_t indirectOffset = reinterpret_cast<size_t>(indirect);
+    ANGLE_CHECK(this, (indirectOffset % 4) == 0, "Indirect draw offset must be a multiple of 4.",
+                GL_INVALID_VALUE);
+
+    bool isNoOp = false;
+    ANGLE_TRY(setupDraw(context, /*firstVertex=*/-1, /*vertexOrIndexCount=*/0,
+                        /*instances=*/0, type, nullptr, false, &isNoOp));
+    if (isNoOp)
+    {
+        return angle::Result::Continue;
+    }
+
+    BufferMtl *indirectBufferMtl           = mtl::GetImpl(indirectBuffer);
+    const mtl::BufferRef indirectBufferRef = indirectBufferMtl->getCurrentBuffer();
+    BufferMtl *indexBufferMtl              = mtl::GetImpl(indexBuffer);
+    const mtl::BufferRef indexBufferRef    = indexBufferMtl->getCurrentBuffer();
+    ANGLE_CHECK(this, indirectBufferRef != nullptr, "Indirect draw buffer has no native storage.",
+                GL_INVALID_OPERATION);
+    ANGLE_CHECK(this, indexBufferRef != nullptr, "Index buffer has no native storage.",
+                GL_INVALID_OPERATION);
+
+    // The element array buffer is bound as a whole; firstIndex from the indirect command selects
+    // the starting element inside it.
+    mRenderEncoder.drawIndexedIndirect(primitiveType, indexType, indexBufferRef, 0,
+                                       indirectBufferRef, indirectOffset);
+
+    return angle::Result::Continue;
 }
 
 angle::Result ContextMtl::multiDrawArrays(const gl::Context *context,
@@ -993,6 +1087,8 @@ angle::Result ContextMtl::multiDrawArraysIndirect(const gl::Context *context,
                                                   GLsizei drawcount,
                                                   GLsizei stride)
 {
+    // Metal 2 has no multi-draw command.  Use the shared helper, which only advances the
+    // offset/stride and never reads the indirect buffer.
     return rx::MultiDrawArraysIndirectGeneral(this, context, mode, indirect, drawcount, stride);
 }
 
@@ -1025,6 +1121,7 @@ angle::Result ContextMtl::multiDrawElementsIndirect(const gl::Context *context,
                                                     GLsizei drawcount,
                                                     GLsizei stride)
 {
+    // Multi-draw is a loop over the single indirect draw entry point.
     return rx::MultiDrawElementsIndirectGeneral(this, context, mode, type, indirect, drawcount,
                                                 stride);
 }
@@ -1344,12 +1441,23 @@ angle::Result ContextMtl::syncState(const gl::Context *context,
                 break;
             case gl::state::DIRTY_BIT_MULTISAMPLING:
                 // NOTE(hqle): MSAA on/off.
+                invalidateRenderPipeline();
+                invalidateDriverUniforms();
                 break;
             case gl::state::DIRTY_BIT_SAMPLE_ALPHA_TO_ONE:
                 // NOTE(hqle): this is part of EXT_multisample_compatibility.
                 // NOTE(hqle): MSAA feature.
+                if (getDisplay()->getFeatures().emulateAlphaToCoverage.enabled)
+                {
+                    invalidateDriverUniforms();
+                }
+                else
+                {
+                    invalidateRenderPipeline();
+                }
                 break;
             case gl::state::DIRTY_BIT_FRAMEBUFFER_SRGB_WRITE_CONTROL_MODE:
+                invalidateRenderPipeline();
                 break;
             case gl::state::DIRTY_BIT_CURRENT_VALUES:
             {
@@ -1575,15 +1683,31 @@ angle::Result ContextMtl::dispatchCompute(const gl::Context *context,
                                           GLuint numGroupsY,
                                           GLuint numGroupsZ)
 {
-    // NOTE(hqle): ES 3.0
-    UNIMPLEMENTED();
-    return angle::Result::Stop;
+    ASSERT(mExecutable);
+    mtl::ComputeCommandEncoder *enc = getComputeCommandEncoder();
+    ANGLE_TRY(mExecutable->setupDispatch(this, enc, numGroupsX, numGroupsY, numGroupsZ));
+    return checkCommandBufferError();
 }
+
 angle::Result ContextMtl::dispatchComputeIndirect(const gl::Context *context, GLintptr indirect)
 {
-    // NOTE(hqle): ES 3.0
-    UNIMPLEMENTED();
-    return angle::Result::Stop;
+    ASSERT(mExecutable);
+
+    const gl::State &glState = context->getState();
+    gl::Buffer *indirectBuffer = glState.getTargetBuffer(gl::BufferBinding::DispatchIndirect);
+    if (!indirectBuffer)
+    {
+        return angle::Result::Continue;
+    }
+
+    BufferMtl *indirectBufferMtl = mtl::GetImpl(indirectBuffer);
+    const mtl::BufferRef &bufferRef = indirectBufferMtl->getCurrentBuffer();
+    size_t offset = static_cast<size_t>(indirect);
+
+    mtl::ComputeCommandEncoder *enc = getComputeCommandEncoder();
+    ANGLE_TRY(mExecutable->setupDispatchIndirect(this, enc, bufferRef, offset));
+
+    return checkCommandBufferError();
 }
 
 angle::Result ContextMtl::memoryBarrier(const gl::Context *context, GLbitfield barriers)
@@ -1592,12 +1716,64 @@ angle::Result ContextMtl::memoryBarrier(const gl::Context *context, GLbitfield b
     {
         return checkCommandBufferError();
     }
+
     if (context->getClientVersion() >= gl::Version{3, 1})
     {
-        // We expect ES 3.0, and as such we don't consider ES 3.1+ objects in this function yet.
-        UNIMPLEMENTED();
-        return angle::Result::Stop;
+        // ES 3.1 barrier.  Map GL barrier bits onto MTLBarrierScope, then route to
+        // whichever encoder is active.
+        MTLBarrierScope scope = 0;
+        if (barriers & (GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT | GL_ELEMENT_ARRAY_BARRIER_BIT |
+                        GL_UNIFORM_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT |
+                        GL_ATOMIC_COUNTER_BARRIER_BIT | GL_COMMAND_BARRIER_BIT |
+                        GL_PIXEL_BUFFER_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT |
+                        GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT_EXT))
+        {
+            scope |= MTLBarrierScopeBuffers;
+        }
+        if (barriers & (GL_TEXTURE_FETCH_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT |
+                        GL_TEXTURE_UPDATE_BARRIER_BIT | GL_FRAMEBUFFER_BARRIER_BIT))
+        {
+            scope |= MTLBarrierScopeTextures;
+        }
+#if TARGET_OS_OSX || TARGET_OS_MACCATALYST
+        if (getDisplay()->hasFragmentMemoryBarriers() &&
+            (barriers & GL_FRAMEBUFFER_BARRIER_BIT))
+        {
+            scope |= MTLBarrierScopeRenderTargets;
+        }
+#endif
+        if (barriers == GL_ALL_BARRIER_BITS)
+        {
+            scope = MTLBarrierScopeBuffers | MTLBarrierScopeTextures;
+#if TARGET_OS_OSX || TARGET_OS_MACCATALYST
+            if (getDisplay()->hasFragmentMemoryBarriers())
+            {
+                scope |= MTLBarrierScopeRenderTargets;
+            }
+#endif
+        }
+        if (scope == 0)
+        {
+            return checkCommandBufferError();
+        }
+
+        if (mComputeEncoder.valid())
+        {
+            mComputeEncoder.memoryBarrierWithScope(scope);
+        }
+        else if (mRenderEncoder.valid())
+        {
+            MTLRenderStages stages = MTLRenderStageVertex;
+            if (getDisplay()->hasFragmentMemoryBarriers())
+            {
+                stages |= MTLRenderStageFragment;
+            }
+            mRenderEncoder.memoryBarrier(scope, stages, stages);
+        }
+        return checkCommandBufferError();
     }
+
+    // ES 3.0 path — 保持原逻辑。
     MTLBarrierScope scope;
     switch (barriers)
     {
@@ -1615,14 +1791,6 @@ angle::Result ContextMtl::memoryBarrier(const gl::Context *context, GLbitfield b
 #if TARGET_OS_OSX || TARGET_OS_MACCATALYST
             if (getDisplay()->hasFragmentMemoryBarriers())
             {
-                // SHADER_IMAGE_ACCESS_BARRIER_BIT (and SHADER_STORAGE_BARRIER_BIT) require that all
-                // prior types of accesses are finished before writes to the resource. Since this is
-                // the case, we also have to include render targets in our barrier to ensure any
-                // rendering completes before an imageLoad().
-                //
-                // NOTE: Apple Silicon doesn't support MTLBarrierScopeRenderTargets. This seems to
-                // work anyway though, and on that hardware we use programmable blending for pixel
-                // local storage instead of read_write textures anyway.
                 scope |= MTLBarrierScopeRenderTargets;
             }
 #endif
@@ -1631,8 +1799,6 @@ angle::Result ContextMtl::memoryBarrier(const gl::Context *context, GLbitfield b
             UNIMPLEMENTED();
             return angle::Result::Stop;
     }
-    // The GL API doesn't provide a distinction between different shader stages.
-    // ES 3.0 doesn't have compute.
     MTLRenderStages stages = MTLRenderStageVertex;
     if (getDisplay()->hasFragmentMemoryBarriers())
     {
@@ -1644,9 +1810,10 @@ angle::Result ContextMtl::memoryBarrier(const gl::Context *context, GLbitfield b
 
 angle::Result ContextMtl::memoryBarrierByRegion(const gl::Context *context, GLbitfield barriers)
 {
-    // NOTE(hqle): ES 3.0
-    UNIMPLEMENTED();
-    return angle::Result::Stop;
+    // Metal does not expose a distinct "by region" barrier; the narrower-scope barrier can be
+    // safely lowered to the full memoryBarrier. On ES 3.1+ this still hits UNIMPLEMENTED() in
+    // memoryBarrier() until compute/image support lands.
+    return memoryBarrier(context, barriers);
 }
 
 // override mtl::ErrorHandler
@@ -2625,18 +2792,25 @@ angle::Result ContextMtl::setupDrawImpl(const gl::Context *context,
         mRenderEncoder.setVertexData(mDriverUniforms, mtl::kDriverUniformsBindingIndex);
     }
 
-    mDirtyBits.reset();
     // Check to see if our state would lead to a no-op draw.
     // If so, skip program setup until we end up with a state that requires a program.
     if (isDrawNoOp(mRenderPipelineDesc, this, mContextDevice))
     {
         *isNoOp = true;
+        // Safe to clear dirty bits here: no pipeline or program state was bound.
+        mDirtyBits.reset();
     }
     else
     {
         ANGLE_TRY(mExecutable->setupDraw(context, &mRenderEncoder, mRenderPipelineDesc,
                                          isPipelineDescChanged, textureChanged,
                                          uniformBuffersDirty));
+        // Reset dirty bits only after program setup succeeds. If setupDraw fails
+        // (e.g. program link failure, encoder flush, or command buffer error), the
+        // dirty bits must remain set so the state gets re-applied on the next draw
+        // call. Otherwise the next draw would use an incomplete/invalid pipeline state
+        // and could trigger a Metal API validation error or crash.
+        mDirtyBits.reset();
     }
 
     return checkCommandBufferError();

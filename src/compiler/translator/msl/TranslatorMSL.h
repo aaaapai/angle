@@ -145,7 +145,19 @@ class TranslatorMetalReflection
         return {.bindIndex = std::numeric_limits<size_t>::max(),
                 .arraySize = std::numeric_limits<size_t>::max()};
     }
-    void reset()
+
+    void addInterfaceBlockBinding(const std::string &name, uint32_t binding)
+    {
+        interfaceBlockBindings.insert({name, binding});
+    }
+    std::unordered_map<std::string, uint32_t> getInterfaceBlockBindings() const
+    {
+        return interfaceBlockBindings;
+    }
+
+    std::unordered_map<std::string, uint32_t> interfaceBlockBindings;
+
+        void reset()
     {
         hasUBOs              = false;
         hasFlatInput         = false;
@@ -158,6 +170,7 @@ class TranslatorMetalReflection
         rwTextureBindings.clear();
         userUniformBufferBindings.clear();
         uniformBufferBindings.clear();
+        interfaceBlockBindings.clear();
     }
 
     bool hasUBOs              = false;

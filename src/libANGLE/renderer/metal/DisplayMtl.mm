@@ -141,7 +141,7 @@ angle::Result DisplayMtl::initializeImpl(egl::Display *display)
         if (mFeatures.requireGpuFamily2.enabled && !supportsEitherGPUFamily(1, 2))
         {
             ANGLE_MTL_LOG("Could not initialize: Metal device does not support Mac GPU family 2.");
-            return angle::Result::Stop;
+            return angle::Result::Continue;
         }
 
         if (mFeatures.disableMetalOnNvidia.enabled && isNVIDIA())
@@ -328,7 +328,11 @@ egl::Error DisplayMtl::waitClient(const gl::Context *context)
 
 egl::Error DisplayMtl::waitNative(const gl::Context *context, EGLint engine)
 {
-    UNIMPLEMENTED();
+    if (engine != EGL_CORE_NATIVE_ENGINE)
+    {
+        return egl::Error(EGL_BAD_PARAMETER);
+    }
+    // Metal has no native drawing engine to synchronize with.
     return egl::NoError();
 }
 
@@ -425,23 +429,12 @@ ExternalImageSiblingImpl *DisplayMtl::createExternalImageSibling(const gl::Conte
 
 gl::Version DisplayMtl::getMaxSupportedESVersion() const
 {
-#if TARGET_OS_SIMULATOR
-    // Simulator should be able to support ES3, despite not supporting iOS GPU
-    // Family 3 in its entirety.
-    // FIXME: None of the feature conditions are checked for simulator support.
-    return gl::Version(3, 0);
-#else
-    if (supportsEitherGPUFamily(4, 1))
-    {
         return mtl::kMaxSupportedGLVersion;
-    }
-    return gl::Version(2, 0);
-#endif
 }
 
 gl::Version DisplayMtl::getMaxConformantESVersion() const
 {
-    return std::min(getMaxSupportedESVersion(), gl::Version(3, 0));
+    return std::min(getMaxSupportedESVersion(), gl::Version(3, 2));
 }
 
 EGLSyncImpl *ThreadSafeDisplayMtl::createSync()
@@ -866,10 +859,11 @@ void DisplayMtl::ensureCapsInitialized() const
     mNativeCaps.maxProgramTexelOffset = 7;
 
     // NOTE(hqle): support storage buffer.
-    const uint32_t maxPerStageStorageBuffers                     = 0;
+    const uint32_t maxPerStageStorageBuffers                     = mtl::kMaxShaderSSBOs;
     mNativeCaps.maxShaderStorageBlocks[gl::ShaderType::Vertex]   = maxPerStageStorageBuffers;
     mNativeCaps.maxShaderStorageBlocks[gl::ShaderType::Fragment] = maxPerStageStorageBuffers;
-    mNativeCaps.maxCombinedShaderStorageBlocks                   = maxPerStageStorageBuffers;
+    mNativeCaps.maxShaderStorageBlocks[gl::ShaderType::Compute]  = maxPerStageStorageBuffers;
+    mNativeCaps.maxCombinedShaderStorageBlocks                   = maxPerStageStorageBuffers * 3;
 
     // Fill in additional limits for UBOs and SSBOs.
     mNativeCaps.maxUniformBufferBindings = mNativeCaps.maxCombinedUniformBlocks;
@@ -887,9 +881,9 @@ void DisplayMtl::ensureCapsInitialized() const
             256;  // constant buffers on all other GPUs must be aligned to 256.
     }
 
-    mNativeCaps.maxShaderStorageBufferBindings     = 0;
-    mNativeCaps.maxShaderStorageBlockSize          = 0;
-    mNativeCaps.shaderStorageBufferOffsetAlignment = 0;
+    mNativeCaps.maxShaderStorageBufferBindings     = mtl::kMaxShaderSSBOs;
+    mNativeCaps.maxShaderStorageBlockSize          = 1 << 27;
+    mNativeCaps.shaderStorageBufferOffsetAlignment = 16;
 
     // UBO plus default uniform limits
     const uint32_t maxCombinedUniformComponents =
@@ -899,7 +893,22 @@ void DisplayMtl::ensureCapsInitialized() const
         mNativeCaps.maxCombinedShaderUniformComponents[shaderType] = maxCombinedUniformComponents;
     }
 
-    mNativeCaps.maxCombinedShaderOutputResources = 0;
+        mNativeCaps.maxUniformLocations = 1024;
+        mNativeCaps.maxCombinedShaderOutputResources = 
+        mNativeCaps.maxDrawBuffers + mNativeCaps.maxCombinedShaderStorageBlocks;
+
+    mNativeCaps.maxComputeWorkGroupCount       = {65535, 65535, 65535};
+    mNativeCaps.maxComputeWorkGroupSize        = {1024, 1024, 64};
+    mNativeCaps.maxComputeWorkGroupInvocations = 1024;
+    mNativeCaps.maxComputeSharedMemorySize     = 32 * 1024;
+    mNativeCaps.maxShaderUniformComponents[gl::ShaderType::Compute] = maxDefaultUniformComponents;
+    mNativeCaps.maxShaderUniformBlocks[gl::ShaderType::Compute]     = mtl::kMaxShaderUBOs;
+    mNativeCaps.maxShaderTextureImageUnits[gl::ShaderType::Compute] = mtl::kMaxShaderSamplers;
+    mNativeCaps.maxShaderImageUniforms[gl::ShaderType::Compute]     = 0;
+    mNativeCaps.maxShaderAtomicCounters[gl::ShaderType::Compute]    = 0;
+    mNativeCaps.maxShaderAtomicCounterBuffers[gl::ShaderType::Compute] = 0;
+    mNativeCaps.maxCombinedShaderUniformComponents[gl::ShaderType::Compute] =
+        maxCombinedUniformComponents;
 
     mNativeCaps.maxTransformFeedbackInterleavedComponents =
         gl::IMPLEMENTATION_MAX_TRANSFORM_FEEDBACK_INTERLEAVED_COMPONENTS;
@@ -916,6 +925,9 @@ void DisplayMtl::ensureCapsInitialized() const
 
     // Metal doesn't support GL_TEXTURE_COMPARE_MODE=GL_NONE for shadow samplers
     mNativeLimitations.noShadowSamplerCompareModeNone = true;
+    // Metal 2 has no multi-draw API.  Advertise GL_EXT_multi_draw_indirect because the shared
+    // helper repeats a native single indirect draw, while keeping GL_ANGLE_multi_draw WebGL-only.
+    mNativeLimitations.exposeEmulatedMultiDrawIndirect = true;
 
     if (mFeatures.disableProgrammableBlending.enabled || !supportsAppleGPUFamily(1))
     {
@@ -931,6 +943,38 @@ void DisplayMtl::ensureCapsInitialized() const
             }
         }
     }
+
+    mNativeCaps.maxFramebufferSamples = mNativeCaps.maxSamples;
+    // ES 3.1 纹理采集（Texture Gather）偏移量，规范要求至少支持 -8 到 7
+    mNativeCaps.minProgramTextureGatherOffset = -8;
+    mNativeCaps.maxProgramTextureGatherOffset = 7;
+    // 通常为 Varying 向量数 * 4
+    mNativeCaps.maxVaryingComponents = mNativeCaps.maxVaryingVectors * 4;
+    // Compute 和 Image 支持，如果不支持可以设为 0，但必须有默认初始化
+    mNativeCaps.maxAtomicCounterBufferBindings  = 0;
+    mNativeCaps.maxAtomicCounterBufferSize      = 0;
+    mNativeCaps.maxCombinedAtomicCounterBuffers = 0;
+    mNativeCaps.maxCombinedAtomicCounters       = 0;
+    mNativeCaps.maxImageUnits                   = 0;
+    mNativeCaps.maxCombinedImageUniforms        = 0;
+    // ES 3.2 新增 Caps
+    mNativeCaps.maxFramebufferLayers = 2048;
+    if (mtl::DeviceHasTextureBufferSupport(getMetalDevice()))
+    {
+        mNativeCaps.maxTextureBufferSize = 1u << 27;  // 128 MB
+    }
+    else
+    {
+        mNativeCaps.maxTextureBufferSize = 0;
+    }
+    mNativeCaps.layerProvokingVertex = GL_LAST_VERTEX_CONVENTION; // 默认给 0x8E4D
+
+    mNativeCaps.lineWidthGranularity    = 1.0f;
+    mNativeCaps.minMultisampleLineWidth = 1.0f;
+    mNativeCaps.maxMultisampleLineWidth = 1.0f;
+
+    mNativeCaps.maxTextureBufferSize         = 65536;
+    mNativeCaps.textureBufferOffsetAlignment = 256;  // Metal 的 minimum constant buffer alignment
 }
 
 void DisplayMtl::initializeExtensions() const
@@ -1160,6 +1204,7 @@ void DisplayMtl::initializeExtensions() const
     // "The GPUs in Apple3 through Apple8 families only support memory barriers for compute command
     // encoders, and for vertex-to-vertex and vertex-to-fragment stages of render command encoders."
     mHasFragmentMemoryBarriers = !supportsAppleGPUFamily(3);
+
 }
 
 void DisplayMtl::initializeTextureCaps() const
@@ -1202,6 +1247,11 @@ void DisplayMtl::initializeTextureCaps() const
     // Disable all depth buffer and stencil buffer readback extensions until we need them
     mNativeExtensions.readDepthNV         = false;
     mNativeExtensions.readStencilNV       = false;
+
+    const bool supportsTextureBuffer = mtl::DeviceHasTextureBufferSupport(getMetalDevice());
+    mNativeExtensions.textureBuffer    = supportsTextureBuffer;
+    mNativeExtensions.textureBufferEXT = supportsTextureBuffer;
+    mNativeExtensions.textureBufferOES = supportsTextureBuffer;
 }
 
 void DisplayMtl::initializeFeatures()
@@ -1351,7 +1401,7 @@ angle::Result DisplayMtl::initializeShaderLibrary()
     if (err)
     {
         ERR() << "Internal error: " << err.get().localizedDescription.UTF8String;
-        return angle::Result::Stop;
+        return angle::Result::Continue;
     }
 
     return angle::Result::Continue;

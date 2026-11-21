@@ -218,6 +218,16 @@ class Texture final : public Resource,
                                        bool renderTargetOnly,
                                        bool allowFormatView,
                                        TextureRef *refOut);
+    // Create an MTLTextureTypeTextureBuffer view over an existing buffer. The texture shares the
+    // buffer's storage and therefore makes no copy. |offset| must satisfy the device's
+    // minimumTextureBufferAlignmentForPixelFormat requirement for |format|.
+    static angle::Result MakeBufferTexture(ContextMtl *context,
+                                           const Format &format,
+                                           const BufferRef &buffer,
+                                           size_t offset,
+                                           size_t size,
+                                           uint32_t width,
+                                           TextureRef *refOut);
     static TextureRef MakeFromMetal(id<MTLTexture> metalTexture);
 
     // Allow CPU to read & write data directly to this texture?

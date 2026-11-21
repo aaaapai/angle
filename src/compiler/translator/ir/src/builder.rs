@@ -3006,6 +3006,63 @@ impl Builder {
             offset: Some(offset),
         });
     }
+    
+// Atomic counter operations
+pub fn built_in_atomiccounteradd(&mut self) {
+    self.built_in_instruction_from_stack_with_pointer_args(
+        BuiltInOpCode::AtomicCounterAdd,
+        1, 1, 0,
+    );
+}
+pub fn built_in_atomiccountersubtract(&mut self) {
+    self.built_in_instruction_from_stack_with_pointer_args(
+        BuiltInOpCode::AtomicCounterSubtract,
+        1, 1, 0,
+    );
+}
+pub fn built_in_atomiccountermin(&mut self) {
+    self.built_in_instruction_from_stack_with_pointer_args(
+        BuiltInOpCode::AtomicCounterMin,
+        1, 1, 0,
+    );
+}
+pub fn built_in_atomiccountermax(&mut self) {
+    self.built_in_instruction_from_stack_with_pointer_args(
+        BuiltInOpCode::AtomicCounterMax,
+        1, 1, 0,
+    );
+}
+pub fn built_in_atomiccounterand(&mut self) {
+    self.built_in_instruction_from_stack_with_pointer_args(
+        BuiltInOpCode::AtomicCounterAnd,
+        1, 1, 0,
+    );
+}
+pub fn built_in_atomiccounteror(&mut self) {
+    self.built_in_instruction_from_stack_with_pointer_args(
+        BuiltInOpCode::AtomicCounterOr,
+        1, 1, 0,
+    );
+}
+pub fn built_in_atomiccounterxor(&mut self) {
+    self.built_in_instruction_from_stack_with_pointer_args(
+        BuiltInOpCode::AtomicCounterXor,
+        1, 1, 0,
+    );
+}
+pub fn built_in_atomiccounterexchange(&mut self) {
+    self.built_in_instruction_from_stack_with_pointer_args(
+        BuiltInOpCode::AtomicCounterExchange,
+        1, 1, 0,
+    );
+}
+pub fn built_in_atomiccountercompswap(&mut self) {
+    self.built_in_instruction_from_stack_with_pointer_args(
+        BuiltInOpCode::AtomicCounterCompSwap,
+        1, 2, 0,
+    );
+}
+
 }
 
 #[cxx::bridge(namespace = "sh::ir::ffi")]
@@ -3223,15 +3280,24 @@ pub mod ffi {
         RGBA32F,
         RGBA16F,
         R32F,
+        RG32UI,
+        RG16F,
         RGBA32UI,
         RGBA16UI,
         RGBA8UI,
+        RGBA16,
+        RG16UI,
+        R16UI,
+        RGBA16SNORM,
+        R11FG11FB10F,
         R32UI,
         RGBA32I,
         RGBA16I,
         RGBA8I,
         R32I,
         RGBA8,
+        R16F,
+        RG8UI,
         RGBA8SNORM,
     }
 
@@ -3705,6 +3771,16 @@ pub mod ffi {
         fn built_in_texturegatheroffset(self: &mut BuilderWrapper);
         fn built_in_texturegatheroffsetcomp(self: &mut BuilderWrapper);
         fn built_in_texturegatheroffsetref(self: &mut BuilderWrapper);
+        fn built_in_atomiccounteradd(self: &mut BuilderWrapper);
+fn built_in_atomiccountersubtract(self: &mut BuilderWrapper);
+fn built_in_atomiccountermin(self: &mut BuilderWrapper);
+fn built_in_atomiccountermax(self: &mut BuilderWrapper);
+fn built_in_atomiccounterand(self: &mut BuilderWrapper);
+fn built_in_atomiccounteror(self: &mut BuilderWrapper);
+fn built_in_atomiccounterxor(self: &mut BuilderWrapper);
+fn built_in_atomiccounterexchange(self: &mut BuilderWrapper);
+fn built_in_atomiccountercompswap(self: &mut BuilderWrapper);
+
     }
 }
 
@@ -4461,6 +4537,12 @@ impl BuilderWrapper {
             ffi::ASTLayoutImageInternalFormat::R32UI => decorations
                 .decorations
                 .push(Decoration::ImageInternalFormat(ImageInternalFormat::R32UI)),
+                        ffi::ASTLayoutImageInternalFormat::RG32UI => decorations
+                .decorations
+                .push(Decoration::ImageInternalFormat(ImageInternalFormat::RG32UI)),
+            ffi::ASTLayoutImageInternalFormat::RG16F => decorations
+                .decorations
+                .push(Decoration::ImageInternalFormat(ImageInternalFormat::RG16F)),
             ffi::ASTLayoutImageInternalFormat::RGBA32I => decorations
                 .decorations
                 .push(Decoration::ImageInternalFormat(ImageInternalFormat::RGBA32I)),
@@ -4473,6 +4555,27 @@ impl BuilderWrapper {
             ffi::ASTLayoutImageInternalFormat::R32I => decorations
                 .decorations
                 .push(Decoration::ImageInternalFormat(ImageInternalFormat::R32I)),
+            ffi::ASTLayoutImageInternalFormat::RGBA16 => decorations
+                .decorations
+                .push(Decoration::ImageInternalFormat(ImageInternalFormat::RGBA16)),
+            ffi::ASTLayoutImageInternalFormat::RG16UI => decorations
+                .decorations
+                .push(Decoration::ImageInternalFormat(ImageInternalFormat::RG16UI)),
+            ffi::ASTLayoutImageInternalFormat::R16UI => decorations
+                .decorations
+                .push(Decoration::ImageInternalFormat(ImageInternalFormat::R16UI)),
+            ffi::ASTLayoutImageInternalFormat::RGBA16SNORM => decorations
+                .decorations
+                .push(Decoration::ImageInternalFormat(ImageInternalFormat::RGBA16SNORM)),
+            ffi::ASTLayoutImageInternalFormat::R11FG11FB10F => decorations
+                .decorations
+                .push(Decoration::ImageInternalFormat(ImageInternalFormat::R11FG11FB10F)),
+            ffi::ASTLayoutImageInternalFormat::R16F => decorations
+                .decorations
+                .push(Decoration::ImageInternalFormat(ImageInternalFormat::R16F)),
+            ffi::ASTLayoutImageInternalFormat::RG8UI => decorations
+                .decorations
+                .push(Decoration::ImageInternalFormat(ImageInternalFormat::RG8UI)),
             ffi::ASTLayoutImageInternalFormat::RGBA8 => decorations
                 .decorations
                 .push(Decoration::ImageInternalFormat(ImageInternalFormat::RGBA8)),
@@ -5828,4 +5931,34 @@ impl BuilderWrapper {
     fn built_in_texturegatheroffsetref(&mut self) {
         self.builder.built_in_texturegatheroffsetref();
     }
+
+fn built_in_atomiccounteradd(&mut self) {
+    self.builder.built_in_atomiccounteradd();
+}
+fn built_in_atomiccountersubtract(&mut self) {
+    self.builder.built_in_atomiccountersubtract();
+}
+fn built_in_atomiccountermin(&mut self) {
+    self.builder.built_in_atomiccountermin();
+}
+fn built_in_atomiccountermax(&mut self) {
+    self.builder.built_in_atomiccountermax();
+}
+fn built_in_atomiccounterand(&mut self) {
+    self.builder.built_in_atomiccounterand();
+}
+fn built_in_atomiccounteror(&mut self) {
+    self.builder.built_in_atomiccounteror();
+}
+fn built_in_atomiccounterxor(&mut self) {
+    self.builder.built_in_atomiccounterxor();
+}
+fn built_in_atomiccounterexchange(&mut self) {
+    self.builder.built_in_atomiccounterexchange();
+}
+fn built_in_atomiccountercompswap(&mut self) {
+    self.builder.built_in_atomiccountercompswap();
+}
+
+
 }

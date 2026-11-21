@@ -560,6 +560,16 @@ class RenderCommandEncoder final : public CommandEncoder
                                                                      uint32_t instances,
                                                                      int32_t baseVertex,
                                                                      uint32_t baseInstance);
+    // Native Metal single indirect draw.  Multi-draw callers loop over this method.
+    RenderCommandEncoder &drawIndirect(MTLPrimitiveType primitiveType,
+                                       const BufferRef &indirectBuffer,
+                                       size_t indirectBufferOffset);
+    RenderCommandEncoder &drawIndexedIndirect(MTLPrimitiveType primitiveType,
+                                              MTLIndexType indexType,
+                                              const BufferRef &indexBuffer,
+                                              size_t indexBufferOffset,
+                                              const BufferRef &indirectBuffer,
+                                              size_t indirectBufferOffset);
 
     RenderCommandEncoder &setVisibilityResultMode(MTLVisibilityResultMode mode, size_t offset);
     MTLVisibilityResultMode getVisibilityResultMode() const;
@@ -751,6 +761,12 @@ class ComputeCommandEncoder final : public CommandEncoder
 
     ComputeCommandEncoder &dispatchNonUniform(const MTLSize &threadsPerGrid,
                                               const MTLSize &threadsPerGroup);
+
+    ComputeCommandEncoder &dispatchThreadgroupsIndirect(const BufferRef &indirectBuffer,
+                                                        size_t indirectBufferOffset,
+                                                        const MTLSize &threadsPerGroup);
+
+    ComputeCommandEncoder &memoryBarrierWithScope(MTLBarrierScope scope);
 
   private:
     id<MTLComputeCommandEncoder> get()

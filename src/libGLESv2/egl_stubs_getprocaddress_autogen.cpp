@@ -3471,6 +3471,11 @@ const ProcEntry g_procTable[] = {
 #if defined(ANGLE_ENABLE_EXPLICIT_CONTEXT)
     {"glWeightPointerOESContextANGLE", P(GL_WeightPointerOESContextANGLE)},
 #endif // defined(ANGLE_ENABLE_EXPLICIT_CONTEXT)
+
+// desktopgl
+/*#if defined(ANGLE_ENABLE_EXPLICIT_CONTEXT)
+    {"glDrawBuffer", P(GL_DrawBuffer)},
+#endif // defined(ANGLE_ENABLE_EXPLICIT_CONTEXT) */
 };
 // clang-format on
 }  // anonymous namespace

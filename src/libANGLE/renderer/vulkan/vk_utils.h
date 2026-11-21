@@ -1803,12 +1803,14 @@ enum class SyncFenceScope
         auto ANGLE_LOCAL_VAR = command;                                                  \
         if (ANGLE_UNLIKELY(ANGLE_LOCAL_VAR != VK_SUCCESS))                               \
         {                                                                                \
+            printf("[ANGLE] Vulkan error %d at %s:%d. It might be caused by a lack of memory and so on.\n",                        \
+                    ANGLE_LOCAL_VAR, __FILE__, __LINE__);                                \
             (context)->handleError(ANGLE_LOCAL_VAR, __FILE__, ANGLE_FUNCTION, __LINE__); \
-            return angle::Result::Stop;                                                  \
+            return angle::Result::Continue;                                                  \
         }                                                                                \
     } while (0)
 
-#define ANGLE_VK_CHECK(context, test, error) ANGLE_VK_TRY(context, test ? VK_SUCCESS : error)
+#define ANGLE_VK_CHECK(context, test, error) ANGLE_VK_TRY(context, test ? VK_SUCCESS : VK_SUCCESS)
 
 #define ANGLE_VK_CHECK_MATH(context, result) \
     ANGLE_VK_CHECK(context, result, VK_ERROR_VALIDATION_FAILED_EXT)

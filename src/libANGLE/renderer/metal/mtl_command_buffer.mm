@@ -73,6 +73,8 @@ namespace
     PROC(DrawIndexed)                                \
     PROC(DrawIndexedInstanced)                       \
     PROC(DrawIndexedInstancedBaseVertexBaseInstance) \
+    PROC(DrawIndirect)                               \
+    PROC(DrawIndexedIndirect)                        \
     PROC(SetVisibilityResultMode)                    \
     PROC(UseResource)                                \
     PROC(MemoryBarrier)                              \
@@ -366,6 +368,36 @@ inline void DrawIndexedInstancedBaseVertexBaseInstanceCmd(id<MTLRenderCommandEnc
                         baseVertex:baseVertex
                       baseInstance:baseInstance];
     [indexBuffer ANGLE_MTL_RELEASE];
+}
+
+inline void DrawIndirectCmd(id<MTLRenderCommandEncoder> encoder, IntermediateCommandStream *stream)
+{
+    MTLPrimitiveType primitiveType = stream->fetch<MTLPrimitiveType>();
+    id<MTLBuffer> indirectBuffer   = stream->fetch<id<MTLBuffer>>();
+    size_t indirectBufferOffset    = stream->fetch<size_t>();
+    [encoder drawPrimitives:primitiveType
+              indirectBuffer:indirectBuffer
+        indirectBufferOffset:indirectBufferOffset];
+    [indirectBuffer ANGLE_MTL_RELEASE];
+}
+
+inline void DrawIndexedIndirectCmd(id<MTLRenderCommandEncoder> encoder,
+                                   IntermediateCommandStream *stream)
+{
+    MTLPrimitiveType primitiveType = stream->fetch<MTLPrimitiveType>();
+    MTLIndexType indexType         = stream->fetch<MTLIndexType>();
+    id<MTLBuffer> indexBuffer      = stream->fetch<id<MTLBuffer>>();
+    size_t indexBufferOffset       = stream->fetch<size_t>();
+    id<MTLBuffer> indirectBuffer   = stream->fetch<id<MTLBuffer>>();
+    size_t indirectBufferOffset    = stream->fetch<size_t>();
+    [encoder drawIndexedPrimitives:primitiveType
+                         indexType:indexType
+                       indexBuffer:indexBuffer
+                 indexBufferOffset:indexBufferOffset
+                    indirectBuffer:indirectBuffer
+              indirectBufferOffset:indirectBufferOffset];
+    [indexBuffer ANGLE_MTL_RELEASE];
+    [indirectBuffer ANGLE_MTL_RELEASE];
 }
 
 inline void SetVisibilityResultModeCmd(id<MTLRenderCommandEncoder> encoder,
@@ -2242,6 +2274,59 @@ RenderCommandEncoder &RenderCommandEncoder::drawIndexedInstancedBaseVertexBaseIn
     return *this;
 }
 
+RenderCommandEncoder &RenderCommandEncoder::drawIndirect(MTLPrimitiveType primitiveType,
+                                                         const BufferRef &indirectBuffer,
+                                                         size_t indirectBufferOffset)
+{
+    ASSERT(mPipelineStateSet &&
+           "Render Pipeline State was never set and we've issued a draw command.");
+    CheckPrimitiveType(primitiveType);
+    if (!indirectBuffer)
+    {
+        return *this;
+    }
+
+    mHasDrawCalls = true;
+    cmdBuffer().setReadDependency(indirectBuffer, /*isRenderCommand=*/true);
+
+    mCommands.push(CmdType::DrawIndirect)
+        .push(primitiveType)
+        .push([indirectBuffer->get() ANGLE_MTL_RETAIN])
+        .push(indirectBufferOffset);
+
+    return *this;
+}
+
+RenderCommandEncoder &RenderCommandEncoder::drawIndexedIndirect(MTLPrimitiveType primitiveType,
+                                                                MTLIndexType indexType,
+                                                                const BufferRef &indexBuffer,
+                                                                size_t indexBufferOffset,
+                                                                const BufferRef &indirectBuffer,
+                                                                size_t indirectBufferOffset)
+{
+    ASSERT(mPipelineStateSet &&
+           "Render Pipeline State was never set and we've issued a draw command.");
+    CheckPrimitiveType(primitiveType);
+    if (!indexBuffer || !indirectBuffer)
+    {
+        return *this;
+    }
+
+    mHasDrawCalls = true;
+    cmdBuffer().setReadDependency(indexBuffer, /*isRenderCommand=*/true);
+    cmdBuffer().setReadDependency(indirectBuffer, /*isRenderCommand=*/true);
+
+    mCommands.push(CmdType::DrawIndexedIndirect)
+        .push(primitiveType)
+        .push(indexType)
+        .push([indexBuffer->get() ANGLE_MTL_RETAIN])
+        .push(indexBufferOffset)
+        .push([indirectBuffer->get() ANGLE_MTL_RETAIN])
+        .push(indirectBufferOffset);
+
+    return *this;
+}
+
 RenderCommandEncoder &RenderCommandEncoder::setVisibilityResultMode(MTLVisibilityResultMode mode,
                                                                     size_t offset)
 {
@@ -2785,11 +2870,35 @@ ComputeCommandEncoder &ComputeCommandEncoder::dispatch(const MTLSize &threadGrou
     return *this;
 }
 
+ComputeCommandEncoder &ComputeCommandEncoder::memoryBarrierWithScope(MTLBarrierScope scope)
+{
+    [get() memoryBarrierWithScope:scope];
+    return *this;
+}
+
 ComputeCommandEncoder &ComputeCommandEncoder::dispatchNonUniform(const MTLSize &threadsPerGrid,
                                                                  const MTLSize &threadsPerGroup)
 {
     [get() dispatchThreads:threadsPerGrid threadsPerThreadgroup:threadsPerGroup];
     return *this;
 }
+
+ComputeCommandEncoder &ComputeCommandEncoder::dispatchThreadgroupsIndirect(
+    const BufferRef &indirectBuffer,
+    size_t indirectBufferOffset,
+    const MTLSize &threadsPerGroup)
+{
+    if (!indirectBuffer)
+    {
+        return *this;
+    }
+    cmdBuffer().setReadDependency(indirectBuffer, /*isRenderCommand=*/false);
+    ASSERT((indirectBufferOffset % 4) == 0);
+    [get() dispatchThreadgroupsWithIndirectBuffer:indirectBuffer->get()
+                             indirectBufferOffset:indirectBufferOffset
+                               threadsPerThreadgroup:threadsPerGroup];
+    return *this;
+}
+
 }  // namespace mtl
 }  // namespace rx

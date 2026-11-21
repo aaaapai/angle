@@ -22,7 +22,7 @@ enum class MetalShaderType
     None,
     Vertex,
     Fragment,
-    Compute,  // Unused currently
+    Compute,
     Count,
 };
 

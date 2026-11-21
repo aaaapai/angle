@@ -189,6 +189,17 @@ class ProgramExecutableMtl : public ProgramExecutableImpl
                             bool forceTexturesSetting,
                             bool uniformBuffersDirty);
 
+    angle::Result setupDispatch(ContextMtl *context,
+                                mtl::ComputeCommandEncoder *cmdEncoder,
+                                GLuint numGroupsX,
+                                GLuint numGroupsY,
+                                GLuint numGroupsZ);
+
+    angle::Result setupDispatchIndirect(ContextMtl *context,
+                                        mtl::ComputeCommandEncoder *cmdEncoder,
+                                        const mtl::BufferRef &indirectBuffer,
+                                        size_t indirectBufferOffset);
+
   private:
     friend class ProgramMtl;
 
@@ -278,6 +289,9 @@ class ProgramExecutableMtl : public ProgramExecutableImpl
     // Cached references of current shader variants.
     gl::ShaderMap<ProgramShaderObjVariantMtl *> mCurrentShaderVariants;
 
+    // ---- compute ----
+    ProgramShaderObjVariantMtl mComputeShaderVariant;
+
     gl::ShaderBitSet mDefaultUniformBlocksDirty;
     gl::ShaderBitSet mSamplerBindingsDirty;
 
@@ -294,6 +308,10 @@ class ProgramExecutableMtl : public ProgramExecutableImpl
     // A unique ID to identify this program executable across its lifetime. It's guaranteed that
     // there is no duplicated ID ever even if the program is deleted.
     Serial mProgramSerialId;
+
+    angle::Result getComputeShader(ContextMtl *context, id<MTLFunction> *shaderOut);
+    angle::Result commitUniforms(ContextMtl *context, mtl::ComputeCommandEncoder *cmdEncoder);
+
 };
 
 angle::Result CreateMslShaderLib(mtl::Context *context,

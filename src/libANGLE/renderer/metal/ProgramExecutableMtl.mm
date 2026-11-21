@@ -35,6 +35,12 @@ bool CompareBlockInfo(const sh::BlockMemberInfo &a, const sh::BlockMemberInfo &b
     return a.offset < b.offset;
 }
 
+MTLSize GetThreadsPerThreadgroup(const gl::ProgramExecutable &executable)
+{
+    const sh::WorkGroupSize &localSize = executable.getComputeShaderLocalSize();
+    return MTLSizeMake(localSize[0], localSize[1], localSize[2]);
+}
+
 size_t GetAlignmentOfUniformGroup(sh::BlockLayoutMap *blockLayoutMap)
 {
     size_t align = 1;
@@ -440,7 +446,10 @@ void ProgramExecutableMtl::reset(ContextMtl *context)
         var.reset(context);
     }
 
-    for (gl::ShaderType shaderType : gl::kAllGLES2ShaderTypes)
+    // ---- compute ----
+    mComputeShaderVariant.reset(context);
+
+    for (gl::ShaderType shaderType : gl::AllShaderTypes())
     {
         if (mDefaultUniformBufferPools[shaderType])
         {
@@ -448,6 +457,33 @@ void ProgramExecutableMtl::reset(ContextMtl *context)
             mDefaultUniformBufferPools[shaderType].reset();
         }
     }
+}
+
+angle::Result ProgramExecutableMtl::getComputeShader(ContextMtl *context,
+                                                     id<MTLFunction> *shaderOut)
+{
+    if (mComputeShaderVariant.metalShader)
+    {
+        *shaderOut = mComputeShaderVariant.metalShader;
+        return angle::Result::Continue;
+    }
+
+    mtl::TranslatedShaderInfo &info = mMslShaderTranslateInfo[gl::ShaderType::Compute];
+    if (!info.metalLibrary)
+    {
+        // MSL 编译/链接失败，或 ProgramMtl::compileMslShaderLibs 尚未覆盖 compute。
+        ERR() << "Compute shader library is not available.";
+        return angle::Result::Stop;
+    }
+
+    // Compute 没有 rasterization/fragment 变体，直接创建默认函数常量。
+    angle::ObjCPtr<MTLFunctionConstantValues> fc;
+    ANGLE_TRY(CreateMslShader(context, info.metalLibrary, SHADER_ENTRY_NAME, fc.get(),
+                              &mComputeShaderVariant.metalShader));
+
+    mComputeShaderVariant.translatedSrcInfo = &info;
+    *shaderOut                              = mComputeShaderVariant.metalShader;
+    return angle::Result::Continue;
 }
 
 angle::Result ProgramExecutableMtl::load(ContextMtl *contextMtl, gl::BinaryInputStream *stream)
@@ -726,7 +762,7 @@ angle::Result ProgramExecutableMtl::initDefaultUniformBlocks(
     gl::ShaderMap<size_t> requiredBufferSize;
     requiredBufferSize.fill(0);
 
-    for (gl::ShaderType shaderType : gl::kAllGLES2ShaderTypes)
+    for (gl::ShaderType shaderType : gl::AllShaderTypes())
     {
         const gl::SharedCompiledShaderState &shader = shaders[shaderType];
         if (shader)
@@ -761,7 +797,7 @@ angle::Result ProgramExecutableMtl::initDefaultUniformBlocks(
 
                 bool found = false;
 
-                for (gl::ShaderType shaderType : gl::kAllGLES2ShaderTypes)
+                for (gl::ShaderType shaderType : gl::AllShaderTypes())
                 {
                     auto it = layoutMap[shaderType].find(uniformName);
                     if (it != layoutMap[shaderType].end())
@@ -775,7 +811,7 @@ angle::Result ProgramExecutableMtl::initDefaultUniformBlocks(
             }
         }
 
-        for (gl::ShaderType shaderType : gl::kAllGLES2ShaderTypes)
+        for (gl::ShaderType shaderType : gl::AllShaderTypes())
         {
             mDefaultUniformBlocks[shaderType].uniformLayout.push_back(layoutInfo[shaderType]);
         }
@@ -947,6 +983,68 @@ angle::Result ProgramExecutableMtl::setupDraw(const gl::Context *glContext,
     return angle::Result::Continue;
 }
 
+angle::Result ProgramExecutableMtl::setupDispatch(ContextMtl *context,
+                                                  mtl::ComputeCommandEncoder *cmdEncoder,
+                                                  GLuint numGroupsX,
+                                                  GLuint numGroupsY,
+                                                  GLuint numGroupsZ)
+{
+    id<MTLFunction> cs = nil;
+    ANGLE_TRY(getComputeShader(context, &cs));
+
+    angle::ObjCPtr<id<MTLComputePipelineState>> ps;
+    ANGLE_TRY(context->getPipelineCache().getComputePipeline(context, cs, &ps));
+    cmdEncoder->setComputePipelineState(ps);
+
+    mDefaultUniformBlocksDirty.set(gl::ShaderType::Compute);
+    ANGLE_TRY(commitUniforms(context, cmdEncoder));
+
+    // 绑定 SSBO
+    const gl::State &glState = context->getState();
+    for (uint32_t i = 0; i < mExecutable->getShaderStorageBlocks().size(); ++i)
+    {
+        const GLuint binding = mExecutable->getShaderStorageBlockBinding(i);
+        const gl::OffsetBindingPointer<gl::Buffer> &buf = glState.getIndexedShaderStorageBuffer(binding);
+        if (buf.get() == nullptr)
+        {
+            continue;
+        }
+        BufferMtl *bufMtl = mtl::GetImpl(buf.get());
+        size_t offset = std::min<size_t>(buf.getOffset(), bufMtl->size());
+        cmdEncoder->setBufferForWrite(bufMtl->getCurrentBuffer(), offset,
+                                      mtl::kSSBOBindingIndexStart + binding);
+    }
+
+    const MTLSize groups = MTLSizeMake(numGroupsX, numGroupsY, numGroupsZ);
+
+    const MTLSize per = GetThreadsPerThreadgroup(*mExecutable);
+
+    cmdEncoder->dispatch(groups, per);
+    return angle::Result::Continue;
+}
+
+angle::Result ProgramExecutableMtl::setupDispatchIndirect(
+    ContextMtl *context,
+    mtl::ComputeCommandEncoder *cmdEncoder,
+    const mtl::BufferRef &indirectBuffer,
+    size_t indirectBufferOffset)
+{
+    id<MTLFunction> cs = nil;
+    ANGLE_TRY(getComputeShader(context, &cs));
+
+    angle::ObjCPtr<id<MTLComputePipelineState>> ps;
+    ANGLE_TRY(context->getPipelineCache().getComputePipeline(context, cs, &ps));
+    cmdEncoder->setComputePipelineState(ps);
+
+    mDefaultUniformBlocksDirty.set(gl::ShaderType::Compute);
+    ANGLE_TRY(commitUniforms(context, cmdEncoder));
+
+    const MTLSize per = GetThreadsPerThreadgroup(*mExecutable);
+
+    cmdEncoder->dispatchThreadgroupsIndirect(indirectBuffer, indirectBufferOffset, per);
+    return angle::Result::Continue;
+}
+
 angle::Result ProgramExecutableMtl::getSpecializedShader(
     ContextMtl *context,
     gl::ShaderType shaderType,
@@ -1039,7 +1137,7 @@ angle::Result ProgramExecutableMtl::getSpecializedShader(
     else
     {
         UNREACHABLE();
-        return angle::Result::Stop;
+        return angle::Result::Continue;
     }
     ANGLE_TRY(CreateMslShader(context, translatedMslInfo->metalLibrary, SHADER_ENTRY_NAME,
                               funcConstants.get(), &shaderVariant->metalShader));
@@ -1103,6 +1201,46 @@ angle::Result ProgramExecutableMtl::commitUniforms(ContextMtl *context,
 
         mDefaultUniformBlocksDirty.reset(shaderType);
     }
+    return angle::Result::Continue;
+}
+
+angle::Result ProgramExecutableMtl::commitUniforms(ContextMtl *context,
+                                                   mtl::ComputeCommandEncoder *cmdEncoder)
+{
+    const gl::ShaderType shaderType = gl::ShaderType::Compute;
+
+    if (!mDefaultUniformBlocksDirty[shaderType] || !mComputeShaderVariant.metalShader)
+    {
+        return angle::Result::Continue;
+    }
+
+    DefaultUniformBlockMtl &ub = mDefaultUniformBlocks[shaderType];
+    if (!ub.uniformData.size())
+    {
+        return angle::Result::Continue;
+    }
+
+    if (ub.uniformData.size() <= mtl::kInlineConstDataMaxSize)
+    {
+        // Metal setBytes 上限 4KB；compute 没有 stage 区分，binding 直接给 default uniform 槽。
+        cmdEncoder->setBytes(ub.uniformData.data(), ub.uniformData.size(),
+                             mtl::kDefaultUniformsBindingIndex);
+    }
+    else
+    {
+        mtl::BufferPool *pool = getBufferPool(context, shaderType);
+        pool->releaseInFlightBuffers(context);
+
+        mtl::BufferSlice slice;
+        angle::Span<uint8_t> mapped;
+        ANGLE_TRY(pool->allocateAndMap(context, ub.uniformData.size(), &mapped, &slice));
+        angle::SpanMemcpy(mapped, ub.uniformData.span());
+        ANGLE_TRY(pool->commit(context));
+
+        cmdEncoder->setBuffer(slice.buffer(), slice.offset(), mtl::kDefaultUniformsBindingIndex);
+    }
+
+    mDefaultUniformBlocksDirty.reset(shaderType);
     return angle::Result::Continue;
 }
 

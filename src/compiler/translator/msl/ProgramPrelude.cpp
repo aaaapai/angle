@@ -58,7 +58,6 @@ class ProgramPrelude : public TIntermTraverser
                 }
                 break;
             case MetalShaderType::Compute:
-                ASSERT(0 && "compute shaders not currently supported");
                 break;
             default:
                 break;
@@ -179,6 +178,7 @@ class ProgramPrelude : public TIntermTraverser
     void texelFetch_3D();
     void texelFetch_2DArray();
     void texelFetch_2DMS();
+    void texelFetch_Buffer();
     void texelFetchOffset_2D();
     void texelFetchOffset_3D();
     void texelFetchOffset_2DArray();
@@ -288,6 +288,7 @@ class ProgramPrelude : public TIntermTraverser
     void textureSize_2DArray();
     void textureSize_2DArrayShadow();
     void textureSize_2DMS();
+    void textureSize_Buffer();
     void imageLoad();
     void imageStore();
     void memoryBarrierImage();
@@ -1398,6 +1399,18 @@ ANGLE_ALWAYS_INLINE auto ANGLE_texelFetch(
     int const sample)
 {
     return env.texture->read(uint2(coord), uint32_t(sample));
+}
+)",
+                        textureEnv())
+
+PROGRAM_PRELUDE_DECLARE(texelFetch_Buffer,
+                        R"(
+template <typename T>
+ANGLE_ALWAYS_INLINE auto ANGLE_texelFetch(
+    thread ANGLE_TextureEnv<metal::texture_buffer<T>> &env,
+    int const coord)
+{
+    return env.texture->read(uint32_t(coord));
 }
 )",
                         textureEnv())
@@ -2911,6 +2924,17 @@ ANGLE_ALWAYS_INLINE auto ANGLE_textureSize(
 )",
                         textureEnv())
 
+PROGRAM_PRELUDE_DECLARE(textureSize_Buffer,
+                        R"(
+template <typename T>
+ANGLE_ALWAYS_INLINE auto ANGLE_textureSize(
+    thread ANGLE_TextureEnv<metal::texture_buffer<T>> &env)
+{
+    return int(env.texture->get_width());
+}
+)",
+                        textureEnv())
+
 PROGRAM_PRELUDE_DECLARE(imageLoad, R"(
 template <typename T, metal::access Access>
 ANGLE_ALWAYS_INLINE auto ANGLE_imageLoad(
@@ -3084,6 +3108,10 @@ ProgramPrelude::FuncToEmitter ProgramPrelude::BuildFuncToEmitter()
             case EbtISampler2DMS:
             case EbtUSampler2DMS:
                 return pp.texelFetch_2DMS();
+            case EbtSamplerBuffer:
+            case EbtISamplerBuffer:
+            case EbtUSamplerBuffer:
+                return pp.texelFetch_Buffer();
             default:
                 UNREACHABLE();
         }
@@ -3467,6 +3495,10 @@ ProgramPrelude::FuncToEmitter ProgramPrelude::BuildFuncToEmitter()
             case EbtISampler2DMS:
             case EbtUSampler2DMS:
                 return pp.textureSize_2DMS();
+            case EbtSamplerBuffer:
+            case EbtISamplerBuffer:
+            case EbtUSamplerBuffer:
+                return pp.textureSize_Buffer();
             default:
                 // Same wrapper for 2D, 2D Shadow, Cube, and Cube Shadow
                 return pp.textureSize_2D();

@@ -40,6 +40,22 @@ namespace rx
 namespace
 {
 
+// Buffer textures have no row pitch: each texel must be exactly one Metal pixel.  Return the
+// native format only when Metal can represent the GL internal format directly; widened emulations
+// such as RGB32F -> RGBA32F would change the texel size and are therefore not usable here.
+const mtl::Format *GetBufferTextureFormat(ContextMtl *contextMtl, GLenum internalFormat)
+{
+    const gl::InternalFormat &formatInfo = gl::GetSizedInternalFormatInfo(internalFormat);
+    const angle::FormatID angleFormatId =
+        angle::Format::InternalFormatToID(formatInfo.sizedInternalFormat);
+    const mtl::Format &format = contextMtl->getPixelFormat(angleFormatId);
+    if (format.metalFormat == MTLPixelFormatInvalid || mtl::IsFormatEmulated(format))
+    {
+        return nullptr;
+    }
+    return &format;
+}
+
 gl::ImageIndex GetZeroLevelIndex(const mtl::TextureRef &image)
 {
     switch (image->textureType())
@@ -900,6 +916,14 @@ void TextureMtl::deallocateNativeStorage(bool keepImages, bool keepSamplerStateA
     mViewFromBaseToMaxLevel     = nullptr;
     mSwizzleStencilSamplingView = nullptr;
 
+    // The native storage is gone; drop the buffer texture view state so a later recreation cannot
+    // compare against a stale MTLBuffer or range.
+    mBufferTextureBuffer         = nullptr;
+    mBufferTextureOffset         = 0;
+    mBufferTextureSize           = 0;
+    mBufferTextureWidth          = 0;
+    mBufferTextureInternalFormat = GL_NONE;
+
     // Clear render target cache for each texture's image. We don't erase them because they
     // might still be referenced by a framebuffer.
     for (auto &samplesMapRenderTargets : mRenderTargets)
@@ -952,6 +976,16 @@ angle::Result TextureMtl::ensureNativeStorageCreated(const gl::Context *context,
                                                      bool keepImages,
                                                      ImageMipLevels mipLevels)
 {
+    // Buffer texture 的 storage 直接挂在 GL buffer 上，而不是 glTexImage2D
+    // 由 mip 链描述的存储。必须在这里分流，否则会一路走到 createNativeStorage
+    // 的 default 分支 UNREACHABLE()。
+    //
+    // ContextMtl::handleDirtyActiveTextures 会直接调用本函数（而不是 syncState)
+    if (mState.getType() == gl::TextureType::Buffer)
+    {
+        return ensureBufferTextureCreated(context);
+    }
+
     auto clearImagesAssociatedWithStorage = [&]() {
         ASSERT(mNativeTextureStorage);
         GLuint mips      = mNativeTextureStorage->mipmapLevels();
@@ -967,24 +1001,16 @@ angle::Result TextureMtl::ensureNativeStorageCreated(const gl::Context *context,
         }
     };
 
-    // Number of mip levels to allocate. By default only the levels that have actually been
-    // specified are allocated; the rest of the mip chain is deferred until glGenerateMipmap (or a
-    // subsequent upload of higher levels) requires it.
     GLuint mips = getStorageMipLevelCount(mipLevels);
 
     if (mNativeTextureStorage)
     {
-        // If more mip levels are needed than are currently allocated (e.g. additional levels have
-        // been specified since the storage was created, or glGenerateMipmap now requires the full
-        // chain), recreate the storage with the larger level count while preserving the
-        // already-populated image data.
         if (!isImmutableOrPBuffer() && mNativeTextureStorage->mipmapLevels() < mips)
         {
             deallocateNativeStorage(/*keepImages=*/true, /*keepSamplerStateAndFormat=*/true);
         }
         else
         {
-            // Storage already has enough levels. Deallocate images associated with the storage.
             if (!keepImages)
             {
                 clearImagesAssociatedWithStorage();
@@ -993,14 +1019,12 @@ angle::Result TextureMtl::ensureNativeStorageCreated(const gl::Context *context,
         }
     }
 
-    // This should not be called from immutable texture.
     ASSERT(!isImmutableOrPBuffer());
     ASSERT(mState.getType() != gl::TextureType::_2DMultisample);
     ASSERT(mState.getType() != gl::TextureType::_2DMultisampleArray);
 
     ContextMtl *contextMtl = mtl::GetImpl(context);
 
-    // Create actual texture object:
     gl::ImageDesc desc = mState.getBaseLevelDesc();
     ANGLE_CHECK(contextMtl, desc.format.valid(), gl::err::kInternalError, GL_INVALID_OPERATION);
     angle::FormatID angleFormatId =
@@ -1009,7 +1033,6 @@ angle::Result TextureMtl::ensureNativeStorageCreated(const gl::Context *context,
 
     ANGLE_TRY(createNativeStorage(context, mState.getType(), mips, 0, desc.size, format));
 
-    // Transfer data from defined images to actual texture object
     int numCubeFaces = static_cast<int>(mNativeTextureStorage->cubeFaces());
     for (int face = 0; face < numCubeFaces; ++face)
     {
@@ -1019,8 +1042,6 @@ angle::Result TextureMtl::ensureNativeStorageCreated(const gl::Context *context,
             GLuint imageMipLevel             = mNativeTextureStorage->getGLLevel(actualMip);
             mtl::TextureRef &imageToTransfer = mTexImageDefs[face][imageMipLevel].image;
 
-            // Only transfer if this mip & slice image has been defined and in correct size &
-            // format.
             gl::Extents actualMipSize = mNativeTextureStorage->size(imageMipLevel);
             if (imageToTransfer && imageToTransfer->sizeAt0() == actualMipSize &&
                 imageToTransfer->arrayLength() == mNativeTextureStorage->arrayLength() &&
@@ -1034,8 +1055,6 @@ angle::Result TextureMtl::ensureNativeStorageCreated(const gl::Context *context,
                                      *mNativeTextureStorage, face, actualMip,
                                      imageToTransfer->arrayLength(), 1);
 
-                // Invalidate texture image definition at this index so that we can make it a
-                // view of the native texture at this index later.
                 imageToTransfer = nullptr;
             }
         }
@@ -1726,6 +1745,121 @@ angle::Result TextureMtl::setImageExternal(const gl::Context *context,
     return angle::Result::Stop;
 }
 
+angle::Result TextureMtl::setBuffer(const gl::Context *context, GLenum internalFormat)
+{
+    ContextMtl *contextMtl = mtl::GetImpl(context);
+
+    // glTexBuffer 是 storage 重定义。前端已经按 buffer 大小推导出 width 并写进
+    // mState.getBaseLevelDesc()，但内部格式是否可用 native Metal format 表达
+    // 还是要在这里先判断。否则 setBuffer 会成功、syncState 之后才失败，
+    // 应用看到的是第一次 draw 才报错——非常难 debug
+    ANGLE_CHECK(contextMtl, GetBufferTextureFormat(contextMtl, internalFormat) != nullptr,
+                "Buffer texture format is not natively supported.", GL_INVALID_OPERATION);
+
+    // 现有 MTLTexture view 必须丢弃，因为新 internalFormat / width 会改变 view 描述符。
+    // 真正的创建推迟到 syncState / ensureNativeStorageCreated 里，那时前端已经把
+    // (buffer, offset, size, width) 全部同步好了
+    deallocateNativeStorage(/*keepImages=*/false);
+
+    contextMtl->invalidateCurrentTextures();
+
+    return angle::Result::Continue;
+}
+
+angle::Result TextureMtl::ensureBufferTextureCreated(const gl::Context *context)
+{
+    ASSERT(mState.getType() == gl::TextureType::Buffer);
+
+    ContextMtl *contextMtl = mtl::GetImpl(context);
+
+    const gl::OffsetBindingPointer<gl::Buffer> &binding = mState.getBuffer();
+    gl::Buffer *glBuffer                                = binding.get();
+
+    // glTexBuffer 之后可能还没有 glBindBuffer，或者应用解绑了：安全地拆除 view。
+    if (glBuffer == nullptr)
+    {
+        if (mNativeTextureStorage)
+        {
+            deallocateNativeStorage(/*keepImages=*/false);
+            contextMtl->invalidateCurrentTextures();
+        }
+        return angle::Result::Continue;
+    }
+
+    BufferMtl *bufferMtl  = mtl::GetImpl(glBuffer);
+    mtl::BufferRef buffer = bufferMtl->getCurrentBuffer();
+    ANGLE_CHECK(contextMtl, buffer != nullptr, "Buffer texture source has no native storage.",
+                GL_INVALID_OPERATION);
+
+    const size_t offset     = static_cast<size_t>(binding.getOffset());
+    const size_t bufferSize = buffer->size();
+    ANGLE_CHECK(contextMtl, offset <= bufferSize, gl::err::kInternalError, GL_INVALID_VALUE);
+
+    // size == 0 表示引用整个剩余区间（GL 规范）。
+    const size_t size =
+        binding.getSize() == 0 ? bufferSize - offset : static_cast<size_t>(binding.getSize());
+    ANGLE_CHECK(contextMtl, size <= bufferSize - offset, gl::err::kInternalError,
+                GL_INVALID_VALUE);
+
+    const gl::ImageDesc &desc = mState.getBaseLevelDesc();
+    ANGLE_CHECK(contextMtl, desc.format.valid(), gl::err::kInternalError, GL_INVALID_OPERATION);
+
+    const GLenum internalFormat = desc.format.info->sizedInternalFormat;
+    const mtl::Format *format   = GetBufferTextureFormat(contextMtl, internalFormat);
+    ANGLE_CHECK(contextMtl, format != nullptr, "Buffer texture format is not natively supported.",
+                GL_INVALID_OPERATION);
+
+    const uint32_t width = static_cast<uint32_t>(desc.size.width);
+    if (width == 0)
+    {
+        // 前端通常已拦截 width==0；这里兜底为“清空而不是崩”。
+        if (mNativeTextureStorage)
+        {
+            deallocateNativeStorage(/*keepImages=*/false);
+            contextMtl->invalidateCurrentTextures();
+        }
+        return angle::Result::Continue;
+    }
+
+    // 状态没变就复用，避免每次 syncState 都重建 MTLTexture。
+    if (mNativeTextureStorage && mBufferTextureBuffer == buffer && mBufferTextureOffset == offset &&
+        mBufferTextureSize == size && mBufferTextureWidth == width &&
+        mBufferTextureInternalFormat == internalFormat)
+    {
+        // 保险起见，确保 sampler state 仍存在（deallocateNativeStorage 可能清过）。
+        ANGLE_TRY(ensureSamplerStateCreated(context));
+        return angle::Result::Continue;
+    }
+
+    deallocateNativeStorage(/*keepImages=*/false);
+
+    mBufferTextureBuffer         = buffer;
+    mBufferTextureOffset         = offset;
+    mBufferTextureSize           = size;
+    mBufferTextureWidth          = width;
+    mBufferTextureInternalFormat = internalFormat;
+
+    mtl::TextureRef nativeTexture;
+    ANGLE_TRY(mtl::Texture::MakeBufferTexture(contextMtl, *format, buffer, offset, size, width,
+                                              &nativeTexture));
+    ASSERT(nativeTexture);
+
+    mSlices = 1;
+    mNativeTextureStorage = std::make_unique<NativeTextureWrapperWithViewSupport>(
+        std::move(nativeTexture), /*baseGLLevel=*/0, *format);
+
+    // 单一 level 的 0..0 view，让 bindToShader 走同一条 mViewFromBaseToMaxLevel 路径。
+    ANGLE_TRY(createViewFromBaseToMaxLevel());
+
+    // MSL 的 texture_buffer::read() 不消费 sampler，但 argument buffer 的 sampler slot
+    // 必须非 null；这里确保 mMetalSamplerState 有效。
+    ANGLE_TRY(ensureSamplerStateCreated(context));
+
+    contextMtl->invalidateCurrentTextures();
+
+    return angle::Result::Continue;
+}
+
 angle::Result TextureMtl::generateMipmap(const gl::Context *context)
 {
     // glGenerateMipmap needs the full mip chain allocated, expanding the storage if it was
@@ -1923,16 +2057,17 @@ angle::Result TextureMtl::syncState(const gl::Context *context,
                                     gl::Command source)
 {
     ContextMtl *contextMtl = mtl::GetImpl(context);
+
+    const bool isBufferTexture = (mState.getType() == gl::TextureType::Buffer);
+
     for (size_t dirtyBit : dirtyBits)
     {
         switch (dirtyBit)
         {
             case gl::Texture::DIRTY_BIT_COMPARE_MODE:
             case gl::Texture::DIRTY_BIT_COMPARE_FUNC:
-                // Tell context to rebind textures so that ProgramMtl has a chance to verify
-                // depth texture compare mode.
+                // ProgramMtl 需要感知 compare mode 变化，让下一次 draw 重新绑定 sampler。
                 contextMtl->invalidateCurrentTextures();
-                // fall through
                 OS_FALLTHROUGH;
             case gl::Texture::DIRTY_BIT_MIN_FILTER:
             case gl::Texture::DIRTY_BIT_MAG_FILTER:
@@ -1944,26 +2079,42 @@ angle::Result TextureMtl::syncState(const gl::Context *context,
             case gl::Texture::DIRTY_BIT_MAX_LOD:
             case gl::Texture::DIRTY_BIT_SRGB_DECODE:
             case gl::Texture::DIRTY_BIT_BORDER_COLOR:
-                // Recreate sampler state
+                // Buffer texture 也用这个标记，但下面 bindToShader 的 buffer 分支不读它。
                 mMetalSamplerState = nil;
                 break;
+
             case gl::Texture::DIRTY_BIT_MAX_LEVEL:
             case gl::Texture::DIRTY_BIT_BASE_LEVEL:
-                ANGLE_TRY(onBaseMaxLevelsChanged(context));
+                // Buffer texture 没有 mip 链，base/max level 对它无意义。
+                if (!isBufferTexture)
+                {
+                    ANGLE_TRY(onBaseMaxLevelsChanged(context));
+                }
                 break;
+
             case gl::Texture::DIRTY_BIT_SWIZZLE_RED:
             case gl::Texture::DIRTY_BIT_SWIZZLE_GREEN:
             case gl::Texture::DIRTY_BIT_SWIZZLE_BLUE:
             case gl::Texture::DIRTY_BIT_SWIZZLE_ALPHA:
             case gl::Texture::DIRTY_BIT_DEPTH_STENCIL_TEXTURE_MODE:
-            {
-                // Recreate swizzle/stencil view.
+                // swizzle / stencil 视图必须重建；buffer texture 走 bindToShader 独立分支
                 mSwizzleStencilSamplingView = nullptr;
-            }
-            break;
+                break;
+
             default:
+                // 含 DIRTY_BIT_LEVELS / DIRTY_BIT_STORAGE以及其它 dirty bit。
                 break;
         }
+    }
+
+    if (isBufferTexture)
+    {
+        // 尚未 glTexBuffer 时 format 无效，无需创建 view。
+        if (!mState.getBaseLevelDesc().format.valid())
+        {
+            return angle::Result::Continue;
+        }
+        return ensureBufferTextureCreated(context);
     }
 
     ANGLE_TRY(
@@ -1983,13 +2134,46 @@ angle::Result TextureMtl::bindToShader(const gl::Context *context,
     ASSERT(mNativeTextureStorage);
     ASSERT(mViewFromBaseToMaxLevel);
 
-    float minLodClamp;
-    float maxLodClamp;
-    id<MTLSamplerState> samplerState;
+    ContextMtl *contextMtl = mtl::GetImpl(context);
+
+    // ---- Buffer texture 独立路径 ----
+    // MSL 的 texture_buffer::read() 不使用 sampler，也没有 swizzle / stencil-view /
+    // LOD 的概念。如果走下面的 2D/cube 通用路径，会进入 swizzle 判断分支，并在
+    // mState.isStencilMode() 或 format.swizzled 时尝试创建不适用于 buffer texture 的
+    // swizzle view，MSL 编译期 / Metal 运行期都会失败。
+    if (mState.getType() == gl::TextureType::Buffer)
+    {
+        ANGLE_CHECK(contextMtl, !mState.getSwizzleState().swizzleRequired(),
+                    "Texture swizzle is not supported for buffer textures.",
+                    GL_INVALID_OPERATION);
+
+        // buffer texture 的 sampler 实际不参与采样（read() 直接按坐标取），
+        // 但 Metal argument buffer 里 sampler slot 必须有一个有效 handle，
+        // 否则打包参数时会出错。ensureSamplerStateCreated 已在
+        // ensureBufferTextureCreated 里被调用过，mMetalSamplerState 必有效；
+        // 如果应用显式绑定了 Sampler 对象，优先用那个。
+        id<MTLSamplerState> samplerState = mMetalSamplerState;
+        if (sampler)
+        {
+            SamplerMtl *samplerMtl = mtl::GetImpl(sampler);
+            samplerState           = samplerMtl->getSampler(contextMtl);
+        }
+        ASSERT(samplerState != nil);
+
+        cmdEncoder->setTexture(shaderType, mViewFromBaseToMaxLevel->getNativeTexture(),
+                               textureSlotIndex);
+        // Buffer texture 没有 LOD，minLodClamp / maxLodClamp 填 0。
+        cmdEncoder->setSamplerState(shaderType, samplerState, 0.f, 0.f, samplerSlotIndex);
+
+        return angle::Result::Continue;
+    }
+
+    float minLodClamp = 0.0f;
+    float maxLodClamp = 0.0f;
+    id<MTLSamplerState> samplerState = nil;
 
     if (!mSwizzleStencilSamplingView)
     {
-        ContextMtl *contextMtl             = mtl::GetImpl(context);
         const angle::FeaturesMtl &features = contextMtl->getDisplay()->getFeatures();
         const mtl::Format &format          = mNativeTextureStorage->getFormat();
 
@@ -2031,8 +2215,8 @@ angle::Result TextureMtl::bindToShader(const gl::Context *context,
             }
 
             mSwizzleStencilSamplingView = mNativeTextureStorage->createMipsSwizzleView(
-                mViewFromBaseToMaxLevel->getBaseGLLevel(), mViewFromBaseToMaxLevel->mipmapLevels(),
-                pixelFormat, swizzle);
+                mViewFromBaseToMaxLevel->getBaseGLLevel(),
+                mViewFromBaseToMaxLevel->mipmapLevels(), pixelFormat, swizzle);
         }
         else
         {
@@ -2051,7 +2235,7 @@ angle::Result TextureMtl::bindToShader(const gl::Context *context,
     else
     {
         SamplerMtl *samplerMtl = mtl::GetImpl(sampler);
-        samplerState           = samplerMtl->getSampler(mtl::GetImpl(context));
+        samplerState           = samplerMtl->getSampler(contextMtl);
         minLodClamp            = sampler->getSamplerState().getMinLod();
         maxLodClamp            = sampler->getSamplerState().getMaxLod();
     }

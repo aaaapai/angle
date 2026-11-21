@@ -159,6 +159,12 @@ constexpr uint32_t kTransformFeedbackBindingIndex = kDefaultUniformsBindingIndex
 // Binding index for UBO's argument buffer
 constexpr uint32_t kUBOArgumentBufferBindingIndex = kTransformFeedbackBindingIndex + 4;
 
+// Binding index start for compute-shader SSBOs.  The slot at
+// kUBOArgumentBufferBindingIndex + 1 is intentionally left unused so the
+// UBO argument buffer can grow later if needed.
+constexpr uint32_t kSSBOBindingIndexStart = kUBOArgumentBufferBindingIndex + 2;
+constexpr uint32_t kMaxShaderSSBOs        = kMaxShaderBuffers - kSSBOBindingIndexStart;
+
 constexpr uint32_t kStencilMaskAll = 0xff;  // Only 8 bits stencil is supported
 
 // This special constant is used to indicate that a particular vertex descriptor's buffer layout
@@ -170,7 +176,11 @@ constexpr int kEmulatedAlphaValue = 1;
 
 constexpr size_t kOcclusionQueryResultSize = sizeof(uint64_t);
 
-constexpr gl::Version kMaxSupportedGLVersion = gl::Version(3, 0);
+// Forced ES 3.2 mode (Amethyst): report 3.2 so an ES context is created and the GL path is
+// selected.  The Metal backend implements the ES 3.0 feature set; ES 3.1/3.2-only operations
+// that an application actually calls remain unimplemented and will fail.  Keep this in sync
+// with DisplayMtl::getMaxConformantESVersion() (conformant must never exceed supported).
+constexpr gl::Version kMaxSupportedGLVersion = gl::Version(3, 2);
 
 enum class PixelType
 {

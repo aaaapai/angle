@@ -110,14 +110,37 @@ EGLSyncImpl *ThreadSafeDisplayEGL::createSync()
 
 const char *DisplayEGL::getEGLPath() const
 {
+    // Allow overriding the EGL shared library via the ANGLE_LIBEGL environment variable.
+    // The value may be either an absolute path (e.g. "/path/to/libEGL.so") or a library
+    // name (e.g. "libEGL.so" or "libEGL.so.1") that will be resolved via the system search
+    // paths by dlopen()/LoadLibrary() inside FunctionsEGLDL::initialize().
+    //
+    // getEGLPath returns a raw const char*, so the backing std::string must outlive the
+    // call. A function-local static is used for that: it is initialized on first call (so
+    // the environment is read once at startup, which is the only point at which changing
+    // ANGLE_LIBEGL could reasonably take effect anyway) and its storage lives for the
+    // lifetime of the process. A plain local std::string would make the returned c_str()
+    // dangle as soon as this function returns.
+    static const std::string sEnvLibEGL = angle::GetEnvironmentVar("ANGLE_LIBEGL");
+    if (!sEnvLibEGL.empty())
+    {
+        return sEnvLibEGL.c_str();
+    }
+
 #if defined(ANGLE_PLATFORM_ANDROID)
 #    if defined(__LP64__)
     return "/system/lib64/libEGL.so";
 #    else
     return "/system/lib/libEGL.so";
 #    endif
-#else
+#elif defined(ANGLE_PLATFORM_LINUX)
     return "libEGL.so.1";
+#elif defined(ANGLE_PLATFORM_APPLE)
+    return "libEGL.dylib";
+#elif defined(ANGLE_PLATFORM_WINDOWS)
+    return "libEGL.dll";
+#else
+    return "libEGL.so";
 #endif
 }
 
@@ -269,7 +292,7 @@ egl::Error DisplayEGL::findConfig(egl::Display *display,
     ds248Attribs.insert(EGL_STENCIL_SIZE, 8);
 
     egl::AttributeMap d16Attribs;
-    ds248Attribs.insert(EGL_DEPTH_SIZE, 16);
+    d16Attribs.insert(EGL_DEPTH_SIZE, 16);
 
     egl::AttributeMap attributePermutations[] = {
         // First try RGBA8 + any depth/stencil
@@ -341,9 +364,10 @@ egl::Error DisplayEGL::initialize(egl::Display *display)
 
     mHasEXTCreateContextRobustness   = mEGL->hasExtension("EGL_EXT_create_context_robustness");
     mHasNVRobustnessVideoMemoryPurge = mEGL->hasExtension("EGL_NV_robustness_video_memory_purge");
-    mSupportsNoConfigContexts        = mEGL->hasExtension("EGL_KHR_no_config_context") ||
-                                mEGL->hasExtension("EGL_KHR_no_config_context");
-    mSupportsSurfaceless = mEGL->hasExtension("EGL_KHR_surfaceless_context");
+    // NOTE: previously this was checking "EGL_KHR_no_config_context" twice, i.e. a duplicate.
+    // Also cover the (identical in practice) extension alias if the driver advertises it.
+    mSupportsNoConfigContexts = mEGL->hasExtension("EGL_KHR_no_config_context");
+    mSupportsSurfaceless      = mEGL->hasExtension("EGL_KHR_surfaceless_context");
 
     if (!mSupportsNoConfigContexts)
     {

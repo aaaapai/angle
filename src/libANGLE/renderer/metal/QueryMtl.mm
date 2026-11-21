@@ -101,9 +101,32 @@ angle::Result QueryMtl::end(const gl::Context *context)
     }
     return angle::Result::Continue;
 }
+
 angle::Result QueryMtl::queryCounter(const gl::Context *context)
 {
-    UNIMPLEMENTED();
+    if (getType() != gl::QueryType::TimeElapsed)
+    {
+        UNIMPLEMENTED();
+        return angle::Result::Continue;
+    }
+
+    ContextMtl *contextMtl = mtl::GetImpl(context);
+
+    // End any command buffer being encoded, so the timestamp is recorded at a clean boundary.
+    contextMtl->flushCommandBuffer(mtl::NoWait);
+
+    mtl::CommandQueue &queue = contextMtl->getDisplay()->cmdQueue();
+
+    // A query counter replaces any pending timing entry.
+    if (mTimeElapsedEntry != 0)
+    {
+        queue.deleteTimeElapsedEntry(mTimeElapsedEntry);
+        mTimeElapsedEntry = 0;
+    }
+
+    mTimeElapsedEntry = queue.allocateTimeElapsedEntry();
+    queue.setActiveTimeElapsedEntry(mTimeElapsedEntry);
+
     return angle::Result::Continue;
 }
 
