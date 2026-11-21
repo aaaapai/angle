@@ -92,6 +92,12 @@ struct FeaturesGL : FeatureSetBase
         &members,
     };
 
+    FeatureInfo packLastRowSeparatelyWhenFillingPackBuffer = {
+        "packLastRowSeparatelyWhenFillingPackBuffer",
+        FeatureCategory::OpenGLWorkarounds,
+        &members,
+    };
+
     FeatureInfo initializeCurrentVertexAttributes = {
         "initializeCurrentVertexAttributes",
         FeatureCategory::OpenGLWorkarounds,
@@ -850,6 +856,18 @@ struct FeaturesGL : FeatureSetBase
 
     FeatureInfo flushBeforeDrawFramebufferChange = {
         "flushBeforeDrawFramebufferChange",
+        FeatureCategory::OpenGLWorkarounds,
+        &members,
+    };
+
+    FeatureInfo ensurePreviousFramebufferNotDeleted = {
+        "ensurePreviousFramebufferNotDeleted",
+        FeatureCategory::OpenGLWorkarounds,
+        &members,
+    };
+
+    FeatureInfo finishBeforeDeletingEGLImageRenderbuffer = {
+        "finishBeforeDeletingEGLImageRenderbuffer",
         FeatureCategory::OpenGLWorkarounds,
         &members,
     };

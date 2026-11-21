@@ -367,80 +367,80 @@ class GLSLTest : public ANGLETest<>
         }
     }
 
+    std::string GenerateShaderWithUniformsAndSamplers(GLint uniformCount,
+                                                      GLint samplersCount,
+                                                      const char *prefix,
+                                                      const char *outputVar,
+                                                      const char *defaultOutputValue)
+    {
+        std::stringstream shader;
+
+        // Pack all but 4 uniform vectors into an array to avoid generating thousands of separate
+        // struct members in the default uniform block and thousands of separate additions in main()
+        // when GL_MAX_*_UNIFORM_VECTORS is large (e.g. 4096 on Vulkan and D3D11).
+        constexpr GLint kMaxStandaloneUniforms = 4;
+        const GLint arrayUniformCount =
+            (uniformCount > kMaxStandaloneUniforms) ? (uniformCount - kMaxStandaloneUniforms) : 0;
+        const GLint standaloneUniformCount = uniformCount - arrayUniformCount;
+
+        shader << "precision mediump float;\n";
+
+        if (arrayUniformCount > 0)
+        {
+            shader << "uniform vec4 " << prefix << "vArr[" << arrayUniformCount << "];\n";
+        }
+
+        for (int i = 0; i < standaloneUniformCount; i++)
+        {
+            shader << "uniform vec4 " << prefix << "v" << i << ";\n";
+        }
+
+        for (int i = 0; i < samplersCount; i++)
+        {
+            shader << "uniform sampler2D " << prefix << "s" << i << ";\n";
+        }
+
+        shader << "void main()\n{\n";
+
+        if (arrayUniformCount > 0)
+        {
+            shader << "    " << outputVar << " += " << prefix << "vArr[0] + " << prefix << "vArr["
+                   << (arrayUniformCount - 1) << "];\n";
+        }
+
+        for (int i = 0; i < standaloneUniformCount; i++)
+        {
+            shader << "    " << outputVar << " += " << prefix << "v" << i << ";\n";
+        }
+
+        for (int i = 0; i < samplersCount; i++)
+        {
+            shader << "    " << outputVar << " += texture2D(" << prefix << "s" << i
+                   << ", vec2(0.0, 0.0));\n";
+        }
+
+        if (uniformCount == 0 && samplersCount == 0)
+        {
+            shader << "    " << outputVar << " = " << defaultOutputValue << ";\n";
+        }
+
+        shader << "}\n";
+        return shader.str();
+    }
+
     void CompileGLSLWithUniformsAndSamplers(GLint vertexUniformCount,
                                             GLint fragmentUniformCount,
                                             GLint vertexSamplersCount,
                                             GLint fragmentSamplersCount,
                                             bool expectSuccess)
     {
-        std::stringstream vertexShader;
-        std::stringstream fragmentShader;
+        const std::string vertexShader = GenerateShaderWithUniformsAndSamplers(
+            vertexUniformCount, vertexSamplersCount, "vs_", "gl_Position", "vec4(0.0)");
+        const std::string fragmentShader = GenerateShaderWithUniformsAndSamplers(
+            fragmentUniformCount, fragmentSamplersCount, "fs_", "gl_FragColor",
+            "vec4(0.0, 1.0, 0.0, 1.0)");
 
-        // Generate the vertex shader
-        vertexShader << "precision mediump float;\n";
-
-        for (int i = 0; i < vertexUniformCount; i++)
-        {
-            vertexShader << "uniform vec4 v" << i << ";\n";
-        }
-
-        for (int i = 0; i < vertexSamplersCount; i++)
-        {
-            vertexShader << "uniform sampler2D s" << i << ";\n";
-        }
-
-        vertexShader << "void main()\n{\n";
-
-        for (int i = 0; i < vertexUniformCount; i++)
-        {
-            vertexShader << "    gl_Position +=  v" << i << ";\n";
-        }
-
-        for (int i = 0; i < vertexSamplersCount; i++)
-        {
-            vertexShader << "    gl_Position +=  texture2D(s" << i << ", vec2(0.0, 0.0));\n";
-        }
-
-        if (vertexUniformCount == 0 && vertexSamplersCount == 0)
-        {
-            vertexShader << "   gl_Position = vec4(0.0);\n";
-        }
-
-        vertexShader << "}\n";
-
-        // Generate the fragment shader
-        fragmentShader << "precision mediump float;\n";
-
-        for (int i = 0; i < fragmentUniformCount; i++)
-        {
-            fragmentShader << "uniform vec4 v" << i << ";\n";
-        }
-
-        for (int i = 0; i < fragmentSamplersCount; i++)
-        {
-            fragmentShader << "uniform sampler2D s" << i << ";\n";
-        }
-
-        fragmentShader << "void main()\n{\n";
-
-        for (int i = 0; i < fragmentUniformCount; i++)
-        {
-            fragmentShader << "    gl_FragColor +=  v" << i << ";\n";
-        }
-
-        for (int i = 0; i < fragmentSamplersCount; i++)
-        {
-            fragmentShader << "    gl_FragColor +=  texture2D(s" << i << ", vec2(0.0, 0.0));\n";
-        }
-
-        if (fragmentUniformCount == 0 && fragmentSamplersCount == 0)
-        {
-            fragmentShader << "    gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);\n";
-        }
-
-        fragmentShader << "}\n";
-
-        GLuint program = CompileProgram(vertexShader.str().c_str(), fragmentShader.str().c_str());
+        GLuint program = CompileProgram(vertexShader.c_str(), fragmentShader.c_str());
 
         if (expectSuccess)
         {
@@ -450,6 +450,7 @@ class GLSLTest : public ANGLETest<>
         {
             EXPECT_EQ(0u, program);
         }
+        glDeleteProgram(program);
     }
 
     std::string QueryErrorMessage(GLuint program)
@@ -3139,9 +3140,6 @@ TEST_P(GLSLTest, VerifyMaxVertexUniformVectorsWithSamplers)
 {
     ANGLE_SKIP_TEST_IF(IsOpenGL() || IsOpenGLES());
 
-    // Times out on D3D11 on test infra. http://anglebug.com/42263645
-    ANGLE_SKIP_TEST_IF(IsD3D11() && IsIntel());
-
     int maxUniforms = 10000;
     glGetIntegerv(GL_MAX_VERTEX_UNIFORM_VECTORS, &maxUniforms);
     EXPECT_GL_NO_ERROR();
@@ -5123,6 +5121,57 @@ void main() {
     EXPECT_PIXEL_NEAR(0, 0, 153, 0, 0, 255, 1);
 }
 
+// Test that reading from a swizzled lvalue vector that is dynamically indexed in the ternary
+// selection succeeds
+TEST_P(GLSLTest_ES3, ReadFromDynamicIndexingOfSwizzledVectorInTernaryOperands)
+{
+    constexpr char kVS[] = R"(#version 300 es
+in vec2 position;
+void main() {
+gl_Position = vec4(position, 0.0, 1.0);
+})";
+
+    constexpr char kFSFalseBranch[] = R"(#version 300 es
+precision highp float;
+uniform vec4 u_v;
+uniform int u_i;
+uniform float u_a;
+out vec4 outColor;
+void main() {
+    float x = (u_a > 1.0) ? u_a : u_v.zyxw[u_i];
+    outColor = vec4(x, 0.0, 0.0, 1.0);
+})";
+
+    constexpr char kFSTrueBranch[] = R"(#version 300 es
+precision highp float;
+uniform vec4 u_v;
+uniform int u_i;
+uniform float u_a;
+out vec4 outColor;
+void main() {
+    float x = (u_a <= 1.0) ? u_v.wzyx[u_i] : u_a;
+    outColor = vec4(x, 0.0, 0.0, 1.0);
+})";
+
+    ANGLE_GL_PROGRAM(programDynamicIndexInFalseBranch, kVS, kFSFalseBranch);
+    glUseProgram(programDynamicIndexInFalseBranch);
+    glUniform4f(glGetUniformLocation(programDynamicIndexInFalseBranch, "u_v"), 0.1, 0.2, 0.3, 0.4);
+    glUniform1i(glGetUniformLocation(programDynamicIndexInFalseBranch, "u_i"), 1);
+    glUniform1f(glGetUniformLocation(programDynamicIndexInFalseBranch, "u_a"), 0.5);
+    drawQuad(programDynamicIndexInFalseBranch, "position", 0.5f, 1.0f, true);
+    EXPECT_PIXEL_COLOR_NEAR(0, 0, GLColor(51, 0, 0, 255), 1);
+    ASSERT_GL_NO_ERROR();
+
+    ANGLE_GL_PROGRAM(programDynamicIndexInTrueBranch, kVS, kFSTrueBranch);
+    glUseProgram(programDynamicIndexInTrueBranch);
+    glUniform4f(glGetUniformLocation(programDynamicIndexInTrueBranch, "u_v"), 0.1, 0.2, 0.3, 0.4);
+    glUniform1i(glGetUniformLocation(programDynamicIndexInTrueBranch, "u_i"), 1);
+    glUniform1f(glGetUniformLocation(programDynamicIndexInTrueBranch, "u_a"), 0.5);
+    drawQuad(programDynamicIndexInTrueBranch, "position", 0.5f, 1.0f, true);
+    EXPECT_PIXEL_COLOR_NEAR(0, 0, GLColor(76, 0, 0, 255), 1);
+    ASSERT_GL_NO_ERROR();
+}
+
 // Test that writing into a swizzled vector that is dynamically indexed succeeds.
 TEST_P(GLSLTest_ES3, WriteIntoDynamicIndexingOfSwizzledVector)
 {
@@ -7020,6 +7069,93 @@ TEST_P(GLSLTest, EmptyForLoopWithSideEffect)
     EXPECT_PIXEL_COLOR_NEAR(0, 0, GLColor(0, 0, 127, 255), 1);
 }
 
+// Test that side effects in while and for loop conditions that fold to constant false are still
+// evaluated once before the loop exits.
+TEST_P(GLSLTest, ConstantFalseLoopConditionSideEffects)
+{
+    constexpr char kFS[] = R"(precision mediump float;
+void main()
+{
+    float r = 0.0;
+    while ((r = 1.0, false)) {}
+
+    float g = 0.0;
+    for (int i = 1; (g = float(i), false); i++) {}
+
+    float b = 0.0;
+    while ((b = 1.0, 2) < 1) {}
+
+    float a = 0.0;
+    while (bool v = (a = 1.0, false))
+    {
+        if (v)
+        {
+            a = 0.0;
+        }
+    }
+    while (false)
+    {
+        a = 0.0;
+    }
+
+    gl_FragColor = vec4(r, g, b, a);
+})";
+
+    ANGLE_GL_PROGRAM(program, essl1_shaders::vs::Simple(), kFS);
+    drawQuad(program, essl1_shaders::PositionAttrib(), 0.5f, 1.0f, true);
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::white);
+    ASSERT_GL_NO_ERROR();
+}
+
+// Test that control-flow expressions with side effects inside constant-false loop conditions
+// execute properly and do not corrupt subsequent statements in the enclosing block.
+TEST_P(GLSLTest, ConstantFalseLoopConditionControlFlowSideEffects)
+{
+    constexpr char kFS[] = R"(precision mediump float;
+uniform int u_cond;
+float g = 0.0;
+
+bool setGreen()
+{
+    g = 0.5;
+    return true;
+}
+
+void main()
+{
+    float r = 0.0;
+    while (((u_cond == 1 ? (r = 0.5) : (r = 0.0)), false)) {}
+    r *= 2.0;
+
+    g = 0.0;
+    while ((((u_cond == 1) && setGreen()), false)) {}
+    g *= 2.0;
+
+    float b = 0.0;
+    for (int i = 0; (false || (b = 0.5, false)); i++) {}
+    for (int j = 0; j < 1; j++)
+    {
+        b *= 2.0;
+    }
+
+    gl_FragColor = vec4(r, g, b, 1.0);
+})";
+
+    ANGLE_GL_PROGRAM(program, essl1_shaders::vs::Simple(), kFS);
+    glUseProgram(program);
+    GLint condLoc = glGetUniformLocation(program, "u_cond");
+    ASSERT_NE(-1, condLoc);
+
+    glUniform1i(condLoc, 1);
+    drawQuad(program, essl1_shaders::PositionAttrib(), 0.5f, 1.0f, true);
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::white);
+
+    glUniform1i(condLoc, 0);
+    drawQuad(program, essl1_shaders::PositionAttrib(), 0.5f, 1.0f, true);
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::blue);
+    ASSERT_GL_NO_ERROR();
+}
+
 // Test that for loops with vec variable work
 TEST_P(GLSLTest_ES3, ForLoopWithVecVariable)
 {
@@ -7873,6 +8009,163 @@ void main()
     ASSERT_GL_NO_ERROR();
     drawQuad(program, essl3_shaders::PositionAttrib(), 0.5f);
     EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
+}
+
+// Test `while` loop condition variable declarations whose initializers contain short-circuit `&&`,
+// `||`, and `?:` operators, including shadowing across sequential loops.
+TEST_P(GLSLTest, WhileConditionDeclarationWithShortCircuit)
+{
+    ANGLE_SKIP_TEST_IF(IsWebGPU() && !getEGLWindow()->isFeatureEnabled(Feature::UseIr));
+
+    constexpr char kFS[] = R"(precision mediump float;
+uniform bool u_a;
+uniform bool u_b;
+void main()
+{
+    int andSum = 0;
+    int i = 0;
+    while (bool v = (u_a && u_b && i < 2))
+    {
+        if (v)
+        {
+            andSum += 40;
+        }
+        i += 1;
+    }
+
+    int orSum = 0;
+    int j = 0;
+    while (bool v = ((!u_a && j < 1) || (u_b && j < 3)))
+    {
+        if (v)
+        {
+            orSum += 50;
+        }
+        j += 1;
+    }
+
+    int ternarySum = 0;
+    int k = 0;
+    while (bool v = (u_a ? (u_b && k < 4) : (k < 2)))
+    {
+        if (v)
+        {
+            ternarySum += 50;
+        }
+        k += 1;
+    }
+
+    gl_FragColor = vec4(float(andSum), float(orSum), float(ternarySum), 255.0) / 255.0;
+})";
+
+    ANGLE_GL_PROGRAM(program, essl1_shaders::vs::Simple(), kFS);
+    glUseProgram(program);
+
+    const GLint locA = glGetUniformLocation(program, "u_a");
+    const GLint locB = glGetUniformLocation(program, "u_b");
+    ASSERT_NE(locA, -1);
+    ASSERT_NE(locB, -1);
+
+    constexpr GLubyte kAndStep     = 40;
+    constexpr GLubyte kOrStep      = 50;
+    constexpr GLubyte kTernaryStep = 50;
+    constexpr GLubyte kFullAlpha   = 255;
+
+    // (u_a = true, u_b = true): loops run 2, 3, and 4 iterations respectively.
+    glUniform1i(locA, 1);
+    glUniform1i(locB, 1);
+    drawQuad(program, essl1_shaders::PositionAttrib(), 0.5f, 1.0f, true);
+    EXPECT_PIXEL_COLOR_NEAR(0, 0, GLColor(2 * kAndStep, 3 * kOrStep, 4 * kTernaryStep, kFullAlpha),
+                            1);
+
+    // (u_a = true, u_b = false): all three loop conditions evaluate to false on iteration 0.
+    glUniform1i(locA, 1);
+    glUniform1i(locB, 0);
+    drawQuad(program, essl1_shaders::PositionAttrib(), 0.5f, 1.0f, true);
+    EXPECT_PIXEL_COLOR_NEAR(0, 0, GLColor(0, 0, 0, kFullAlpha), 1);
+
+    // (u_a = false, u_b = false): `&&` short-circuits to 0; `||` and `?:` take false-u_a arms (1
+    // and 2 iterations).
+    glUniform1i(locA, 0);
+    glUniform1i(locB, 0);
+    drawQuad(program, essl1_shaders::PositionAttrib(), 0.5f, 1.0f, true);
+    EXPECT_PIXEL_COLOR_NEAR(0, 0, GLColor(0, 1 * kOrStep, 2 * kTernaryStep, kFullAlpha), 1);
+    ASSERT_GL_NO_ERROR();
+}
+
+// Test `for` loop condition variable declarations with short-circuit initializers where the
+// condition variable is referenced in both the loop body and the `for` continue expression,
+// including across `continue` statements.
+TEST_P(GLSLTest, ForConditionDeclarationWithShortCircuit)
+{
+    ANGLE_SKIP_TEST_IF(IsWebGPU() && !getEGLWindow()->isFeatureEnabled(Feature::UseIr));
+
+    constexpr char kFS[] = R"(precision mediump float;
+uniform bool u_a;
+uniform bool u_b;
+void main()
+{
+    int bodySum = 0;
+    int stepSum = 0;
+    for (int i = 0; bool v = (u_a && (u_b || i < 1) && i < 4);
+         stepSum += (v ? 30 : 5), i += (v ? 1 : 2))
+    {
+        if (i == 1)
+        {
+            continue;
+        }
+        if (v)
+        {
+            bodySum += 40;
+        }
+    }
+
+    int ternarySum = 0;
+    for (int j = 0; bool v = (u_a ? (j < 3) : (u_b && j < 2)); j += (v ? 1 : 2))
+    {
+        if (v)
+        {
+            ternarySum += 60;
+        }
+    }
+
+    gl_FragColor = vec4(float(bodySum), float(stepSum), float(ternarySum), 255.0) / 255.0;
+})";
+
+    ANGLE_GL_PROGRAM(program, essl1_shaders::vs::Simple(), kFS);
+    glUseProgram(program);
+
+    const GLint locA = glGetUniformLocation(program, "u_a");
+    const GLint locB = glGetUniformLocation(program, "u_b");
+    ASSERT_NE(locA, -1);
+    ASSERT_NE(locB, -1);
+
+    constexpr GLubyte kBodyStep    = 40;
+    constexpr GLubyte kContinueInc = 30;
+    constexpr GLubyte kTernaryStep = 60;
+    constexpr GLubyte kFullAlpha   = 255;
+
+    // (u_a = true, u_b = true): first loop runs i = 0..3 (skipping body at i == 1 via `continue`
+    // while still executing step); second loop runs j = 0..2.
+    glUniform1i(locA, 1);
+    glUniform1i(locB, 1);
+    drawQuad(program, essl1_shaders::PositionAttrib(), 0.5f, 1.0f, true);
+    EXPECT_PIXEL_COLOR_NEAR(
+        0, 0, GLColor(3 * kBodyStep, 4 * kContinueInc, 3 * kTernaryStep, kFullAlpha), 1);
+
+    // (u_a = true, u_b = false): first loop runs only i = 0; second loop runs j = 0..2.
+    glUniform1i(locA, 1);
+    glUniform1i(locB, 0);
+    drawQuad(program, essl1_shaders::PositionAttrib(), 0.5f, 1.0f, true);
+    EXPECT_PIXEL_COLOR_NEAR(
+        0, 0, GLColor(1 * kBodyStep, 1 * kContinueInc, 3 * kTernaryStep, kFullAlpha), 1);
+
+    // (u_a = false, u_b = true): first loop exits immediately; second loop runs j = 0..1.
+    glUniform1i(locA, 0);
+    glUniform1i(locB, 1);
+    drawQuad(program, essl1_shaders::PositionAttrib(), 0.5f, 1.0f, true);
+    EXPECT_PIXEL_COLOR_NEAR(0, 0, GLColor(0, 0, 2 * kTernaryStep, kFullAlpha), 1);
+    ASSERT_GL_NO_ERROR();
 }
 
 // Test that a variable hides a user-defined function with the same name after its initializer.
@@ -27802,6 +28095,31 @@ void main()
     EXPECT_GL_NO_ERROR();
     EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor(1, 9, 2, 3)) << "v[0]";
     EXPECT_PIXEL_COLOR_EQ(getWindowWidth() - 1, 0, GLColor(4, 5, 6, 7)) << "v[1]";
+}
+
+// Test that local variable declarations in dead code outside a switch statement do not crash.
+TEST_P(GLSLTest, DeadCodeVariableDeclaration)
+{
+    constexpr char kFS[] = R"(precision mediump float;
+float getGreen()
+{
+    return 1.0;
+    float deadHelper = 0.25;
+    return deadHelper;
+}
+void main()
+{
+    gl_FragColor = vec4(0.0, getGreen(), 0.0, 1.0);
+    return;
+    vec4 deadUninit;
+    vec4 deadInit = vec4(1.0, 0.0, 0.0, 1.0);
+    gl_FragColor = deadInit + deadUninit;
+})";
+
+    ANGLE_GL_PROGRAM(program, essl1_shaders::vs::Simple(), kFS);
+    drawQuad(program, essl1_shaders::PositionAttrib(), 0.5f);
+    EXPECT_GL_NO_ERROR();
+    EXPECT_PIXEL_COLOR_EQ(0, 0, GLColor::green);
 }
 
 // Tests mat2 arr[2] multi-index access chain where sub-index is preserved across mutating comma

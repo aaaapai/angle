@@ -1604,8 +1604,8 @@ egl::Error Renderer11::getD3DTextureInfo(const egl::Config *configuration,
     else if (desc.Format == DXGI_FORMAT_Y410 || desc.Format == DXGI_FORMAT_Y210)
     {
         // Packed 10-bit YUV keeps its native DXGI format and is sampled
-        // through its aliased view. Y410 can additionally be rendered to through
-        // its aliased R10G10B10A2_UNORM view.
+        // through its aliased view. They can also be rendered to through their
+        // aliased R10G10B10A2_UNORM (Y410) or R16G16B16A16_UNORM (Y210) views.
         if (configuration)
         {
             // ANGLE creates no packed YUV surfaces of its own.
@@ -2608,18 +2608,15 @@ angle::Result Renderer11::copyImage2D(const gl::Context *context,
                                       TextureStorage *storage,
                                       GLint level)
 {
-    TextureStorage11_2D *storage11 = GetAs<TextureStorage11_2D>(storage);
-    ASSERT(storage11);
-
     gl::ImageIndex index              = gl::ImageIndex::Make2D(level);
     RenderTargetD3D *destRenderTarget = nullptr;
-    ANGLE_TRY(storage11->getRenderTarget(context, index, &destRenderTarget));
+    ANGLE_TRY(storage->getRenderTarget(context, index, &destRenderTarget));
     ASSERT(destRenderTarget);
 
     ANGLE_TRY(copyImageInternal(context, framebuffer, sourceRect, destFormat, destOffset,
                                 destRenderTarget));
 
-    storage11->markLevelDirty(level);
+    storage->markLevelDirty(level);
 
     return angle::Result::Continue;
 }
@@ -2633,18 +2630,15 @@ angle::Result Renderer11::copyImageCube(const gl::Context *context,
                                         gl::TextureTarget target,
                                         GLint level)
 {
-    TextureStorage11_Cube *storage11 = GetAs<TextureStorage11_Cube>(storage);
-    ASSERT(storage11);
-
     gl::ImageIndex index              = gl::ImageIndex::MakeCubeMapFace(target, level);
     RenderTargetD3D *destRenderTarget = nullptr;
-    ANGLE_TRY(storage11->getRenderTarget(context, index, &destRenderTarget));
+    ANGLE_TRY(storage->getRenderTarget(context, index, &destRenderTarget));
     ASSERT(destRenderTarget);
 
     ANGLE_TRY(copyImageInternal(context, framebuffer, sourceRect, destFormat, destOffset,
                                 destRenderTarget));
 
-    storage11->markLevelDirty(level);
+    storage->markLevelDirty(level);
 
     return angle::Result::Continue;
 }
@@ -2657,18 +2651,15 @@ angle::Result Renderer11::copyImage3D(const gl::Context *context,
                                       TextureStorage *storage,
                                       GLint level)
 {
-    TextureStorage11_3D *storage11 = GetAs<TextureStorage11_3D>(storage);
-    ASSERT(storage11);
-
     gl::ImageIndex index              = gl::ImageIndex::Make3D(level, destOffset.z);
     RenderTargetD3D *destRenderTarget = nullptr;
-    ANGLE_TRY(storage11->getRenderTarget(context, index, &destRenderTarget));
+    ANGLE_TRY(storage->getRenderTarget(context, index, &destRenderTarget));
     ASSERT(destRenderTarget);
 
     ANGLE_TRY(copyImageInternal(context, framebuffer, sourceRect, destFormat, destOffset,
                                 destRenderTarget));
 
-    storage11->markLevelDirty(level);
+    storage->markLevelDirty(level);
 
     return angle::Result::Continue;
 }
@@ -2681,17 +2672,14 @@ angle::Result Renderer11::copyImage2DArray(const gl::Context *context,
                                            TextureStorage *storage,
                                            GLint level)
 {
-    TextureStorage11_2DArray *storage11 = GetAs<TextureStorage11_2DArray>(storage);
-    ASSERT(storage11);
-
     gl::ImageIndex index              = gl::ImageIndex::Make2DArray(level, destOffset.z);
     RenderTargetD3D *destRenderTarget = nullptr;
-    ANGLE_TRY(storage11->getRenderTarget(context, index, &destRenderTarget));
+    ANGLE_TRY(storage->getRenderTarget(context, index, &destRenderTarget));
     ASSERT(destRenderTarget);
 
     ANGLE_TRY(copyImageInternal(context, framebuffer, sourceRect, destFormat, destOffset,
                                 destRenderTarget));
-    storage11->markLevelDirty(level);
+    storage->markLevelDirty(level);
 
     return angle::Result::Continue;
 }
@@ -3605,9 +3593,13 @@ angle::Result Renderer11::readFromAttachment(const gl::Context *context,
         }
     }
 
+    // The read area is in texels of the view the texture is read through, while the staging texture
+    // and the box are in pixels of the texture.
+    const GLuint pixelsPerTexel = d3d11::GetPackedYUVPixelsPerTexel(srcTexture->getFormat());
+
     D3D11_BOX srcBox;
-    srcBox.left   = static_cast<UINT>(clippedReadArea.x);
-    srcBox.right  = static_cast<UINT>(clippedReadArea.x + clippedReadArea.width);
+    srcBox.left   = static_cast<UINT>(clippedReadArea.x * pixelsPerTexel);
+    srcBox.right  = static_cast<UINT>((clippedReadArea.x + clippedReadArea.width) * pixelsPerTexel);
     srcBox.top    = static_cast<UINT>(clippedReadArea.y);
     srcBox.bottom = static_cast<UINT>(clippedReadArea.y + clippedReadArea.height);
 
@@ -3619,10 +3611,12 @@ angle::Result Renderer11::readFromAttachment(const gl::Context *context,
     }
     srcBox.back = srcBox.front + 1;
 
+    const gl::Extents stagingSize(stagingTextureSize.width * pixelsPerTexel,
+                                  stagingTextureSize.height, 1);
     TextureHelper11 stagingHelper;
     ANGLE_TRY(createStagingTexture(context, textureHelper.getTextureType(),
-                                   srcTexture->getFormatSet(), stagingTextureSize,
-                                   StagingAccess::READ, &stagingHelper));
+                                   srcTexture->getFormatSet(), stagingSize, StagingAccess::READ,
+                                   &stagingHelper));
     stagingHelper.setInternalName("readFromAttachment::stagingHelper");
 
     mDeviceContext->CopySubresourceRegion(stagingHelper.get(), 0, 0, 0, 0, srcTexture->get(),
@@ -3801,9 +3795,9 @@ angle::Result Renderer11::blitRenderbufferRect(const gl::Context *context,
     bool partialDSBlit =
         (nativeFormat.depthBits > 0 && depthBlit) != (nativeFormat.stencilBits > 0 && stencilBlit);
 
-    // Packed YUV images (Y410) share the format ID of their RGBA view alias but keep a DXGI format
-    // that ResolveSubresource and CopySubresourceRegion can't convert, so blits to or from them go
-    // through the shader path.
+    // Packed YUV images (Y410/Y210) share the format ID of their RGBA view alias but keep a DXGI
+    // format that ResolveSubresource and CopySubresourceRegion can't convert, so blits to or from
+    // them go through the shader path.
     const bool packedYUV = d3d11::IsPackedYUVFormat(readRenderTarget11->getFormatSet().texFormat) ||
                            d3d11::IsPackedYUVFormat(drawRenderTarget11->getFormatSet().texFormat);
 

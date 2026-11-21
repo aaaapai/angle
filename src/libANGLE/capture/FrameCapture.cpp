@@ -3433,12 +3433,26 @@ void CaptureCustomClientWaitSync(CallCapture &call, std::vector<CallCapture> &ca
     callsOut.emplace_back(std::move(call));
 }
 
-const egl::Image *GetImageFromParam(const gl::Context *context, const ParamCapture &param)
+// Gets the size of the EGLImage that an eglCreateImage[KHR]() call returned.  Returns false if
+// there is no such image, i.e. if the call failed, or if another thread destroyed the image
+// already.  The image is looked up with the image map locked rather than referenced, since
+// releasing the last reference here would destroy the image while the capturing context's
+// ContextMutex is locked.
+bool GetCreatedImageSize(const gl::Context *context,
+                         const ParamCapture &returnValue,
+                         size_t *widthOut,
+                         size_t *heightOut)
 {
-    const egl::ImageID eglImageID = egl::PackParam<egl::ImageID>(param.value.EGLImageVal);
-    const egl::Image *eglImage    = context->getDisplay()->getImage(eglImageID);
-    ASSERT(eglImage != nullptr);
-    return eglImage;
+    const egl::ImageID eglImageID = egl::PackParam<egl::ImageID>(returnValue.value.EGLImageVal);
+    const egl::ScopedImageMap eglImageMap = context->getDisplay()->getImagesForCapture();
+    const egl::Image *eglImage            = eglImageMap.find(eglImageID);
+    if (eglImage == nullptr)
+    {
+        return false;
+    }
+    *widthOut  = eglImage->getWidth();
+    *heightOut = eglImage->getHeight();
+    return true;
 }
 
 void CaptureCustomCreateEGLImage(const gl::Context *context,
@@ -4120,39 +4134,41 @@ void CaptureShareGroupMidExecutionSetup(
         replayState.getMutablePrivateStateForCapture()->setUnpackAlignment(1);
     }
 
-    const egl::ImageMap eglImageMap = context->getDisplay()->getImagesForCapture();
-    for (const auto &[eglImageID, eglImage] : eglImageMap)
     {
-        // Track this as a starting resource that may need to be restored.
-        TrackedResource &trackedImages =
-            resourceTracker->getTrackedResource(context->id(), ResourceIDType::Image);
-        trackedImages.getStartingResources().insert(eglImageID);
-
-        ResourceCalls &imageRegenCalls = trackedImages.getResourceRegenCalls();
-        CallVector imageGenCalls({setupCalls, &imageRegenCalls[eglImageID]});
-
-        auto eglImageAttribIter = resourceTracker->getImageToAttribTable().find(
-            reinterpret_cast<EGLImage>(static_cast<uintptr_t>(eglImageID)));
-
-        // EGLCreateImage calls commonly specify no attribs so use an empty default
-        // if needed
-        static const angle::base::NoDestructor<egl::AttributeMap> kDefaultAttribs;
-        const egl::AttributeMap &attribs =
-            (eglImageAttribIter != resourceTracker->getImageToAttribTable().end())
-                ? eglImageAttribIter->second
-                : *kDefaultAttribs;
-
-        for (std::vector<CallCapture> *calls : imageGenCalls)
+        const egl::ScopedImageMap eglImageMap = context->getDisplay()->getImagesForCapture();
+        for (const auto &[eglImageID, eglImage] : eglImageMap)
         {
-            // Create the image on demand with the same attrib retrieved above
-            CallCapture eglCreateImageKHRCall = egl::CaptureCreateImageKHR(
-                nullptr, true, nullptr, context->id(), EGL_GL_TEXTURE_2D,
-                reinterpret_cast<EGLClientBuffer>(static_cast<uintptr_t>(0)), attribs,
+            // Track this as a starting resource that may need to be restored.
+            TrackedResource &trackedImages =
+                resourceTracker->getTrackedResource(context->id(), ResourceIDType::Image);
+            trackedImages.getStartingResources().insert(eglImageID);
+
+            ResourceCalls &imageRegenCalls = trackedImages.getResourceRegenCalls();
+            CallVector imageGenCalls({setupCalls, &imageRegenCalls[eglImageID]});
+
+            auto eglImageAttribIter = resourceTracker->getImageToAttribTable().find(
                 reinterpret_cast<EGLImage>(static_cast<uintptr_t>(eglImageID)));
 
-            // Convert the CaptureCreateImageKHR CallCapture to the customized CallCapture
-            CaptureCustomCreateEGLImage(context, "CreateEGLImageKHR", eglImage->getWidth(),
-                                        eglImage->getHeight(), eglCreateImageKHRCall, *calls);
+            // EGLCreateImage calls commonly specify no attribs so use an empty default
+            // if needed
+            static const angle::base::NoDestructor<egl::AttributeMap> kDefaultAttribs;
+            const egl::AttributeMap &attribs =
+                (eglImageAttribIter != resourceTracker->getImageToAttribTable().end())
+                    ? eglImageAttribIter->second
+                    : *kDefaultAttribs;
+
+            for (std::vector<CallCapture> *calls : imageGenCalls)
+            {
+                // Create the image on demand with the same attrib retrieved above
+                CallCapture eglCreateImageKHRCall = egl::CaptureCreateImageKHR(
+                    nullptr, true, nullptr, context->id(), EGL_GL_TEXTURE_2D,
+                    reinterpret_cast<EGLClientBuffer>(static_cast<uintptr_t>(0)), attribs,
+                    reinterpret_cast<EGLImage>(static_cast<uintptr_t>(eglImageID)));
+
+                // Convert the CaptureCreateImageKHR CallCapture to the customized CallCapture
+                CaptureCustomCreateEGLImage(context, "CreateEGLImageKHR", eglImage->getWidth(),
+                                            eglImage->getHeight(), eglCreateImageKHRCall, *calls);
+            }
         }
     }
 
@@ -4884,27 +4900,29 @@ void CaptureShareGroupMidExecutionSetup(
     }
 
     // Capture EGL Sync Objects
-    const egl::ScopedSyncMap eglSyncMap = context->getDisplay()->getSyncsForCapture();
-    for (const auto &eglSyncIter : eglSyncMap)
     {
-        egl::SyncID eglSyncID    = {eglSyncIter.first};
-        const egl::Sync *eglSync = eglSyncIter.second;
-        EGLSync eglSyncObject    = gl::unsafe_int_to_pointer_cast<EGLSync>(eglSyncID.value);
-
-        if (!eglSync)
+        const egl::ScopedSyncMap eglSyncMap = context->getDisplay()->getSyncsForCapture();
+        for (const auto &eglSyncIter : eglSyncMap)
         {
-            continue;
+            egl::SyncID eglSyncID    = {eglSyncIter.first};
+            const egl::Sync *eglSync = eglSyncIter.second;
+            EGLSync eglSyncObject    = gl::unsafe_int_to_pointer_cast<EGLSync>(eglSyncID.value);
+
+            if (!eglSync)
+            {
+                continue;
+            }
+            CallCapture createEGLSync =
+                CaptureCreateSync(nullptr, true, context->getDisplay(), eglSync->getType(),
+                                  eglSync->getAttributeMap(), eglSyncObject);
+            CaptureCustomCreateEGLSync("CreateEGLSyncKHR", createEGLSync, *setupCalls);
+            CaptureEGLSyncResetCalls(context, replayState, resourceTracker, eglSyncID,
+                                     eglSyncObject, eglSync);
+            resourceTracker->getTrackedResource(context->id(), ResourceIDType::egl_Sync)
+                .getStartingResources()
+                .insert(eglSyncID.value);
+            frameCaptureShared->markEGLSyncEmitted(eglSyncID);
         }
-        CallCapture createEGLSync =
-            CaptureCreateSync(nullptr, true, context->getDisplay(), eglSync->getType(),
-                              eglSync->getAttributeMap(), eglSyncObject);
-        CaptureCustomCreateEGLSync("CreateEGLSyncKHR", createEGLSync, *setupCalls);
-        CaptureEGLSyncResetCalls(context, replayState, resourceTracker, eglSyncID, eglSyncObject,
-                                 eglSync);
-        resourceTracker->getTrackedResource(context->id(), ResourceIDType::egl_Sync)
-            .getStartingResources()
-            .insert(eglSyncID.value);
-        frameCaptureShared->markEGLSyncEmitted(eglSyncID);
     }
 
     GLint contextUnpackAlignment = context->getState().getUnpackState().alignment;
@@ -6285,7 +6303,8 @@ CoherentBuffer::CoherentBuffer(uintptr_t start,
     mProtectionRange.size = protectionEnd - mProtectionRange.start;
     mPageCount            = mProtectionRange.size / pageSize;
 
-    mProtectionStartPage = mProtectionRange.start / mPageSize;
+    // Untag page index while keeping pointer tags on mRange for memory accesses.
+    mProtectionStartPage = UntagAddress(mProtectionRange.start) / mPageSize;
     mProtectionEndPage   = mProtectionStartPage + mPageCount;
 
     mDirtyPages = std::vector<bool>(mPageCount);
@@ -6519,27 +6538,7 @@ HashMap<std::shared_ptr<CoherentBuffer>, size_t> CoherentBufferTracker::getBuffe
 {
     HashMap<std::shared_ptr<CoherentBuffer>, size_t> foundPages;
 
-#if defined(ANGLE_PLATFORM_ANDROID)
-    size_t page;
-    if (mShadowMemoryEnabled)
-    {
-        // Starting with Android 11 heap pointers get a tag which is stripped by the POSIX mprotect
-        // callback. We need to add this tag manually to the untagged pointer in order to determine
-        // the corresponding page.
-        // See: https://source.android.com/docs/security/test/tagged-pointers
-        // TODO(http://anglebug.com/42265874): Determine when heap pointer tagging is not enabled.
-        constexpr unsigned long long POINTER_TAG = 0xb400000000000000;
-        unsigned long long taggedAddress         = address | POINTER_TAG;
-        page                                     = static_cast<size_t>(taggedAddress / mPageSize);
-    }
-    else
-    {
-        // VMA allocated memory pointers are not tagged.
-        page = address / mPageSize;
-    }
-#else
-    size_t page = address / mPageSize;
-#endif
+    size_t page = UntagAddress(address) / mPageSize;
 
     for (const auto &pair : mBuffers)
     {
@@ -7392,17 +7391,18 @@ void FrameCaptureShared::maybeOverrideEntryPoint(const gl::Context *context,
             break;
         }
         case EntryPoint::EGLCreateImage:
-        {
-            const egl::Image *eglImage = GetImageFromParam(context, inCall.params.getReturnValue());
-            CaptureCustomCreateEGLImage(context, "CreateEGLImage", eglImage->getWidth(),
-                                        eglImage->getHeight(), inCall, outCalls);
-            break;
-        }
         case EntryPoint::EGLCreateImageKHR:
         {
-            const egl::Image *eglImage = GetImageFromParam(context, inCall.params.getReturnValue());
-            CaptureCustomCreateEGLImage(context, "CreateEGLImageKHR", eglImage->getWidth(),
-                                        eglImage->getHeight(), inCall, outCalls);
+            // If there is no image, e.g. because the call failed, there is nothing to replay.
+            size_t width  = 0;
+            size_t height = 0;
+            if (GetCreatedImageSize(context, inCall.params.getReturnValue(), &width, &height))
+            {
+                const char *name = inCall.entryPoint == EntryPoint::EGLCreateImage
+                                       ? "CreateEGLImage"
+                                       : "CreateEGLImageKHR";
+                CaptureCustomCreateEGLImage(context, name, width, height, inCall, outCalls);
+            }
             break;
         }
         case EntryPoint::EGLDestroyImage:
@@ -8691,29 +8691,29 @@ void FrameCaptureShared::maybeCapturePostCallUpdates(const gl::Context *context)
             egl::ImageID imageID =
                 lastCall.params.getParam("imagePacked", ParamType::TImageID, 1).value.ImageIDVal;
 
-            const egl::Image *eglImage = context->getDisplay()->getImage(imageID);
-            if (!eglImage)
+            gl::Texture *texture = context->getState().getTargetTexture(target);
+            if (!texture || !texture->isEGLImageTarget())
             {
                 break;
             }
 
-            size_t width  = eglImage->getWidth();
-            size_t height = eglImage->getHeight();
+            gl::TextureTarget texTarget = gl::NonCubeTextureTypeToTarget(target);
+            size_t width                = texture->getWidth(texTarget, 0);
+            size_t height               = texture->getHeight(texTarget, 0);
 
             // Try to read back AHB contents. External textures are normally unreadable in
             // GLES but the ANGLE Vulkan backend supports this. If unsupported, output
             // UpdateEGLImageData(..., nullptr) which will then default to a fallback green
             // placeholder texture.
             bool imageDataCaptured = false;
-            gl::Texture *texture   = context->getState().getTargetTexture(target);
-            if (texture && context->getExtensions().getImageANGLE)
+            if (context->getExtensions().getImageANGLE)
             {
                 std::vector<uint8_t> imagePixels(width * height * 4);
                 gl::PixelPackState packState;
                 packState.alignment = 1;
-                if (texture->getTexImage(
-                        context, packState, nullptr, gl::NonCubeTextureTypeToTarget(target), 0,
-                        GL_RGBA, GL_UNSIGNED_BYTE, imagePixels.data()) == angle::Result::Continue)
+                if (texture->getTexImage(context, packState, nullptr, texTarget, 0, GL_RGBA,
+                                         GL_UNSIGNED_BYTE,
+                                         imagePixels.data()) == angle::Result::Continue)
                 {
                     mResourceTracker.getImageDataMap()[imageID] = std::move(imagePixels);
                     imageDataCaptured                           = true;
@@ -9157,10 +9157,21 @@ void FrameCaptureShared::runMidExecutionCapture(gl::Context *mainContext)
                                             shareContextState.hasProtectedContent(), false, false);
             auxContextReplayState.initializeForCapture(shareContext);
 
-            egl::Error error = shareContext->makeCurrent(display, draw, read);
-            if (error.isError())
+            // If shareContext is already current on another thread, it already has its own default
+            // framebuffer, surface bindings (if any), and backend make-current state initialized.
+            // Calling makeCurrent()/unMakeCurrent() here would access its unlocked surfaces
+            // (violating Surface -> ContextMutex lock order) and tear down the other thread's
+            // active surface and backend state.
+            const bool needMakeCurrent = !shareContext->isCurrentOnAnyThread();
+            if (needMakeCurrent)
             {
-                INFO() << "MEC unable to make secondary context current";
+                ASSERT(shareContext->getCurrentDrawSurface() == nullptr &&
+                       shareContext->getCurrentReadSurface() == nullptr);
+                egl::Error error = shareContext->makeCurrent(display, draw, read);
+                if (error.isError())
+                {
+                    INFO() << "MEC unable to make secondary context current";
+                }
             }
 
             CaptureMidExecutionSetup(shareContext, &frameCapture->getSetupCalls(),
@@ -9175,15 +9186,19 @@ void FrameCaptureShared::runMidExecutionCapture(gl::Context *mainContext)
                 frameCapture->getSetupCalls(), &mBinaryData, mSerializeStateEnabled, *this,
                 &mResourceIDBufferSize);
 
-            // Release the previously-bound window surface so the side context does not keep a
-            // reference. Otherwise surface's isCurrentOnAnyThread() stays true and the app's other
-            // thread gets EGL_BAD_ACCESS "Surface can only be current on one thread" when trying to
-            // get the surface on capture start, leading to lost context/bad glBindFramebuffer calls
-            egl::Error unmakeError = shareContext->unMakeCurrent();
-            if (unmakeError.isError())
+            if (needMakeCurrent)
             {
-                INFO() << "MEC unMakeCurrent failed on secondary context "
-                       << shareContext->id().value;
+                // Release the previously-bound window surface so the side context does not keep a
+                // reference. Otherwise surface's isCurrentOnAnyThread() stays true and the app's
+                // other thread gets EGL_BAD_ACCESS "Surface can only be current on one thread" when
+                // trying to get the surface on capture start, leading to lost context/bad
+                // glBindFramebuffer calls
+                egl::Error unmakeError = shareContext->unMakeCurrent();
+                if (unmakeError.isError())
+                {
+                    INFO() << "MEC unMakeCurrent failed on secondary context "
+                           << shareContext->id().value;
+                }
             }
         }
         // Track that this context was created before MEC started

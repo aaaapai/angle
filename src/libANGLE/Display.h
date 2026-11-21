@@ -29,6 +29,7 @@
 #include "libANGLE/Debug.h"
 #include "libANGLE/Error.h"
 #include "libANGLE/HandleAllocator.h"
+#include "libANGLE/Image.h"
 #include "libANGLE/MemoryProgramCache.h"
 #include "libANGLE/MemoryShaderCache.h"
 #include "libANGLE/Observer.h"
@@ -96,6 +97,7 @@ struct DisplayState final : private angle::NonCopyable
     EGLLabelKHR label;
     ContextMap contextMap;
     SurfaceMap surfaceMap;
+    ImageMap imageMap;
     angle::FeatureOverrides featureOverrides;
     EGLNativeDisplayType displayId;
 
@@ -126,7 +128,6 @@ struct DisplayState final : private angle::NonCopyable
 // Constant coded here as a reasonable limit.
 constexpr EGLAttrib kProgramCacheSizeAbsoluteMax = 0x4000000;
 
-using ImageMap  = angle::HashMap<GLuint, Image *>;
 using StreamSet = angle::HashSet<Stream *>;
 using SyncMap   = angle::HashMap<GLuint, Sync *>;
 
@@ -241,6 +242,16 @@ class ThreadSafeDisplay : public LabeledObject, public angle::NonCopyable
     const DisplayExtensions &getExtensions() const { return mDisplayExtensions; }
     const angle::FrontendFeatures &getFrontendFeatures() const { return mFrontendFeatures; }
 
+    const std::string &getExtensionString() const { return mDisplayExtensionString; }
+    const std::string &getVendorString() const { return mVendorString; }
+    const std::string &getVersionString() const { return mVersionString; }
+    const std::string &getClientAPIString() const { return mClientAPIString; }
+    const std::string &getRendererString() const { return mRendererString; }
+
+    std::vector<const Config *> getConfigs(const AttributeMap &attribs) const;
+    std::vector<const Config *> chooseConfig(const AttributeMap &attribs) const;
+    bool isValidConfig(const Config *config) const;
+
     // Note that Display::getImplementation() hides this one and returns the rx::DisplayImpl
     // instead, so the impl that is retrieved depends on the static type of the display.
     rx::ThreadSafeDisplayImpl *getImplementation() const { return mThreadSafeImpl; }
@@ -259,6 +270,25 @@ class ThreadSafeDisplay : public LabeledObject, public angle::NonCopyable
     ScopedSurfaceRef getSurfaceRef(egl::SurfaceID surfaceID) const;
     ScopedSurfaceLockAndRef getSurface(egl::SurfaceID surfaceID) const;
     Error destroySurface(Surface *surface);
+
+    // Returns the handle of the new image rather than the image itself, since another thread may
+    // destroy the image as soon as it is added to the image map.
+    Error createImage(const gl::Context *context,
+                      EGLenum target,
+                      EGLClientBuffer buffer,
+                      const AttributeMap &attribs,
+                      egl::ImageID *outImageID);
+    Image *removeImage(egl::ImageID imageID);
+    void releaseImage(Image *image) const;
+    void releaseImageHandle(egl::ImageID imageID) const;
+
+    ScopedImageRef getImageRef(egl::ImageID imageID) const;
+    ScopedImageMap getImagesForCapture() const { return mState.imageMap.getImagesForCapture(); }
+
+    Error validateImageClientBuffer(const gl::Context *context,
+                                    EGLenum target,
+                                    EGLClientBuffer clientBuffer,
+                                    const egl::AttributeMap &attribs) const;
 
     bool isValidContext(gl::ContextID contextID) const;
 
@@ -384,6 +414,14 @@ class ThreadSafeDisplay : public LabeledObject, public angle::NonCopyable
     DisplayExtensions mDisplayExtensions;
     angle::FrontendFeatures mFrontendFeatures;
 
+    ConfigSet mConfigSet;
+
+    std::string mDisplayExtensionString;
+    std::string mVendorString;
+    std::string mVersionString;
+    std::string mClientAPIString;
+    std::string mRendererString;
+
     SyncSet mSyncSet;
 
     ScratchBuffers mScratchBuffers;
@@ -438,9 +476,6 @@ class Display final : public angle::ObserverInterface, public ThreadSafeDisplay
     static const ClientExtensions &GetClientExtensions();
     static const std::string &GetClientExtensionString();
 
-    std::vector<const Config *> getConfigs(const AttributeMap &attribs) const;
-    std::vector<const Config *> chooseConfig(const AttributeMap &attribs) const;
-
     // eglCreatePlatformWindowSurface and its EXT variant take the native window as a void * whose
     // interpretation is platform specific: the EGL/X11 platform extension specifies a pointer to
     // an X11 Window, while EGLNativeWindowType for X11 is the Window (XID) itself.  For the other
@@ -466,12 +501,6 @@ class Display final : public angle::ObserverInterface, public ThreadSafeDisplay
                               const AttributeMap &attribs,
                               Surface **outSurface);
 
-    Error createImage(const gl::Context *context,
-                      EGLenum target,
-                      EGLClientBuffer buffer,
-                      const AttributeMap &attribs,
-                      Image **outImage);
-
     Error createStream(const AttributeMap &attribs, Stream **outStream);
 
     Error createContext(const Config *configuration,
@@ -479,13 +508,10 @@ class Display final : public angle::ObserverInterface, public ThreadSafeDisplay
                         const AttributeMap &attribs,
                         gl::Context **outContext);
 
-    void destroyImage(Image *image);
     void destroyStream(Stream *stream);
     // Drops a reference to |context| that the caller hands over (see ScopedContextRef::release()).
     Error destroyContext(gl::Context *context);
 
-    bool isValidConfig(const Config *config) const;
-    bool isValidImage(ImageID imageID) const;
     bool isValidStream(const Stream *stream) const;
     bool isValidNativeWindow(EGLNativeWindowType window) const;
 
@@ -493,10 +519,6 @@ class Display final : public angle::ObserverInterface, public ThreadSafeDisplay
                                EGLenum buftype,
                                EGLClientBuffer clientBuffer,
                                const AttributeMap &attribs) const;
-    Error validateImageClientBuffer(const gl::Context *context,
-                                    EGLenum target,
-                                    EGLClientBuffer clientBuffer,
-                                    const egl::AttributeMap &attribs) const;
     Error valdiatePixmap(const Config *config,
                          EGLNativePixmapType pixmap,
                          const AttributeMap &attributes) const;
@@ -520,12 +542,6 @@ class Display final : public angle::ObserverInterface, public ThreadSafeDisplay
     Error waitNative(const gl::Context *context, EGLint engine);
 
     const Caps &getCaps() const;
-
-    const std::string &getExtensionString() const;
-    const std::string &getVendorString() const;
-    const std::string &getVersionString() const;
-    const std::string &getClientAPIString() const;
-    const std::string &getRendererString() const;
 
     // Builds the string returned by glGetString(GL_RENDERER).
     std::string generateRendererString(bool includeFullVersion) const;
@@ -599,11 +615,6 @@ class Display final : public angle::ObserverInterface, public ThreadSafeDisplay
 
     angle::ImageLoadContext getImageLoadContext() const;
 
-    const egl::Image *getImage(egl::ImageID imageID) const;
-    egl::Image *getImage(egl::ImageID imageID);
-
-    const ImageMap &getImagesForCapture() const { return mImageMap; }
-
     // Initialize thread-local variables used by the Display and its backing implementations.  This
     // includes:
     //
@@ -634,7 +645,6 @@ class Display final : public angle::ObserverInterface, public ThreadSafeDisplay
 
     Error destroyInvalidEglObjects();
 
-    void destroyImageImpl(Image *image, ImageMap *images);
     void destroyStreamImpl(Stream *stream, StreamSet *streams);
 
     void initFromDevice(Device *device, const AttributeMap &attribMap);
@@ -647,22 +657,10 @@ class Display final : public angle::ObserverInterface, public ThreadSafeDisplay
 
     AttributeMap mAttributeMap;
 
-    ConfigSet mConfigSet;
-
-    ImageMap mImageMap;
     StreamSet mStreamSet;
-
-    ImageMap mInvalidImageMap;
     StreamSet mInvalidStreamSet;
 
     Caps mCaps;
-
-    std::string mDisplayExtensionString;
-
-    std::string mVendorString;
-    std::string mVersionString;
-    std::string mClientAPIString;
-    std::string mRendererString;
 
     Device *mDevice;
     Surface *mSurface;
@@ -678,8 +676,6 @@ class Display final : public angle::ObserverInterface, public ThreadSafeDisplay
     gl::MemoryShaderCache mMemoryShaderCache;
     size_t mGlobalTextureShareGroupUsers;
     size_t mGlobalSemaphoreShareGroupUsers;
-
-    gl::HandleAllocator mImageHandleAllocator;
 
     angle::FeatureList mFeatures;
 

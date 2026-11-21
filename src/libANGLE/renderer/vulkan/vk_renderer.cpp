@@ -345,8 +345,6 @@ constexpr const char *kSkippedMessages[] = {
     "VUID-vkCmdDrawIndexed-None-09003",
     // https://anglebug.com/42266764
     "VUID-VkDescriptorImageInfo-imageView-07796",
-    // https://issuetracker.google.com/303441816
-    "VUID-VkRenderPassBeginInfo-renderPass-00904",
     // https://anglebug.com/573315711
     "VUID-VkRenderPassCreateInfo2-None-10916",
     // http://anglebug.com/42266888
@@ -3148,7 +3146,11 @@ angle::Result Renderer::initializeMemoryAllocator(vk::ErrorContext *context)
 //                                                                                        (feature)
 //                                                    extendedDynamicState3AlphaToOneEnable
 //                                                                                        (feature)
+//                                                    extendedDynamicState3ColorBlendAdvanced
+//                                                                                        (feature)
 //                                                    extendedDynamicState3ColorBlendEnable
+//                                                                                        (feature)
+//                                                    extendedDynamicState3ColorBlendEquation
 //                                                                                        (feature)
 //                                                    extendedDynamicState3ColorWriteMask (feature)
 //                                                    extendedDynamicState3DepthClampEnable
@@ -4821,6 +4823,14 @@ void Renderer::initDeviceExtensionEntryPoints()
         if (getFeatures().supportsBlendOperationAdvanced.enabled)
         {
             InitExtendedDynamicState3EXTWithBlendOperationAdvancedEXTFunctions(mDevice);
+        }
+        if (useProvokingVertexModeDynamicState())
+        {
+            InitExtendedDynamicState3EXTWithProvokingVertexEXTFunctions(mDevice);
+        }
+        if (useRasterizationStreamDynamicState())
+        {
+            InitExtendedDynamicState3EXTWithTransformFeedbackEXTFunctions(mDevice);
         }
         if (getFeatures().bresenhamLineRasterization.enabled)
         {
@@ -6846,6 +6856,25 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
             mExtendedDynamicState3Features.extendedDynamicState3ColorBlendEnable == VK_TRUE &&
             isRasterizerDiscardDynamicState);
 
+    // Drivers typically either support both colorBlendEnable and colorBlendEquation or neither.  To
+    // simplify deciding when static state needs to be set, make colorBlendEquation dynamic state
+    // use conditional to colorBlendEnable.  This way, it's not possible to set blend equations
+    // dynamically while blend-enable is static.
+    //
+    // Additionally, it's unnecessarily complicated to have colorBlendEquation dynamic but not
+    // colorBlendAdvanced, so those are enabled by the same feature flag.
+    //
+    // Disabled on Nvidia due corner-case failures (http://anglebug.com/584396636)
+    const bool hasStaticAdvancedBlend =
+        mFeatures.supportsBlendOperationAdvanced.enabled &&
+        mExtendedDynamicState3Features.extendedDynamicState3ColorBlendAdvanced == VK_FALSE;
+    ANGLE_FEATURE_CONDITION(
+        &mFeatures, supportsColorBlendEquationDynamicState,
+        mFeatures.supportsExtendedDynamicState3.enabled &&
+            mFeatures.supportsColorBlendEnableDynamicState.enabled &&
+            mExtendedDynamicState3Features.extendedDynamicState3ColorBlendEquation == VK_TRUE &&
+            !hasStaticAdvancedBlend && isRasterizerDiscardDynamicState && !isNvidia);
+
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsColorWriteMaskDynamicState,
         mFeatures.supportsExtendedDynamicState3.enabled &&
@@ -6884,18 +6913,39 @@ void Renderer::initFeatures(const vk::ExtensionNameList &deviceExtensionNames,
     // Disabled on old Nvidia drivers due to multisample test failures in dEQP as well as
     // TextureSampleShadingTest.Basic.  Failures were observed on the 535 driver, but not on 610.
     // Unknown at which version the driver is fixed.
+    //
+    // Disabled on Intel/mesa drivers, due to driver bugs.  http://crbug.com/582924488
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsRasterizationSamplesDynamicState,
         mFeatures.supportsExtendedDynamicState3.enabled &&
             mExtendedDynamicState3Features.extendedDynamicState3RasterizationSamples == VK_TRUE &&
             isRasterizerDiscardDynamicState && !hasStaticBresenhamLineState &&
-            !(isNvidia && driverVersion < angle::VersionTriple(610, 0, 0)));
+            !(isNvidia && driverVersion < angle::VersionTriple(610, 0, 0)) &&
+            !(isIntel && IsLinux()));
 
     ANGLE_FEATURE_CONDITION(
         &mFeatures, supportsSampleMaskDynamicState,
         mFeatures.supportsExtendedDynamicState3.enabled &&
             mExtendedDynamicState3Features.extendedDynamicState3SampleMask == VK_TRUE &&
             isRasterizerDiscardDynamicState);
+
+    // There are some state that needs to be set dynamically (with shader object), but they are not
+    // controllable by GLES; they are bundled together and set once when the command buffer starts.
+    //
+    // Disabled on Imagination drivers due to failure in provoking vertex tests.
+    const bool hasStaticTessellationDomainOrigin =
+        mPhysicalDeviceFeatures.tessellationShader &&
+        mExtendedDynamicState3Features.extendedDynamicState3TessellationDomainOrigin == VK_FALSE;
+    const bool hasStaticProvokingVertexMode =
+        mFeatures.provokingVertex.enabled &&
+        mExtendedDynamicState3Features.extendedDynamicState3ProvokingVertexMode == VK_FALSE;
+    const bool hasStaticRasterizationStream =
+        mFeatures.supportsGeometryStreamsCapability.enabled &&
+        mExtendedDynamicState3Features.extendedDynamicState3RasterizationStream == VK_FALSE;
+    ANGLE_FEATURE_CONDITION(
+        &mFeatures, supportsFixedStateDynamicState,
+        mFeatures.supportsExtendedDynamicState3.enabled && !hasStaticTessellationDomainOrigin &&
+            !hasStaticProvokingVertexMode && !hasStaticRasterizationStream && !isPowerVR);
 
     // Older Samsung drivers with version < 24.0.0 have a bug in imageless framebuffer support.
     const bool isSamsungDriverWithImagelessFramebufferBug =

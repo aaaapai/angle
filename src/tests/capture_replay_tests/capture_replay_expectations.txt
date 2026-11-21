@@ -180,6 +180,10 @@
 42265919 : MultisampleTest.Point/* = SKIP_FOR_CAPTURE
 42265919 : MultisampleTest.Triangle/* = SKIP_FOR_CAPTURE
 42265919 : MultisampleTestES3.RenderPassResolveToFBOThenSwap/* = SKIP_FOR_CAPTURE
+42265919 : MultisampleFramebufferFetchTestES3.AdvancedBlendAfterNonBlendDraw/* = SKIP_FOR_CAPTURE
+42265919 : MultisampleFramebufferFetchTestES3.FramebufferFetchAfterNonFetchDraw/* = SKIP_FOR_CAPTURE
+42265919 : MultisampleFramebufferFetchTestES3.ToggleDither/* = SKIP_FOR_CAPTURE
+42265919 : MultisampleFramebufferFetchTestES3.ToggleSrgbWriteControl/* = SKIP_FOR_CAPTURE
 
 42265953 : MultisampleTest.AlphaToSampleCoverage/* = SKIP_FOR_CAPTURE
 42265953 : MultisampleTestES3.ResolveToFBO/* = SKIP_FOR_CAPTURE
@@ -311,3 +315,4 @@
 # Fails on win and linux trace bots
 565518145 : ImageTest.CreateImageWithNonCurrentContext/* = SKIP_FOR_CAPTURE
 565518145 : ImageTest.CreateImageWithNonCurrentContextTwoThreads/* = SKIP_FOR_CAPTURE
+42266581  : ImageTest.EGLImageTargetAndDestroyImageRace/* = SKIP_FOR_CAPTURE

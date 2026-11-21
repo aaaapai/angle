@@ -1295,6 +1295,8 @@ void DisplayMtl::initializeFeatures()
                             supportsEitherGPUFamily(3, 2) && !isSimulator);
 
     ANGLE_FEATURE_CONDITION((&mFeatures), avoidStencilTextureSwizzle, isIntel());
+    ANGLE_FEATURE_CONDITION((&mFeatures), useTempCopyForDepthStencilBlit,
+                            isIntel() || isAMDBronzeDriver());
 
     // http://crbug.com/1136673
     // Fence sync is flaky on Nvidia

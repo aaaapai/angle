@@ -67,7 +67,7 @@ class TestSuiteTest : public testing::Test
 
         std::vector<const char *> args = {
             executablePath.c_str(), kRunTestSuite,      "--gtest_also_run_disabled_tests",
-            "--bot-mode",           "--test-timeout=5", resultsFileName.c_str()};
+            "--bot-mode",           "--test-timeout=1", resultsFileName.c_str()};
 
         for (const std::string &arg : extraArgs)
         {
@@ -209,6 +209,64 @@ TEST_F(TestSuiteTest, GTestOutputPreserved)
 
     // Clean up
     angle::DeleteSystemFile(gtestOutputPath.c_str());
+}
+
+// Verifies that on a batch timeout, completed tests keep their results, the hung test is marked
+// Timeout, and remaining unrun tests in the batch are re-queued and executed.
+TEST_F(TestSuiteTest, RunBatchTimeoutTests)
+{
+    std::vector<std::string> extraArgs = {"--gtest_filter=MockTestSuiteTest.DISABLED_*",
+                                          "--test-timeout=10", "--batch-timeout=1"};
+
+    TestResults actual;
+    ASSERT_TRUE(runTestSuite(extraArgs, &actual, true));
+
+    std::map<TestIdentifier, TestResult> expectedResults = {
+        {{"MockTestSuiteTest", "DISABLED_Pass"},
+         {TestResultType::Pass, std::vector<double>({0.0})}},
+        {{"MockTestSuiteTest", "DISABLED_Fail"},
+         {TestResultType::Fail, std::vector<double>({0.0})}},
+        {{"MockTestSuiteTest", "DISABLED_Skip"},
+         {TestResultType::Skip, std::vector<double>({0.0})}},
+        {{"MockTestSuiteTest", "DISABLED_Timeout"},
+         {TestResultType::Timeout, std::vector<double>({0.0})}},
+    };
+
+    EXPECT_EQ(expectedResults, actual.results);
+}
+
+// Verifies that exceeding --max-failures clears the remaining test queue and still writes the JSON
+// results file with "interrupted": true.
+TEST_F(TestSuiteTest, MaxFailuresWritesInterruptedResults)
+{
+    std::vector<std::string> extraArgs = {
+        "--gtest_filter=MockTestSuiteTest.DISABLED_Pass:MockTestSuiteTest.DISABLED_Fail:"
+        "MockTestSuiteTest.DISABLED_Skip",
+        "--batch-size=1", "--max-processes=1", "--max-failures=0"};
+
+    TestResults actual;
+    ASSERT_TRUE(runTestSuite(extraArgs, &actual, true));
+
+    std::map<TestIdentifier, TestResult> expectedResults = {
+        {{"MockTestSuiteTest", "DISABLED_Pass"},
+         {TestResultType::Pass, std::vector<double>({0.0})}},
+        {{"MockTestSuiteTest", "DISABLED_Fail"},
+         {TestResultType::Fail, std::vector<double>({0.0})}},
+    };
+
+    EXPECT_EQ(expectedResults, actual.results);
+
+    std::string content;
+    ASSERT_TRUE(ReadEntireFileToString(mTempFileName.c_str(), &content));
+    ASSERT_FALSE(content.empty());
+
+    js::Document doc;
+    doc.Parse(content.c_str());
+    ASSERT_FALSE(doc.HasParseError());
+    ASSERT_TRUE(doc.IsObject());
+    ASSERT_TRUE(doc.HasMember("interrupted"));
+    ASSERT_TRUE(doc["interrupted"].IsBool());
+    EXPECT_TRUE(doc["interrupted"].GetBool());
 }
 
 // Normal passing test.

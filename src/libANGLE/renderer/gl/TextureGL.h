@@ -11,6 +11,7 @@
 
 #include <optional>
 
+#include "common/span.h"
 #include "libANGLE/Texture.h"
 #include "libANGLE/angletypes.h"
 #include "libANGLE/renderer/TextureImpl.h"
@@ -372,13 +373,52 @@ class TextureGL : public TextureImpl
                                                       GLenum nativeType,
                                                       const gl::PixelUnpackState &unpack,
                                                       const uint8_t *pixels);
+    angle::Result setCompressedSubImageHelper(const gl::Context *context,
+                                              const NativeLevelTarget &nlt,
+                                              gl::TextureTarget target,
+                                              size_t level,
+                                              const gl::Box &area,
+                                              const gl::Extents &levelSize,
+                                              const gl::InternalFormat &originalInternalFormatInfo,
+                                              GLenum compressedSubImageFormat,
+                                              const gl::PixelUnpackState &unpack,
+                                              bool hasUnpackBuffer,
+                                              size_t imageSize,
+                                              const uint8_t *pixels);
 
     angle::Result recreateTexture(const gl::Context *context);
+
+    // For the recreateTextureOnTexImage3dDepthIncrease workaround: the native storage that a level
+    // is about to be redefined with.
+    struct RedefinedLevelStorage
+    {
+        gl::Extents size;
+        GLenum internalFormat = GL_NONE;
+        GLenum format         = GL_NONE;
+        GLenum type           = GL_NONE;
+    };
+
+    // Replaces the native texture with a new one, unless another level is compressed.  The levels
+    // starting at firstRedefinedLevel are allocated with the storage in redefinedLevels and left
+    // without contents for the caller to fill; all the other levels are allocated as they are and
+    // their contents are copied.  *outRecreated tells whether the native texture was replaced.
+    angle::Result recreateTextureWithRedefinedLevels(
+        const gl::Context *context,
+        gl::TextureTarget target,
+        size_t firstRedefinedLevel,
+        angle::Span<const RedefinedLevelStorage> redefinedLevels,
+        bool *outRecreated);
 
     angle::Result recreateTextureOnTexImage3DDepthIncreaseWorkaround(const gl::Context *context,
                                                                      gl::TextureTarget target,
                                                                      size_t level,
-                                                                     const gl::Extents &size);
+                                                                     const gl::Extents &size,
+                                                                     GLenum internalFormat,
+                                                                     GLenum format,
+                                                                     GLenum type,
+                                                                     bool *outLevelAllocated);
+    angle::Result recreateTextureOnGenerateMipmapDepthIncreaseWorkaround(
+        const gl::Context *context);
 
     angle::Result setImageHelper(const gl::Context *context,
                                  gl::TextureTarget target,

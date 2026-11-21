@@ -124,8 +124,10 @@ enum class CommandID : uint16_t
     SetPolygonMode,
     SetPrimitiveRestartEnable,
     SetPrimitiveTopology,
+    SetProvokingVertexMode,
     SetRasterizerDiscardEnable,
     SetRasterizationSamples,
+    SetRasterizationStream,
     SetSampleMask,
     SetScissor,
     SetStencilCompareMask,
@@ -133,6 +135,7 @@ enum class CommandID : uint16_t
     SetStencilReference,
     SetStencilTestEnable,
     SetStencilWriteMask,
+    SetTessellationDomainOrigin,
     SetVertexInput,
     SetViewport,
     WaitEvents,
@@ -675,8 +678,16 @@ struct SetColorBlendEquationParams
 {
     CommandHeader header;
 
-    uint32_t firstAttachment : 16;
-    uint32_t attachmentCount : 16;
+    uint32_t attachment : 6;
+
+    // Note: advanced blend operations are never set via this function.  VkBlendFactor fits in 5
+    // bits and VkBlendOp (the non-advanced ops) fit in 3 bits.
+    uint32_t srcColorBlendFactor : 5;
+    uint32_t dstColorBlendFactor : 5;
+    uint32_t colorBlendOp : 3;
+    uint32_t srcAlphaBlendFactor : 5;
+    uint32_t dstAlphaBlendFactor : 5;
+    uint32_t alphaBlendOp : 3;
 };
 VERIFY_8_BYTE_ALIGNMENT(SetColorBlendEquationParams)
 
@@ -855,6 +866,14 @@ struct SetPrimitiveTopologyParams
 };
 VERIFY_8_BYTE_ALIGNMENT(SetPrimitiveTopologyParams)
 
+struct SetProvokingVertexModeParams
+{
+    CommandHeader header;
+
+    uint32_t padding;
+};
+VERIFY_8_BYTE_ALIGNMENT(SetProvokingVertexModeParams)
+
 struct SetRasterizerDiscardEnableParams
 {
     CommandHeader header;
@@ -870,6 +889,14 @@ struct SetRasterizationSamplesParams
     VkSampleCountFlagBits rasterizationSamples;
 };
 VERIFY_8_BYTE_ALIGNMENT(SetRasterizationSamplesParams)
+
+struct SetRasterizationStreamParams
+{
+    CommandHeader header;
+
+    uint32_t padding;
+};
+VERIFY_8_BYTE_ALIGNMENT(SetRasterizationStreamParams)
 
 struct SetSampleMaskParams
 {
@@ -935,6 +962,14 @@ struct SetStencilWriteMaskParams
     uint16_t writeBackMask;
 };
 VERIFY_8_BYTE_ALIGNMENT(SetStencilWriteMaskParams)
+
+struct SetTessellationDomainOriginParams
+{
+    CommandHeader header;
+
+    uint32_t padding;
+};
+VERIFY_8_BYTE_ALIGNMENT(SetTessellationDomainOriginParams)
 
 struct SetVertexInputParams
 {
@@ -1285,8 +1320,10 @@ class SecondaryCommandBuffer final : angle::NonCopyable
     void setPolygonMode(VkPolygonMode polygonMode);
     void setPrimitiveRestartEnable(VkBool32 primitiveRestartEnable);
     void setPrimitiveTopology(VkPrimitiveTopology primitiveTopology);
+    void setProvokingVertexMode(VkProvokingVertexModeEXT provokingVertexMode);
     void setRasterizerDiscardEnable(VkBool32 rasterizerDiscardEnable);
     void setRasterizationSamples(VkSampleCountFlagBits rasterizationSamples);
+    void setRasterizationStream(uint32_t rasterizationStream);
     void setSampleMask(VkSampleCountFlagBits samples, const VkSampleMask *sampleMask);
     void setScissor(uint32_t firstScissor, uint32_t scissorCount, const VkRect2D *scissors);
     void setStencilCompareMask(uint32_t compareFrontMask, uint32_t compareBackMask);
@@ -1298,6 +1335,7 @@ class SecondaryCommandBuffer final : angle::NonCopyable
     void setStencilReference(uint32_t frontReference, uint32_t backReference);
     void setStencilTestEnable(VkBool32 stencilTestEnable);
     void setStencilWriteMask(uint32_t writeFrontMask, uint32_t writeBackMask);
+    void setTessellationDomainOrigin(VkTessellationDomainOrigin domainOrigin);
     void setVertexInput(uint32_t vertexBindingDescriptionCount,
                         const VkVertexInputBindingDescription2EXT *vertexBindingDescriptions,
                         uint32_t vertexAttributeDescriptionCount,
@@ -2342,14 +2380,15 @@ ANGLE_INLINE void SecondaryCommandBuffer::setColorBlendAdvanced(
     // GL allows advanced blend only on 1 attachment, and that is attachment 0.
     ASSERT(firstAttachment == 0);
     ASSERT(attachmentCount == 1);
+
     // The following are the default (unconfigurable) values in GL.  When state is static, ANGLE
     // never includes VkPipelineColorBlendAdvancedStateCreateInfoEXT, and the spec says:
     //
     // > If this structure is not present, srcPremultiplied and dstPremultiplied are both considered
     // > to be VK_TRUE, and blendOverlap is considered to be VK_BLEND_OVERLAP_UNCORRELATED_EXT.
     //
-    // Also corresponding to static, clamp is not enabled.  The spec says in the Blend Operations
-    // section:
+    // Also corresponding to static state, clamp is not enabled.  The spec says in the Blend
+    // Operations section:
     //
     // > If the color attachment is floating-point, no clamping occurs.
     ASSERT(colorBlendAdvanced[0].srcPremultiplied == VK_TRUE);
@@ -2380,14 +2419,18 @@ ANGLE_INLINE void SecondaryCommandBuffer::setColorBlendEquation(
     uint32_t attachmentCount,
     const VkColorBlendEquationEXT *colorBlendEquation)
 {
-    uint8_t *writePtr;
-    const ArrayParamSize blendEquationSize =
-        calculateArrayParameterSize<VkColorBlendEquationEXT>(attachmentCount);
-    SetColorBlendEquationParams *paramStruct = initCommand<SetColorBlendEquationParams>(
-        CommandID::SetColorBlendEquation, blendEquationSize.allocateBytes, &writePtr);
-    SetBitField(paramStruct->firstAttachment, firstAttachment);
-    SetBitField(paramStruct->attachmentCount, attachmentCount);
-    storeArrayParameter(writePtr, colorBlendEquation, blendEquationSize);
+    // Blend equation is set one attachment at a time.
+    ASSERT(attachmentCount == 1);
+
+    SetColorBlendEquationParams *paramStruct =
+        initCommand<SetColorBlendEquationParams>(CommandID::SetColorBlendEquation);
+    SetBitField(paramStruct->attachment, firstAttachment);
+    SetBitField(paramStruct->srcColorBlendFactor, colorBlendEquation[0].srcColorBlendFactor);
+    SetBitField(paramStruct->dstColorBlendFactor, colorBlendEquation[0].dstColorBlendFactor);
+    SetBitField(paramStruct->colorBlendOp, colorBlendEquation[0].colorBlendOp);
+    SetBitField(paramStruct->srcAlphaBlendFactor, colorBlendEquation[0].srcAlphaBlendFactor);
+    SetBitField(paramStruct->dstAlphaBlendFactor, colorBlendEquation[0].dstAlphaBlendFactor);
+    SetBitField(paramStruct->alphaBlendOp, colorBlendEquation[0].alphaBlendOp);
 }
 
 ANGLE_INLINE void SecondaryCommandBuffer::setColorWriteMask(
@@ -2556,6 +2599,14 @@ ANGLE_INLINE void SecondaryCommandBuffer::setPrimitiveTopology(
     paramStruct->primitiveTopology = primitiveTopology;
 }
 
+ANGLE_INLINE void SecondaryCommandBuffer::setProvokingVertexMode(
+    VkProvokingVertexModeEXT provokingVertexMode)
+{
+    ASSERT(provokingVertexMode == VK_PROVOKING_VERTEX_MODE_LAST_VERTEX_EXT);
+
+    initCommand<SetProvokingVertexModeParams>(CommandID::SetProvokingVertexMode);
+}
+
 ANGLE_INLINE void SecondaryCommandBuffer::setRasterizerDiscardEnable(
     VkBool32 rasterizerDiscardEnable)
 {
@@ -2570,6 +2621,13 @@ ANGLE_INLINE void SecondaryCommandBuffer::setRasterizationSamples(
     SetRasterizationSamplesParams *paramStruct =
         initCommand<SetRasterizationSamplesParams>(CommandID::SetRasterizationSamples);
     paramStruct->rasterizationSamples = rasterizationSamples;
+}
+
+ANGLE_INLINE void SecondaryCommandBuffer::setRasterizationStream(uint32_t rasterizationStream)
+{
+    ASSERT(rasterizationStream == 0);
+
+    initCommand<SetRasterizationStreamParams>(CommandID::SetRasterizationStream);
 }
 
 ANGLE_INLINE void SecondaryCommandBuffer::setSampleMask(VkSampleCountFlagBits samples,
@@ -2645,6 +2703,14 @@ ANGLE_INLINE void SecondaryCommandBuffer::setStencilWriteMask(uint32_t writeFron
         initCommand<SetStencilWriteMaskParams>(CommandID::SetStencilWriteMask);
     paramStruct->writeFrontMask = static_cast<uint16_t>(writeFrontMask);
     paramStruct->writeBackMask  = static_cast<uint16_t>(writeBackMask);
+}
+
+ANGLE_INLINE void SecondaryCommandBuffer::setTessellationDomainOrigin(
+    VkTessellationDomainOrigin domainOrigin)
+{
+    ASSERT(domainOrigin == VK_TESSELLATION_DOMAIN_ORIGIN_LOWER_LEFT);
+
+    initCommand<SetTessellationDomainOriginParams>(CommandID::SetTessellationDomainOrigin);
 }
 
 ANGLE_INLINE void SecondaryCommandBuffer::setVertexInput(

@@ -971,6 +971,7 @@ void OutputSPIRVTraverser::accessChainPushDynamicComponent(NodeData *data,
 
         index = newIndex;
         accessChain.swizzles.clear();
+        accessChain.postSwizzleTypeId = {};
     }
 
     // Fold it into the access chain.

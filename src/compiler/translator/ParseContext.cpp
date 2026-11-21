@@ -1733,6 +1733,19 @@ bool TParseContext::checkIsNotReserved(const TSourceLoc &line, const ImmutableSt
         }
     }
 
+    // While this is not per spec, reject user variables starting with AngleInternal_.
+    // Translation in theory should not mix up user variables with those added internally, but it
+    // currently does with AngleInternal_DrawID, AngleInternal_BaseVertex and
+    // AngleInternal_BaseInstance.
+    if (mCompileOptions.rejectWebglShadersWithUndefinedBehavior)
+    {
+        if (identifier.beginsWith("AngleInternal_"))
+        {
+            error(line, reservedErrMsg, identifier);
+            return false;
+        }
+    }
+
     // Validate that identifier names won't conflict with the name hashing done later.
     // See https://crbug.com/499176133
     if (identifier.length() > kMaxAvailableIdentifierLength && identifier[0] == '_' &&
@@ -11655,9 +11668,8 @@ void TParseContext::addAndCheckVaryings(const TVariable &variable, const TSource
     }
 
     const TQualifier qualifier = variable.getType().getQualifier();
-    const bool isTargetVarying = (mShaderType == GL_VERTEX_SHADER && IsVaryingOut(qualifier)) ||
-                                 (mShaderType == GL_FRAGMENT_SHADER && IsVaryingIn(qualifier));
-    if (!isTargetVarying)
+    const bool isVarying       = IsVaryingOut(qualifier) || IsVaryingIn(qualifier);
+    if (!isVarying)
     {
         return;
     }
@@ -11673,7 +11685,7 @@ void TParseContext::addAndCheckVaryings(const TVariable &variable, const TSource
     if (mNumVaryingComponents > 256)
     {
         const char *errorMessage =
-            mShaderType == GL_VERTEX_SHADER
+            IsVaryingOut(qualifier)
                 ? "Too many declared shader output varying components for this device"
                 : "Too many declared shader input varying components for this device";
         error(line, errorMessage, variable.name());

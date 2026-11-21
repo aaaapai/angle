@@ -583,12 +583,25 @@ bool AreAllFencesSignaled(VkDevice device, const std::vector<vk::Fence> &fences)
     return true;
 }
 impl::FramebufferIndex GetSwapchainImageFramebufferIndex(vk::FramebufferFetchMode fetchMode,
-                                                         gl::SrgbWriteControlMode writeControlMode)
+                                                         gl::SrgbWriteControlMode writeControlMode,
+                                                         bool isLegacyDitherEnabled)
 {
-    impl::SwapchainImageFramebufferDesc desc;
+    impl::SwapchainImageFramebufferDesc desc = {};
     SetBitField(desc.framebufferFetchMode, fetchMode);
     SetBitField(desc.writeControlMode, writeControlMode);
+    SetBitField(desc.isLegacyDitherEnabled, isLegacyDitherEnabled);
     return desc.index;
+}
+
+void CollectFramebuffersGarbage(vk::Renderer *renderer,
+                                const vk::ResourceUse &use,
+                                impl::SwapchainImageFramebuffers *framebuffers)
+{
+    for (auto &entry : *framebuffers)
+    {
+        renderer->collectGarbage(use, &entry.second);
+    }
+    framebuffers->clear();
 }
 }  // namespace
 
@@ -1997,7 +2010,8 @@ bool WindowSurfaceVk::hasAncillaryColor() const
 void WindowSurfaceVk::releaseAncillaryColorImage(vk::Renderer *renderer)
 {
     ASSERT(mAncillaryColorImage.getRenderPassUsage().empty());
-    renderer->collectGarbage(mAncillaryColorImage.getResourceUse(), &mAncillaryFramebuffer);
+    CollectFramebuffersGarbage(renderer, mAncillaryColorImage.getResourceUse(),
+                               &mAncillaryFramebuffers);
     mAncillaryColorImageViews.release(renderer, mAncillaryColorImage.getResourceUse());
     mAncillaryColorImage.releaseImage(renderer);
     mAncillaryColorImage.releaseStagedUpdates(renderer);
@@ -2270,7 +2284,8 @@ void WindowSurfaceVk::releaseSwapchainImages(vk::Renderer *renderer)
             // Keep the image and its views holding the preserved contents; it will be reused by
             // createSwapchain() if compatible.
             ASSERT(mAncillaryColorImage.getRenderPassUsage().empty());
-            renderer->collectGarbage(mAncillaryColorImage.getResourceUse(), &mAncillaryFramebuffer);
+            CollectFramebuffersGarbage(renderer, mAncillaryColorImage.getResourceUse(),
+                                       &mAncillaryFramebuffers);
         }
         else
         {
@@ -2286,10 +2301,7 @@ void WindowSurfaceVk::releaseSwapchainImages(vk::Renderer *renderer)
         ASSERT(swapchainImage.image->getRenderPassUsage().empty());
 
         const vk::ResourceUse &use = swapchainImage.image->getResourceUse();
-        for (auto &entry : swapchainImage.framebuffers)
-        {
-            renderer->collectGarbage(use, &entry.second);
-        }
+        CollectFramebuffersGarbage(renderer, use, &swapchainImage.framebuffers);
 
         swapchainImage.imageViews.release(renderer, use);
         // swapchain image must not have ANI semaphore assigned here, since acquired image must be
@@ -2332,7 +2344,11 @@ void WindowSurfaceVk::destroySwapchainImages(ThreadSafeDisplayVk *displayVk)
     mDepthStencilImageViews.destroy(device);
     mAncillaryColorImage.destroy(renderer);
     mAncillaryColorImageViews.destroy(device);
-    mAncillaryFramebuffer.destroy(device);
+    for (auto &entry : mAncillaryFramebuffers)
+    {
+        entry.second.destroy(device);
+    }
+    mAncillaryFramebuffers.clear();
 
     for (SwapchainImage &swapchainImage : mSwapchainImages)
     {
@@ -2513,25 +2529,18 @@ angle::Result WindowSurfaceVk::checkSwapchainOutOfDate(vk::ErrorContext *context
     return angle::Result::Continue;
 }
 
-vk::Framebuffer &WindowSurfaceVk::chooseFramebuffer()
+vk::Framebuffer &WindowSurfaceVk::chooseFramebuffer(vk::FramebufferFetchMode fetchMode,
+                                                    gl::SrgbWriteControlMode writeControlMode,
+                                                    bool isLegacyDitherEnabled)
 {
-    if (hasAncillaryColor())
-    {
-        return mAncillaryFramebuffer;
-    }
-
-    // Choose which framebuffer to use based on fetch and write control,
-    // so it will have a matching renderpass
+    // Choose which framebuffer to use based on fetch, write control, and legacy dithering, so it
+    // will have a matching renderpass.  This applies to both the ancillary color image (which is
+    // used if multisampling or preserved swap behavior is enabled) and the swapchain images.
     FramebufferIndex index =
-        GetSwapchainImageFramebufferIndex(mFramebufferFetchMode, mWriteControlMode);
+        GetSwapchainImageFramebufferIndex(fetchMode, writeControlMode, isLegacyDitherEnabled);
     SwapchainImageFramebuffers &framebuffers =
-        mSwapchainImages[mCurrentSwapchainImageIndex].framebuffers;
-
-    if (!framebuffers.contains(index))
-    {
-        framebuffers[index] = vk::Framebuffer();
-    }
-    ASSERT(framebuffers.contains(index));
+        hasAncillaryColor() ? mAncillaryFramebuffers
+                            : mSwapchainImages[mCurrentSwapchainImageIndex].framebuffers;
 
     return framebuffers[index];
 }
@@ -2747,7 +2756,8 @@ angle::Result WindowSurfaceVk::prePresentSubmit(ContextVk *contextVk,
     if (!mPreserveOnSwap && hasAncillaryColor() && !isMultisampledSurface())
     {
         ASSERT(mAncillaryColorImage.getRenderPassUsage().empty());
-        renderer->collectGarbage(mAncillaryColorImage.getResourceUse(), &mAncillaryFramebuffer);
+        CollectFramebuffersGarbage(renderer, mAncillaryColorImage.getResourceUse(),
+                                   &mAncillaryFramebuffers);
         mAncillaryColorImageViews.release(renderer, mAncillaryColorImage.getResourceUse());
         mAncillaryColorImage.releaseImage(renderer);
         mAncillaryColorImage.releaseStagedUpdates(renderer);
@@ -3561,6 +3571,7 @@ EGLint WindowSurfaceVk::getSwapBehavior() const
 angle::Result WindowSurfaceVk::getCurrentFramebuffer(ContextVk *contextVk,
                                                      vk::FramebufferFetchMode fetchMode,
                                                      gl::SrgbWriteControlMode writeControlMode,
+                                                     bool isLegacyDitherEnabled,
                                                      const vk::RenderPass &compatibleRenderPass,
                                                      vk::Framebuffer *framebufferOut)
 {
@@ -3571,14 +3582,10 @@ angle::Result WindowSurfaceVk::getCurrentFramebuffer(ContextVk *contextVk,
     ASSERT(mSizeState == SurfaceSizeState::Resolved);
     ASSERT(mSwapchain != VK_NULL_HANDLE);
 
-    // Track the new fetch mode
-    mFramebufferFetchMode = fetchMode;
-    // Track the new write control mode
-    mWriteControlMode = writeControlMode;
-
     SwapchainImage &swapchainImage = mSwapchainImages[mCurrentSwapchainImageIndex];
 
-    vk::Framebuffer *currentFramebuffer = &chooseFramebuffer();
+    vk::Framebuffer *currentFramebuffer =
+        &chooseFramebuffer(fetchMode, writeControlMode, isLegacyDitherEnabled);
     if (currentFramebuffer->valid())
     {
         // Validation layers should detect if the render pass is really compatible.
@@ -3912,15 +3919,12 @@ void WindowSurfaceVk::onSubjectStateChange(angle::SubjectIndex index, angle::Sub
         // Free all cached VkFramebuffers
         if (hasAncillaryColor())
         {
-            mRenderer->collectGarbage(use, &mAncillaryFramebuffer);
+            CollectFramebuffersGarbage(mRenderer, use, &mAncillaryFramebuffers);
         }
 
         for (auto &image : mSwapchainImages)
         {
-            for (auto &entry : image.framebuffers)
-            {
-                mRenderer->collectGarbage(use, &entry.second);
-            }
+            CollectFramebuffersGarbage(mRenderer, use, &image.framebuffers);
         }
 
         // Release ImageViews
