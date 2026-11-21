@@ -295,14 +295,31 @@ ios_deployment_target = "12.0"
 # 关掉它会让 bundled libc++abi 在缺少 -nostdinc++ / -isystem 的情况下继续参与编译，
 # 从而落到 Xcode SDK 的旧 cxxabi.h 上（__ptrauth_cxxabi_* 等宏缺失，编译失败）。
 
-# GL/Vulkan 全部关闭；GLSL/ESSL 不能关，Metal 后端用它们作为输入翻译成 MSL。
+# 本分支仅构建 MoltenVK 后端（ANGLE 的 Vulkan 后端，运行时经 MoltenVK 落到 Metal）。
+# 其余后端全部关闭：Metal / MSL / 原生 GL / GL desktop / D3D11 / Null / WebGPU /
+# OpenCL / SwiftShader。
+# GLSL/ESSL 翻译器不能关：Vulkan 后端用它们作为输入生成 SPIR-V。
+# 运行时需要把 MoltenVK（libMoltenVK.dylib 或 MoltenVK.framework）放进 App 的 Frameworks 目录。
 angle_enable_vulkan = true
 angle_enable_vulkan_validation_layers = false
+angle_enable_vulkan_api_dump_layer = false
 angle_enable_vulkan_shared_ring_buffer_cmd_alloc = true
+
+angle_enable_metal = false
+angle_enable_msl = false
+
 angle_enable_gl = false
 angle_enable_gl_desktop_backend = false
-angle_enable_metal = true
-angle_enable_msl = true
+
+angle_enable_d3d11 = false
+angle_enable_null = false
+angle_enable_wgpu = false
+angle_enable_cl = false
+angle_enable_swiftshader = false
+
+# Vulkan 后端依赖 GLSL/ESSL 生成 SPIR-V，必须保持开启。
+angle_enable_glsl = true
+angle_enable_essl = true
 
 
 # iOS 不 strip framework，保留完整符号
