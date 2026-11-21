@@ -17,12 +17,32 @@
 #include "libANGLE/renderer/vulkan/vk_renderer.h"
 #include "libANGLE/renderer/vulkan/vk_utils.h"
 
+// Swapchain diagnostics are compile-time optional: the trace lives in the per-frame path and
+// NSLog is far too slow to leave enabled in a build that renders.  Define
+// ANGLE_VULKAN_SWAPCHAIN_TRACE=1 to enable it.
+#ifndef ANGLE_VULKAN_SWAPCHAIN_TRACE
+#    define ANGLE_VULKAN_SWAPCHAIN_TRACE 0
+#endif
+
+#if ANGLE_VULKAN_SWAPCHAIN_TRACE
+#    define SWAPCHAIN_TRACE(...) NSLog(__VA_ARGS__)
+#else
+#    define SWAPCHAIN_TRACE(...) \
+        do                       \
+        {                        \
+        } while (0)
+#endif
+
 namespace rx
 {
 
 WindowSurfaceVkMac::WindowSurfaceVkMac(const egl::SurfaceState &surfaceState,
                                        EGLNativeWindowType window)
-    : WindowSurfaceVk(surfaceState, window), mLayer(nil), mMetalLayer(nil), mMetalDevice(nil)
+    : WindowSurfaceVk(surfaceState, window),
+      mLayer(nil),
+      mMetalLayer(nil),
+      mMetalDevice(nil),
+      mAppProvidedDrawableSize(false)
 {}
 
 WindowSurfaceVkMac::~WindowSurfaceVkMac()
@@ -59,12 +79,17 @@ angle::Result WindowSurfaceVkMac::createSurfaceVk(vk::ErrorContext *context)
     if (nativeMetalLayer != nil)
     {
         mMetalLayer = [nativeMetalLayer retain];
+        // Capture this before updateDrawableSize() writes the size, so that a size the application
+        // configured is never mistaken for one this surface derived.
+        mAppProvidedDrawableSize =
+            mMetalLayer.drawableSize.width >= 1.0 && mMetalLayer.drawableSize.height >= 1.0;
     }
     else
     {
         // A plain layer (for example an NSView's backing layer) needs a Metal layer to render
         // into.  It is kept in step with the native window in updateDrawableSize().
-        mMetalLayer       = [[CAMetalLayer alloc] init];
+        mMetalLayer = [[CAMetalLayer alloc] init];
+        ANGLE_VK_CHECK(context, mMetalLayer != nil, VK_ERROR_OUT_OF_HOST_MEMORY);
         mMetalLayer.frame = CGRectMake(0, 0, mLayer.bounds.size.width, mLayer.bounds.size.height);
         [mLayer addSublayer:mMetalLayer];
     }
@@ -74,7 +99,7 @@ angle::Result WindowSurfaceVkMac::createSurfaceVk(vk::ErrorContext *context)
 #if TARGET_OS_OSX
     // Autoresizing masks are only available on macOS.  On iOS the layer's frame is managed by
     // the view hierarchy.
-    if (mMetalLayer != mLayer)
+    if (!usesNativeLayer())
     {
         mMetalLayer.autoresizingMask = kCALayerWidthSizable | kCALayerHeightSizable;
     }
@@ -92,26 +117,27 @@ angle::Result WindowSurfaceVkMac::createSurfaceVk(vk::ErrorContext *context)
     ANGLE_VK_TRY(context, VK_CALL(vkCreateMetalSurfaceEXT, context->getRenderer()->getInstance(),
                                   &createInfo, nullptr, &mSurface));
 
+    SWAPCHAIN_TRACE(@"[swapchain] surface %p: %dx%d, native layer %s, app drawable %s",
+                    (void *)mSurface, static_cast<int>(drawableSize.width),
+                    static_cast<int>(drawableSize.height), usesNativeLayer() ? "yes" : "no",
+                    mAppProvidedDrawableSize ? "yes" : "no");
+
     return angle::Result::Continue;
 }
 
 CGSize WindowSurfaceVkMac::updateDrawableSize() const
 {
-    // When the native window already is a Metal layer that the application configured, the
-    // application owns its drawable geometry: it may render at a resolution below the layer's
-    // native one, so the configured size must not be overridden.
-    const bool usesNativeLayer = (mMetalLayer == mLayer);
-    const bool hasConfiguredSize =
-        mMetalLayer.drawableSize.width >= 1.0 && mMetalLayer.drawableSize.height >= 1.0;
-
     CGSize size;
-    if (usesNativeLayer && hasConfiguredSize)
+
+    if (usesNativeLayer() && mAppProvidedDrawableSize)
     {
+        // The application owns the drawable geometry: it may render at a resolution below the
+        // layer's native one, so the configured size must not be overridden.
         size = mMetalLayer.drawableSize;
     }
     else
     {
-        if (!usesNativeLayer)
+        if (!usesNativeLayer())
         {
             // The Metal layer belongs to this surface, so mirror the native window's geometry.
             // Only macOS propagates it through autoresizing masks.
@@ -140,6 +166,8 @@ CGSize WindowSurfaceVkMac::updateDrawableSize() const
     size = CGSizeMake(std::ceil(size.width), std::ceil(size.height));
     if (!CGSizeEqualToSize(mMetalLayer.drawableSize, size))
     {
+        SWAPCHAIN_TRACE(@"[swapchain] drawable size %gx%g -> %gx%g", mMetalLayer.drawableSize.width,
+                        mMetalLayer.drawableSize.height, size.width, size.height);
         mMetalLayer.drawableSize = size;
     }
 
@@ -158,7 +186,12 @@ angle::Result WindowSurfaceVkMac::getCurrentWindowSize(vk::ErrorContext *context
     *extentsOut =
         gl::Extents(static_cast<int>(drawableSize.width), static_cast<int>(drawableSize.height), 1);
 
+    SWAPCHAIN_TRACE(@"[swapchain] extent %dx%d, scale %g", extentsOut->width, extentsOut->height,
+                    mMetalLayer.contentsScale);
+
     return angle::Result::Continue;
 }
 
 }  // namespace rx
+
+#undef SWAPCHAIN_TRACE

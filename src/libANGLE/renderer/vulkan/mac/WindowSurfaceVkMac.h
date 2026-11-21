@@ -37,11 +37,17 @@ class WindowSurfaceVkMac : public WindowSurfaceVk
     // geometry or drawable size was out of date.
     CGSize updateDrawableSize() const;
 
+    // True when the EGL native window itself is the Metal layer that is rendered into.
+    bool usesNativeLayer() const { return mMetalLayer == mLayer; }
+
     // The EGL native window, retained for the lifetime of the surface.
     CALayer *mLayer;
     // Either |mLayer| when it already is a CAMetalLayer, or a Metal layer owned by this surface.
     CAMetalLayer *mMetalLayer;
     id<MTLDevice> mMetalDevice;
+    // Whether the application configured |mMetalLayer| with a drawable size of its own.  Such a
+    // size expresses the resolution the application renders at and is not derived from the layer.
+    bool mAppProvidedDrawableSize;
 };
 
 }  // namespace rx
