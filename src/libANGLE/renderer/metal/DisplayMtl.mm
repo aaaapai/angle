@@ -959,21 +959,14 @@ void DisplayMtl::ensureCapsInitialized() const
     mNativeCaps.maxCombinedImageUniforms        = 0;
     // ES 3.2 新增 Caps
     mNativeCaps.maxFramebufferLayers = 2048;
-    if (mtl::DeviceHasTextureBufferSupport(getMetalDevice()))
-    {
-        mNativeCaps.maxTextureBufferSize = 1u << 27;  // 128 MB
-    }
-    else
-    {
-        mNativeCaps.maxTextureBufferSize = 0;
-    }
+    mNativeCaps.maxTextureBufferSize =
+        mtl::DeviceHasTextureBufferSupport(getMetalDevice()) ? (1u << 27) : 0;
     mNativeCaps.layerProvokingVertex = GL_LAST_VERTEX_CONVENTION; // 默认给 0x8E4D
 
     mNativeCaps.lineWidthGranularity    = 1.0f;
     mNativeCaps.minMultisampleLineWidth = 1.0f;
     mNativeCaps.maxMultisampleLineWidth = 1.0f;
 
-    mNativeCaps.maxTextureBufferSize         = 65536;
     mNativeCaps.textureBufferOffsetAlignment = 256;  // Metal 的 minimum constant buffer alignment
 }
 
@@ -1248,8 +1241,7 @@ void DisplayMtl::initializeTextureCaps() const
     mNativeExtensions.readDepthNV         = false;
     mNativeExtensions.readStencilNV       = false;
 
-    const bool supportsTextureBuffer = mtl::DeviceHasTextureBufferSupport(getMetalDevice());
-    mNativeExtensions.textureBuffer    = supportsTextureBuffer;
+    const bool supportsTextureBuffer   = mtl::DeviceHasTextureBufferSupport(getMetalDevice());
     mNativeExtensions.textureBufferEXT = supportsTextureBuffer;
     mNativeExtensions.textureBufferOES = supportsTextureBuffer;
 }
