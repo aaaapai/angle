@@ -459,6 +459,13 @@ EGLAttrib GetDisplayTypeFromEnvironment()
     std::string angleDefaultEnv = angle::GetEnvironmentVar("ANGLE_DEFAULT_PLATFORM");
     angle::ToLower(&angleDefaultEnv);
 
+#if defined(ANGLE_ENABLE_METAL)
+    if (angleDefaultEnv == "metal")
+    {
+        return EGL_PLATFORM_ANGLE_TYPE_METAL_ANGLE;
+    }
+#endif
+
 #if defined(ANGLE_ENABLE_VULKAN)
     if ((angleDefaultEnv == "vulkan") || (angleDefaultEnv == "vulkan-null") ||
         (angleDefaultEnv == "swiftshader"))
@@ -485,13 +492,6 @@ EGLAttrib GetDisplayTypeFromEnvironment()
     if (angleDefaultEnv == "d3d11")
     {
         return EGL_PLATFORM_ANGLE_TYPE_D3D11_ANGLE;
-    }
-#endif
-
-#if defined(ANGLE_ENABLE_METAL)
-    if (angleDefaultEnv == "metal")
-    {
-        return EGL_PLATFORM_ANGLE_TYPE_METAL_ANGLE;
     }
 #endif
 
