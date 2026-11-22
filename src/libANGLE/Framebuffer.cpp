@@ -76,16 +76,14 @@ FramebufferStatus CheckAttachmentCompleteness(const Context *context,
     const Extents &size = attachment.getSize();
     if (size.width == 0 || size.height == 0)
     {
-        /*if (std::getenv("ANGLE_FRAMEBUFFER_LIMIT")) return FramebufferStatus::Incomplete(GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT,
-                                             err::kFramebufferIncompleteAttachmentZeroSize);*/
-        WARN() << "Framebuffer is incomplete: Attachment has zero size.";
+        return FramebufferStatus::Incomplete(GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT,
+                                             err::kFramebufferIncompleteAttachmentZeroSize);
     }
 
     if (!attachment.isRenderable(context))
     {
-        if (std::getenv("ANGLE_FRAMEBUFFER_LIMIT")) return FramebufferStatus::Incomplete(GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT,
+        return FramebufferStatus::Incomplete(GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT,
                                              err::kFramebufferIncompleteAttachmentNotRenderable);
-        WARN() << "Framebuffer is incomplete: Attachment is not renderable.";
     }
 
     if (attachment.type() == GL_TEXTURE)

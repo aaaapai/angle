@@ -2277,6 +2277,17 @@ angle::Result TextureVk::setStorageImpl(ContextVk *contextVk,
 
     ASSERT(mState.getImmutableFormat());
     ASSERT(!TextureHasAnyRedefinedLevels(mRedefinedLevels));
+
+    const gl::TextureTarget target = (type == gl::TextureType::CubeMap)
+        ? gl::kCubeMapTextureTargetMin
+        : gl::TextureTypeToTarget(type, 0);
+    const gl::Extents &size = mState.getImageDesc(target, 0).size;
+    if (size.width == 0 || size.height == 0 || size.depth == 0)
+    {
+        WARN() << "setStorageImpl: skipping zero-sized immutable storage";
+        return angle::Result::Continue;
+    }
+
     ANGLE_TRY(initImage(contextVk, format.getIntendedFormatID(),
                         format.getActualImageFormatID(getRequiredFormatSupport()),
                         ImageMipLevels::FullMipChainForGenerateMipmap));

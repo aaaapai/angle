@@ -6049,6 +6049,19 @@ angle::Result ImageHelper::initExternal(ErrorContext *context,
         vk::GetMinimalImageCreateFlags(renderer, textureType, usage) | additionalCreateFlags;
     mRequestedUsage = usage;
 
+    if (mExtents.width == 0 || mExtents.height == 0 ||
+        mExtents.depth == 0 || mLevelCount == 0 || mLayerCount == 0)
+    {
+        WARN() << "ImageHelper::initExternal: zero-sized image ("
+               << mExtents.width << "x" << mExtents.height << "x" << mExtents.depth
+               << ", levels=" << mLevelCount << ", layers=" << mLayerCount
+               << "); skipping vkCreateImage.";
+        mVkImageCreateInfo               = imageInfo;
+        mVkImageCreateInfo.pNext         = nullptr;
+        mVkImageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        return angle::Result::Continue;
+    }
+
     // Validate that mLayerCount is compatible with the texture type
     ASSERT(textureType != gl::TextureType::_3D || mLayerCount == 1);
     ASSERT(textureType != gl::TextureType::_2DArray || mExtents.depth == 1);
@@ -6680,6 +6693,12 @@ angle::Result ImageHelper::initMemoryAndNonZeroFillIfNeeded(ErrorContext *contex
                                                             VkMemoryPropertyFlags flags,
                                                             MemoryAllocationType allocationType)
 {
+
+    if (!mImage.valid())
+    {
+        return angle::Result::Continue;
+    }
+
     Renderer *renderer = context->getRenderer();
     VkMemoryPropertyFlags outputFlags;
     VkDeviceSize outputSize;
