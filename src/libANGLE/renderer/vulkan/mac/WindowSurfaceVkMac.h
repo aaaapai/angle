@@ -33,6 +33,10 @@ class WindowSurfaceVkMac : public WindowSurfaceVk
     angle::Result getCurrentWindowSize(vk::ErrorContext *context,
                                        gl::Extents *extentsOut) const override;
 
+    // The layer's bounds x contents scale is the single source of truth for the surface size,
+    // matching the Metal backend.  MoltenVK's round-half-to-even natural extent is not used.
+    bool isSurfaceSizedByWindow() const override { return true; }
+
     // Returns the size of the layer's drawable in whole pixels, updating the layer if its
     // geometry or drawable size was out of date.
     CGSize updateDrawableSize() const;
@@ -45,9 +49,6 @@ class WindowSurfaceVkMac : public WindowSurfaceVk
     // Either |mLayer| when it already is a CAMetalLayer, or a Metal layer owned by this surface.
     CAMetalLayer *mMetalLayer;
     id<MTLDevice> mMetalDevice;
-    // Whether the application configured |mMetalLayer| with a drawable size of its own.  Such a
-    // size expresses the resolution the application renders at and is not derived from the layer.
-    bool mAppProvidedDrawableSize;
 };
 
 }  // namespace rx

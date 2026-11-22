@@ -424,6 +424,13 @@ class WindowSurfaceVk : public SurfaceVk
                                                gl::Extents *extentsOut) const = 0;
     virtual angle::Result getWindowVisibility(vk::ErrorContext *context, bool *isVisibleOut) const;
 
+    // Whether the native window (layer), rather than the driver-reported currentExtent, is the
+    // source of truth for the swapchain size.  The Metal backend always derives the drawable size
+    // from the layer's bounds and contents scale; the Vulkan/MoltenVK surface must do the same,
+    // because MoltenVK rounds the natural extent half-to-even and can report a surface one pixel
+    // smaller than the drawable the application renders into.
+    virtual bool isSurfaceSizedByWindow() const { return false; }
+
     impl::SurfaceSizeState getSizeState() const;
     void setSizeState(impl::SurfaceSizeState sizeState);
     angle::Result getUserExtentsImpl(vk::ErrorContext *context, VkExtent2D *extentOut) const;

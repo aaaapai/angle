@@ -1338,10 +1338,17 @@ angle::Result WindowSurfaceVk::initializeImpl(ThreadSafeDisplayVk *displayVk, bo
                        kSurfaceVkColorImageUsageFlags,
                    VK_ERROR_INITIALIZATION_FAILED);
 
-    if (surfaceCaps.currentExtent.width == kSurfaceSizedBySwapchain)
+    // On platforms where the window owns the drawable geometry (Metal layers on macOS/iOS), the
+    // layer is authoritative even when the driver reports a concrete currentExtent.  MoltenVK
+    // reports the natural extent rounded half-to-even (375 * 1.5 = 562.5 -> 562), which is one
+    // pixel short of the 563-pixel drawable the application and Core Animation use.  Using the
+    // layer as the source of truth makes the Vulkan swapchain follow the same geometry as the
+    // Metal backend's drawable.
+    if (isSurfaceSizedByWindow() || surfaceCaps.currentExtent.width == kSurfaceSizedBySwapchain)
     {
-        ASSERT(surfaceCaps.currentExtent.height == kSurfaceSizedBySwapchain);
-        ASSERT(!IsAndroid());
+        ASSERT(isSurfaceSizedByWindow() ||
+               surfaceCaps.currentExtent.height == kSurfaceSizedBySwapchain);
+        ASSERT(isSurfaceSizedByWindow() || !IsAndroid());
 
         mIsSurfaceSizedBySwapchain = true;
     }

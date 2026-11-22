@@ -41,8 +41,7 @@ WindowSurfaceVkMac::WindowSurfaceVkMac(const egl::SurfaceState &surfaceState,
     : WindowSurfaceVk(surfaceState, window),
       mLayer(nil),
       mMetalLayer(nil),
-      mMetalDevice(nil),
-      mAppProvidedDrawableSize(false)
+      mMetalDevice(nil)
 {}
 
 WindowSurfaceVkMac::~WindowSurfaceVkMac()
@@ -79,10 +78,6 @@ angle::Result WindowSurfaceVkMac::createSurfaceVk(vk::ErrorContext *context)
     if (nativeMetalLayer != nil)
     {
         mMetalLayer = [nativeMetalLayer retain];
-        // Capture this before updateDrawableSize() writes the size, so that a size the application
-        // configured is never mistaken for one this surface derived.
-        mAppProvidedDrawableSize =
-            mMetalLayer.drawableSize.width >= 1.0 && mMetalLayer.drawableSize.height >= 1.0;
     }
     else
     {
@@ -117,52 +112,45 @@ angle::Result WindowSurfaceVkMac::createSurfaceVk(vk::ErrorContext *context)
     ANGLE_VK_TRY(context, VK_CALL(vkCreateMetalSurfaceEXT, context->getRenderer()->getInstance(),
                                   &createInfo, nullptr, &mSurface));
 
-    SWAPCHAIN_TRACE(@"[swapchain] surface %p: %dx%d, native layer %s, app drawable %s",
-                    (void *)mSurface, static_cast<int>(drawableSize.width),
-                    static_cast<int>(drawableSize.height), usesNativeLayer() ? "yes" : "no",
-                    mAppProvidedDrawableSize ? "yes" : "no");
+    SWAPCHAIN_TRACE(@"[swapchain] surface %p: %dx%d, native layer %s", (void *)mSurface,
+                    static_cast<int>(drawableSize.width), static_cast<int>(drawableSize.height),
+                    usesNativeLayer() ? "yes" : "no");
 
     return angle::Result::Continue;
 }
 
 CGSize WindowSurfaceVkMac::updateDrawableSize() const
 {
-    CGSize size;
-
-    if (usesNativeLayer() && mAppProvidedDrawableSize)
+    if (!usesNativeLayer())
     {
-        // The application owns the drawable geometry: it may render at a resolution below the
-        // layer's native one, so the configured size must not be overridden.
-        size = mMetalLayer.drawableSize;
-    }
-    else
-    {
-        if (!usesNativeLayer())
-        {
-            // The Metal layer belongs to this surface, so mirror the native window's geometry.
-            // Only macOS propagates it through autoresizing masks.
+        // The Metal layer belongs to this surface, so mirror the native window's geometry.
+        // Only macOS propagates it through autoresizing masks.
 #if !TARGET_OS_OSX
-            if (!CGSizeEqualToSize(mMetalLayer.bounds.size, mLayer.bounds.size))
-            {
-                mMetalLayer.frame =
-                    CGRectMake(0, 0, mLayer.bounds.size.width, mLayer.bounds.size.height);
-            }
-#endif
-            if (mMetalLayer.contentsScale != mLayer.contentsScale)
-            {
-                mMetalLayer.contentsScale = mLayer.contentsScale;
-            }
+        if (!CGSizeEqualToSize(mMetalLayer.bounds.size, mLayer.bounds.size))
+        {
+            mMetalLayer.frame =
+                CGRectMake(0, 0, mLayer.bounds.size.width, mLayer.bounds.size.height);
         }
-
-        size = CGSizeMake(mMetalLayer.bounds.size.width * mMetalLayer.contentsScale,
-                          mMetalLayer.bounds.size.height * mMetalLayer.contentsScale);
+#endif
+        if (mMetalLayer.contentsScale != mLayer.contentsScale)
+        {
+            mMetalLayer.contentsScale = mLayer.contentsScale;
+        }
     }
 
-    // Drawables are allocated in whole pixels.  Scaling the layer's point geometry can produce a
-    // fractional pixel count (375 pt at 1.5x is 562.5), and if the layer and the swapchain round
-    // it differently the surface ends up one pixel smaller than the window, leaving the GL
-    // viewport outside of the surface.  Round up and store the result so that both sides use the
-    // same value.
+    // Mirror the Metal backend (WindowSurfaceMtl::calcExpectedDrawableSize): the layer's point
+    // geometry multiplied by its contents scale is the single source of truth.  In particular,
+    // do not use the CAMetalLayer's drawableSize, which an application may have set to a slightly
+    // different value, and do not use MoltenVK's natural extent: it rounds half-to-even
+    // (375 pt * 1.5 = 562.5 -> 562), one pixel short of the drawable that Core Animation and the
+    // application render into (563).  A one pixel short swapchain makes the GL viewport fall
+    // outside of the presented image and can fault the GPU on present.
+    CGSize size = CGSizeMake(mMetalLayer.bounds.size.width * mMetalLayer.contentsScale,
+                             mMetalLayer.bounds.size.height * mMetalLayer.contentsScale);
+
+    // Drawables are allocated in whole pixels.  Round up so the swapchain is never smaller than
+    // the geometry the application renders into, and store the result on the layer so the layer
+    // and the swapchain can never disagree.
     size = CGSizeMake(std::ceil(size.width), std::ceil(size.height));
     if (!CGSizeEqualToSize(mMetalLayer.drawableSize, size))
     {
