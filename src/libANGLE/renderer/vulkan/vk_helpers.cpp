@@ -6056,9 +6056,6 @@ angle::Result ImageHelper::initExternal(ErrorContext *context,
                << mExtents.width << "x" << mExtents.height << "x" << mExtents.depth
                << ", levels=" << mLevelCount << ", layers=" << mLayerCount
                << "); skipping vkCreateImage.";
-        mVkImageCreateInfo               = imageInfo;
-        mVkImageCreateInfo.pNext         = nullptr;
-        mVkImageCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         return angle::Result::Continue;
     }
 
