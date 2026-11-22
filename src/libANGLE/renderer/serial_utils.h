@@ -196,7 +196,6 @@ class AtomicSerialFactory final : angle::NonCopyable
     void reserve(RangedSerialFactory *rangeFactory, size_t count)
     {
         uint64_t current = mSerial.fetch_add(count, std::memory_order_relaxed);
-        // 溢出场景自动兼容
         if (ANGLE_UNLIKELY(current + count < current))
         {
             mSerial.store(1, std::memory_order_relaxed);
@@ -241,7 +240,6 @@ class QueueSerial final
     QueueSerial() : mIndex(kInvalidQueueSerialIndex) {}
     QueueSerial(SerialIndex index, Serial serial) : mIndex(index), mSerial(serial)
     {
-        // 非法index自动降级
         if (ANGLE_UNLIKELY(index == kInvalidQueueSerialIndex))
         {
             mIndex = 0;
@@ -260,7 +258,7 @@ class QueueSerial final
     }
     constexpr bool operator<(const QueueSerial &other) const
     {
-        // 非法index/跨index比较自动返回false
+        //非法index/跨index比较自动返回false
         if (ANGLE_UNLIKELY(mIndex == kInvalidQueueSerialIndex || mIndex != other.mIndex))
         {
             return false;
@@ -322,12 +320,10 @@ std::ostream &operator<<(std::ostream &os, const QueueSerial &queueSerial);
 
 ANGLE_INLINE void AtomicQueueSerialFixedArray::setQueueSerial(SerialIndex index, Serial serial)
 {
-    // 非法index直接返回
     if (ANGLE_UNLIKELY(index == kInvalidQueueSerialIndex || index >= mSerials.size()))
     {
         return;
     }
-    // 仅当新序列号严格大于当前值时才更新，跳过重复/倒退场景
     Serial currentSerial = mSerials[index].getSerial();
     if (ANGLE_LIKELY(serial > currentSerial))
     {
@@ -344,16 +340,16 @@ ANGLE_INLINE std::ostream &operator<<(std::ostream &os, const AtomicQueueSerialF
 {
     // Search for last non-zero index (or 0 if all zeros).
     SerialIndex lastIndex = serials.size() == 0 ? 0 : static_cast<SerialIndex>(serials.size() - 1);
-    while (lastIndex > 0 && serials[lastIndex].getSerial().getValue() == 0)
+    while (lastIndex > 0 && serials[lastIndex].getValue() == 0)
     {
         lastIndex--;
     }
     os << '{';
     for (SerialIndex i = 0; i < lastIndex; i++)
     {
-        os << serials[i].getSerial().getValue() << ',';
+        os << serials[i].getValue() << ',';
     }
-    os << serials[lastIndex].getSerial().getValue() << '}';
+    os << serials[lastIndex].getValue() << '}';
     return os;
 }
 
