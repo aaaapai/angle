@@ -950,9 +950,12 @@ void DisplayMtl::ensureCapsInitialized() const
     if ([mMetalDevice readWriteTextureSupport] != MTLReadWriteTextureTierNone)
     {
         // Images and samplers share the same fixed-size Metal texture argument table
-        // (mtl::kMaxShaderSamplers), so reserve at most half of it for image units.
+        // (mtl::kMaxShaderSamplers), so reserve at most half of it for image units.  The shader
+        // reflection tables are sized by kMaxShaderImages, so the advertised count must also fit
+        // there.
         constexpr GLuint kMaxImageUnits = mtl::kMaxShaderSamplers / 2;
         static_assert(kMaxImageUnits <= static_cast<GLuint>(gl::IMPLEMENTATION_MAX_IMAGE_UNITS));
+        static_assert(kMaxImageUnits <= mtl::kMaxShaderImages);
 
         if (mNativeExtensions.shaderPixelLocalStorageANGLE)
         {

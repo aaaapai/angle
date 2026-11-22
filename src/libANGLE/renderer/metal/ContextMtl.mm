@@ -1811,9 +1811,8 @@ angle::Result ContextMtl::memoryBarrier(const gl::Context *context, GLbitfield b
 
 angle::Result ContextMtl::memoryBarrierByRegion(const gl::Context *context, GLbitfield barriers)
 {
-    // Metal does not expose a distinct "by region" barrier; the narrower-scope barrier can be
-    // safely lowered to the full memoryBarrier. On ES 3.1+ this still hits UNIMPLEMENTED() in
-    // memoryBarrier() until compute/image support lands.
+    // Metal has no distinct "by region" barrier, so the narrower scope is lowered to the full
+    // memoryBarrier.
     return memoryBarrier(context, barriers);
 }
 

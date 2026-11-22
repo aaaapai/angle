@@ -177,11 +177,15 @@ constexpr int kEmulatedAlphaValue = 1;
 constexpr size_t kOcclusionQueryResultSize = sizeof(uint64_t);
 
 // Version policy for the Metal backend of this fork: every Metal device reports ES 3.2 so that
-// applications get a single, predictable client version and the ES 3.1/3.2 entry points stay
-// reachable.  DisplayMtl::getMaxSupportedESVersion() and DisplayMtl::getMaxConformantESVersion()
-// both return this value, and the frontend raises backward-compatible contexts to it, so keeping
-// the ES 3.1 features functional (notably separate vertex attribute bindings) is a hard
-// requirement for this number, not an optional extra.
+// applications see one predictable client version and the ES 3.1/3.2 entry points stay reachable.
+// Both DisplayMtl::getMaxSupportedESVersion() and DisplayMtl::getMaxConformantESVersion() return
+// this value, and the frontend raises backward-compatible contexts to it.
+//
+// This is a deliberate over-claim: the backend does not implement the whole ES 3.2 feature set.
+// Shader storage blocks and atomic counters report zero (and buffer blocks are rejected at link
+// time), and geometry/tessellation shaders and cube map arrays are not exposed.  ES 3.1 separate
+// vertex attribute bindings, image load/store and texture buffers are functional, and those are
+// what this number is for.
 constexpr gl::Version kMaxSupportedGLVersion = gl::Version(3, 2);
 
 enum class PixelType
