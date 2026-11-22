@@ -158,3 +158,15 @@ runs:
         name: angle-${{ inputs.platform }}-${{ inputs.arch }}-${{ github.run_number }}
         path: out/${{ inputs.out-dir }}/${{ inputs.upload-path }}
         if-no-files-found: warn
+
+    # fastdebug 会编译 VkLayer_khronos_validation；它和 json manifest 不在
+    # upload-path 的 glob 里，单独上传，否则产物里没有验证层可用。
+    - name: Upload Vulkan layer data (iOS)
+      if: inputs.platform == 'ios'
+      uses: actions/upload-artifact@main
+      with:
+        name: angle-${{ inputs.platform }}-${{ inputs.arch }}-vulkan-layers-${{ github.run_number }}
+        path: |
+          out/${{ inputs.out-dir }}/angledata
+          out/${{ inputs.out-dir }}/*.dylib
+        if-no-files-found: ignore

@@ -10,7 +10,8 @@
 # 流程：
 #   1. 从 out/args.gn.in 按 section 优先级合并 -> 扁平 key=value
 #        优先级（高→低）：
-#          platform-<X>-<ARCH>  >  platform-<X>  >  mode-<X>  >  arch-<X>  >  base
+#          platform-<X>-<ARCH>  >  platform-<X>-<MODE>  >  platform-<X>
+#          >  mode-<X>  >  arch-<X>  >  base
 #        即同名 key 出现在多个 section 时，优先级最高的生效
 #   2. release 且非 iOS 时，把 #@POLLY@ 占位符替换为 polly 插件参数
 #      其余情况删除该占位行
@@ -64,13 +65,15 @@ mkdir -p "$(dirname "$OUT_FILE")"
 #  步骤 1：按 section 优先级合并 -> 扁平 key=value
 #
 #  priority 列表（逗号分隔，越靠前优先级越高）：
-#    platform-<X>-<ARCH>, platform-<X>, mode-<X>, arch-<X>, base
+#    platform-<X>-<ARCH>, platform-<X>-<MODE>, platform-<X>, mode-<X>, arch-<X>, base
 #
 #  platform-<X>-<ARCH> 用于 platform 内部按架构细分的差异
 #  （典型例子：iOS 真机 vs iOS 模拟器的 target_environment）。
-#  该 section 可以不存在，匹配不到只是不生效，不影响其它 section。
+#  platform-<X>-<MODE> 用于 platform 在某个构建模式下需要偏离通用 mode-<X>
+#  的差异（典型例子：iOS fastdebug 打开 Vulkan 验证层，而 platform-ios 默认关闭）。
+#  这两个 section 都可以不存在，匹配不到只是不生效，不影响其它 section。
 # ============================================================
-PRIORITY="platform-$PLATFORM-$ARCH_KEY,platform-$PLATFORM,mode-$MODE,arch-$ARCH_KEY,base"
+PRIORITY="platform-$PLATFORM-$ARCH_KEY,platform-$PLATFORM-$MODE,platform-$PLATFORM,mode-$MODE,arch-$ARCH_KEY,base"
 
 awk -v priority="$PRIORITY" '
 BEGIN {

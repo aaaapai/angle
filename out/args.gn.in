@@ -333,6 +333,16 @@ angle_extra_ldflags = [
   "-Wl,-O3",
 ]
 
+# ==SECTION:platform-ios-fastdebug==
+# fastdebug 打开 Vulkan 验证层。platform-ios 默认把它关掉（发布构建必须关闭），
+# 这里按 mode 覆盖回来。运行时的前提：
+#   1. App 进程里要有 Vulkan loader（libvulkan）——只有 MoltenVK 这个 ICD 是不够的，
+#      验证层是 loader 的功能；
+#   2. VkLayer_khronos_validation 的 dylib + json manifest 要放进 App bundle 并签名；
+#   3. 找不到层时 ANGLE 以 YesIfAvailable 语义静默跳过，不会报错。
+# API dump 层不在 iOS 上启用：其 GN 默认值带 !is_apple。
+angle_enable_vulkan_validation_layers = true
+
 # ==SECTION:platform-ios-x64==
 # iOS 模拟器（Intel Mac）：target_environment 必须改成 simulator。
 target_environment = "simulator"
