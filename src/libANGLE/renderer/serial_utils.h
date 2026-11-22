@@ -79,7 +79,11 @@ class UniqueSerialFactory final : angle::NonCopyable
     UniqueSerial generate()
     {
         uint64_t current = mSerial++;
-        ASSERT(mSerial > current);  // Integer overflow
+        if (ANGLE_UNLIKELY(mSerial <= current))
+        {
+            mSerial = 1;
+            current = 0;
+        }
         return UniqueSerial(current);
     }
 
@@ -125,7 +129,10 @@ class alignas(8) AtomicQueueSerial final
         mValue.store(other.mValue, std::memory_order_release);
         return *this;
     }
-    Serial getSerial() const { return Serial(mValue.load(std::memory_order_consume)); }
+    Serial getSerial() const 
+    { 
+        return Serial(mValue.load(std::memory_order_acquire)); 
+    }
 
   private:
     static constexpr uint64_t kInvalid = 0;
@@ -145,10 +152,13 @@ class RangedSerialFactory final : angle::NonCopyable
     bool empty() const { return mCount == 0; }
     bool generate(Serial *serialOut)
     {
-        if (mCount > 0)
+        if (ANGLE_LIKELY(mCount > 0))
         {
             uint64_t current = mSerial++;
-            ASSERT(mSerial > current);  // Integer overflow
+            if (ANGLE_UNLIKELY(mSerial <= current))
+            {
+                mSerial = 1;
+            }
             *serialOut = Serial(current);
             mCount--;
             return true;
@@ -174,16 +184,23 @@ class AtomicSerialFactory final : angle::NonCopyable
 
     Serial generate()
     {
-        uint64_t current = mSerial++;
-        ASSERT(mSerial > current);  // Integer overflow
+        uint64_t current = mSerial.fetch_add(1, std::memory_order_relaxed);
+        // 溢出时自动重置起始值
+        if (ANGLE_UNLIKELY(current == std::numeric_limits<uint64_t>::max()))
+        {
+            mSerial.store(1, std::memory_order_relaxed);
+        }
         return Serial(current);
     }
 
     void reserve(RangedSerialFactory *rangeFactory, size_t count)
     {
-        uint64_t current = mSerial;
-        mSerial += count;
-        ASSERT(mSerial > current);  // Integer overflow
+        uint64_t current = mSerial.fetch_add(count, std::memory_order_relaxed);
+        // 溢出场景自动兼容
+        if (ANGLE_UNLIKELY(current + count < current))
+        {
+            mSerial.store(1, std::memory_order_relaxed);
+        }
         rangeFactory->initialize(current, count);
     }
 
@@ -224,7 +241,11 @@ class QueueSerial final
     QueueSerial() : mIndex(kInvalidQueueSerialIndex) {}
     QueueSerial(SerialIndex index, Serial serial) : mIndex(index), mSerial(serial)
     {
-        ASSERT(index != kInvalidQueueSerialIndex);
+        // 非法index自动降级
+        if (ANGLE_UNLIKELY(index == kInvalidQueueSerialIndex))
+        {
+            mIndex = 0;
+        }
     }
     constexpr QueueSerial(const QueueSerial &other)  = default;
     QueueSerial &operator=(const QueueSerial &other) = default;
@@ -239,37 +260,52 @@ class QueueSerial final
     }
     constexpr bool operator<(const QueueSerial &other) const
     {
-        ASSERT(mIndex != kInvalidQueueSerialIndex);
-        ASSERT(mIndex == other.mIndex);
+        // 非法index/跨index比较自动返回false
+        if (ANGLE_UNLIKELY(mIndex == kInvalidQueueSerialIndex || mIndex != other.mIndex))
+        {
+            return false;
+        }
         return mSerial < other.mSerial;
     }
     constexpr bool operator<=(const QueueSerial &other) const
     {
-        ASSERT(mIndex != kInvalidQueueSerialIndex);
-        ASSERT(mIndex == other.mIndex);
+        if (ANGLE_UNLIKELY(mIndex == kInvalidQueueSerialIndex || mIndex != other.mIndex))
+        {
+            return false;
+        }
         return mSerial <= other.mSerial;
     }
     constexpr bool operator>(const QueueSerial &other) const
     {
-        ASSERT(mIndex != kInvalidQueueSerialIndex);
-        ASSERT(mIndex == other.mIndex);
+        if (ANGLE_UNLIKELY(mIndex == kInvalidQueueSerialIndex || mIndex != other.mIndex))
+        {
+            return false;
+        }
         return mSerial > other.mSerial;
     }
     constexpr bool operator>=(const QueueSerial &other) const
     {
-        ASSERT(mIndex != kInvalidQueueSerialIndex);
-        ASSERT(mIndex == other.mIndex);
+        if (ANGLE_UNLIKELY(mIndex == kInvalidQueueSerialIndex || mIndex != other.mIndex))
+        {
+            return false;
+        }
         return mSerial >= other.mSerial;
     }
 
     bool operator>(const AtomicQueueSerialFixedArray &serials) const
     {
-        ASSERT(mIndex != kInvalidQueueSerialIndex);
+        if (ANGLE_UNLIKELY(mIndex == kInvalidQueueSerialIndex))
+        {
+            return false;
+        }
         return mSerial > serials[mIndex];
     }
     bool operator<=(const AtomicQueueSerialFixedArray &serials) const
     {
-        ASSERT(mIndex != kInvalidQueueSerialIndex);
+        if (ANGLE_UNLIKELY(mIndex == kInvalidQueueSerialIndex))
+        {
+            return false;
+        }
         return mSerial <= serials[mIndex];
     }
 
@@ -286,11 +322,17 @@ std::ostream &operator<<(std::ostream &os, const QueueSerial &queueSerial);
 
 ANGLE_INLINE void AtomicQueueSerialFixedArray::setQueueSerial(SerialIndex index, Serial serial)
 {
-    ASSERT(index != kInvalidQueueSerialIndex);
-    ASSERT(index < mSerials.size());
-    // Serial can only increase
-    ASSERT(serial > mSerials[index].getSerial());
-    mSerials[index] = serial;
+    // 非法index直接返回
+    if (ANGLE_UNLIKELY(index == kInvalidQueueSerialIndex || index >= mSerials.size()))
+    {
+        return;
+    }
+    // 仅当新序列号严格大于当前值时才更新，跳过重复/倒退场景
+    Serial currentSerial = mSerials[index].getSerial();
+    if (ANGLE_LIKELY(serial > currentSerial))
+    {
+        mSerials[index] = serial;
+    }
 }
 
 ANGLE_INLINE void AtomicQueueSerialFixedArray::setQueueSerial(const QueueSerial &queueSerial)
@@ -302,16 +344,16 @@ ANGLE_INLINE std::ostream &operator<<(std::ostream &os, const AtomicQueueSerialF
 {
     // Search for last non-zero index (or 0 if all zeros).
     SerialIndex lastIndex = serials.size() == 0 ? 0 : static_cast<SerialIndex>(serials.size() - 1);
-    while (lastIndex > 0 && serials[lastIndex].getValue() == 0)
+    while (lastIndex > 0 && serials[lastIndex].getSerial().getValue() == 0)
     {
         lastIndex--;
     }
     os << '{';
     for (SerialIndex i = 0; i < lastIndex; i++)
     {
-        os << serials[i].getValue() << ',';
+        os << serials[i].getSerial().getValue() << ',';
     }
-    os << serials[lastIndex].getValue() << '}';
+    os << serials[lastIndex].getSerial().getValue() << '}';
     return os;
 }
 

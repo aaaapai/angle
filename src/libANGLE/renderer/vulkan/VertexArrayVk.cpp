@@ -239,7 +239,7 @@ angle::Result StreamVertexData(ContextVk *contextVk,
     }
     else
     {
-        ANGLE_UNSAFE_TODO(memcpy(dst, srcData, bytesToCopy));
+        ANGLE_UNSAFE_TODO(std::memcpy(dst, srcData, bytesToCopy));
     }
 
     ANGLE_TRY(dstBufferHelper->flush(renderer));
