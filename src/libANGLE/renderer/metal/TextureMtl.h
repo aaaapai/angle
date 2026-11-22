@@ -180,15 +180,20 @@ class TextureMtl : public TextureImpl
     // Buffer textures share the buffer's storage; no copy is made.
     angle::Result ensureBufferTextureCreated(const gl::Context *context);
 
+    // Binds a sampled texture to either a render or a compute encoder.  Exactly one of
+    // `renderCmdEncoder` and `computeCmdEncoder` must be non-null; `shaderType` selects the
+    // argument table of the render encoder and is ignored by the compute encoder.
     angle::Result bindToShader(const gl::Context *context,
-                               mtl::RenderCommandEncoder *cmdEncoder,
+                               mtl::RenderCommandEncoder *renderCmdEncoder,
+                               mtl::ComputeCommandEncoder *computeCmdEncoder,
                                gl::ShaderType shaderType,
                                gl::Sampler *sampler, /** nullable */
                                int textureSlotIndex,
                                int samplerSlotIndex);
 
     angle::Result bindToShaderImage(const gl::Context *context,
-                                    mtl::RenderCommandEncoder *cmdEncoder,
+                                    mtl::RenderCommandEncoder *renderCmdEncoder,
+                                    mtl::ComputeCommandEncoder *computeCmdEncoder,
                                     gl::ShaderType shaderType,
                                     int textureSlotIndex,
                                     int level,

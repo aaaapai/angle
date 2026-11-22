@@ -189,13 +189,13 @@ class ProgramExecutableMtl : public ProgramExecutableImpl
                             bool forceTexturesSetting,
                             bool uniformBuffersDirty);
 
-    angle::Result setupDispatch(ContextMtl *context,
+    angle::Result setupDispatch(const gl::Context *glContext,
                                 mtl::ComputeCommandEncoder *cmdEncoder,
                                 GLuint numGroupsX,
                                 GLuint numGroupsY,
                                 GLuint numGroupsZ);
 
-    angle::Result setupDispatchIndirect(ContextMtl *context,
+    angle::Result setupDispatchIndirect(const gl::Context *glContext,
                                         mtl::ComputeCommandEncoder *cmdEncoder,
                                         const mtl::BufferRef &indirectBuffer,
                                         size_t indirectBufferOffset);
@@ -249,6 +249,24 @@ class ProgramExecutableMtl : public ProgramExecutableImpl
     angle::Result updateTextures(const gl::Context *glContext,
                                  mtl::RenderCommandEncoder *cmdEncoder,
                                  bool forceUpdate);
+    angle::Result updateComputeTextures(const gl::Context *glContext,
+                                        mtl::ComputeCommandEncoder *cmdEncoder);
+
+    // Shared by the graphics and the compute paths.  Exactly one encoder must be non-null.
+    angle::Result bindTextures(const gl::Context *glContext,
+                               mtl::RenderCommandEncoder *renderCmdEncoder,
+                               mtl::ComputeCommandEncoder *computeCmdEncoder,
+                               gl::ShaderType shaderType,
+                               const mtl::TranslatedShaderInfo &shaderInfo);
+
+    // Reflection for the shader variant that is currently bound for `shaderType`.
+    const mtl::TranslatedShaderInfo &getTranslatedShaderInfo(gl::ShaderType shaderType) const;
+
+    angle::Result bindShaderImages(const gl::Context *glContext,
+                                   mtl::RenderCommandEncoder *renderCmdEncoder,
+                                   mtl::ComputeCommandEncoder *computeCmdEncoder,
+                                   gl::ShaderType shaderType,
+                                   const mtl::TranslatedShaderInfo &shaderInfo);
 
     angle::Result updateUniformBuffers(ContextMtl *context,
                                        mtl::RenderCommandEncoder *cmdEncoder,

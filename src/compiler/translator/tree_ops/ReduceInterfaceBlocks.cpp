@@ -28,10 +28,15 @@ class Reducer : public TIntermRebuild
     std::unordered_map<const TInterfaceBlock *, const TVariable *> mLiftedMap;
     std::unordered_map<const TVariable *, const TVariable *> mInstanceMap;
     InterfaceBlockInstanceVarNameGen &mInstanceVarNameGen;
+    const ShaderStorageBlockPolicy mStorageBlockPolicy;
 
   public:
-    Reducer(TCompiler &compiler, InterfaceBlockInstanceVarNameGen &instanceVarNameGen)
-        : TIntermRebuild(compiler, true, false), mInstanceVarNameGen(instanceVarNameGen)
+    Reducer(TCompiler &compiler,
+            InterfaceBlockInstanceVarNameGen &instanceVarNameGen,
+            ShaderStorageBlockPolicy storageBlockPolicy)
+        : TIntermRebuild(compiler, true, false),
+          mInstanceVarNameGen(instanceVarNameGen),
+          mStorageBlockPolicy(storageBlockPolicy)
     {}
 
     PreResult visitDeclarationPre(TIntermDeclaration &declNode) override
@@ -46,6 +51,13 @@ class Reducer : public TIntermRebuild
             const SymbolType symbolType = var.symbolType();
             if (const TInterfaceBlock *interfaceBlock = type.getInterfaceBlock())
             {
+                if (mStorageBlockPolicy == ShaderStorageBlockPolicy::Reject &&
+                    type.getQualifier() == TQualifier::EvqBuffer)
+                {
+                    mCompiler.getInfoSink().info
+                        << "error: shader storage blocks are not supported by this backend.\n";
+                    return Fail{};
+                }
                 const bool isEmptySymbol = symbolType == SymbolType::Empty;
                 Name newInstanceVarName =
                     isEmptySymbol ? Name(mInstanceVarNameGen(), SymbolType::AngleInternal)
@@ -108,9 +120,10 @@ class Reducer : public TIntermRebuild
 
 bool sh::ReduceInterfaceBlocks(TCompiler &compiler,
                                TIntermBlock &root,
-                               InterfaceBlockInstanceVarNameGen nameGen)
+                               InterfaceBlockInstanceVarNameGen nameGen,
+                               ShaderStorageBlockPolicy storageBlockPolicy)
 {
-    Reducer reducer(compiler, nameGen);
+    Reducer reducer(compiler, nameGen, storageBlockPolicy);
     if (!reducer.rebuildRoot(root))
     {
         return false;

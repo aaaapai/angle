@@ -983,12 +983,13 @@ angle::Result ProgramExecutableMtl::setupDraw(const gl::Context *glContext,
     return angle::Result::Continue;
 }
 
-angle::Result ProgramExecutableMtl::setupDispatch(ContextMtl *context,
+angle::Result ProgramExecutableMtl::setupDispatch(const gl::Context *glContext,
                                                   mtl::ComputeCommandEncoder *cmdEncoder,
                                                   GLuint numGroupsX,
                                                   GLuint numGroupsY,
                                                   GLuint numGroupsZ)
 {
+    ContextMtl *context = mtl::GetImpl(glContext);
     id<MTLFunction> cs = nil;
     ANGLE_TRY(getComputeShader(context, &cs));
 
@@ -999,21 +1000,7 @@ angle::Result ProgramExecutableMtl::setupDispatch(ContextMtl *context,
     mDefaultUniformBlocksDirty.set(gl::ShaderType::Compute);
     ANGLE_TRY(commitUniforms(context, cmdEncoder));
 
-    // 绑定 SSBO
-    const gl::State &glState = context->getState();
-    for (uint32_t i = 0; i < mExecutable->getShaderStorageBlocks().size(); ++i)
-    {
-        const GLuint binding = mExecutable->getShaderStorageBlockBinding(i);
-        const gl::OffsetBindingPointer<gl::Buffer> &buf = glState.getIndexedShaderStorageBuffer(binding);
-        if (buf.get() == nullptr)
-        {
-            continue;
-        }
-        BufferMtl *bufMtl = mtl::GetImpl(buf.get());
-        size_t offset = std::min<size_t>(buf.getOffset(), bufMtl->size());
-        cmdEncoder->setBufferForWrite(bufMtl->getCurrentBuffer(), offset,
-                                      mtl::kSSBOBindingIndexStart + binding);
-    }
+    ANGLE_TRY(updateComputeTextures(glContext, cmdEncoder));
 
     const MTLSize groups = MTLSizeMake(numGroupsX, numGroupsY, numGroupsZ);
 
@@ -1024,11 +1011,12 @@ angle::Result ProgramExecutableMtl::setupDispatch(ContextMtl *context,
 }
 
 angle::Result ProgramExecutableMtl::setupDispatchIndirect(
-    ContextMtl *context,
+    const gl::Context *glContext,
     mtl::ComputeCommandEncoder *cmdEncoder,
     const mtl::BufferRef &indirectBuffer,
     size_t indirectBufferOffset)
 {
+    ContextMtl *context = mtl::GetImpl(glContext);
     id<MTLFunction> cs = nil;
     ANGLE_TRY(getComputeShader(context, &cs));
 
@@ -1038,6 +1026,8 @@ angle::Result ProgramExecutableMtl::setupDispatchIndirect(
 
     mDefaultUniformBlocksDirty.set(gl::ShaderType::Compute);
     ANGLE_TRY(commitUniforms(context, cmdEncoder));
+
+    ANGLE_TRY(updateComputeTextures(glContext, cmdEncoder));
 
     const MTLSize per = GetThreadsPerThreadgroup(*mExecutable);
 
@@ -1244,14 +1234,21 @@ angle::Result ProgramExecutableMtl::commitUniforms(ContextMtl *context,
     return angle::Result::Continue;
 }
 
+const mtl::TranslatedShaderInfo &ProgramExecutableMtl::getTranslatedShaderInfo(
+    gl::ShaderType shaderType) const
+{
+    const ProgramShaderObjVariantMtl *variant = mCurrentShaderVariants[shaderType];
+    if (variant != nullptr && variant->translatedSrcInfo != nullptr)
+    {
+        return *variant->translatedSrcInfo;
+    }
+    return mMslShaderTranslateInfo[shaderType];
+}
+
 angle::Result ProgramExecutableMtl::updateTextures(const gl::Context *glContext,
                                                    mtl::RenderCommandEncoder *cmdEncoder,
                                                    bool forceUpdate)
 {
-    ContextMtl *contextMtl                          = mtl::GetImpl(glContext);
-    const auto &glState                             = glContext->getState();
-    const gl::ActiveTexturesCache &completeTextures = glState.getActiveTexturesCache();
-
     for (gl::ShaderType shaderType : gl::kAllGLES2ShaderTypes)
     {
         if ((!mSamplerBindingsDirty[shaderType] && !forceUpdate) ||
@@ -1260,75 +1257,122 @@ angle::Result ProgramExecutableMtl::updateTextures(const gl::Context *glContext,
             continue;
         }
 
-        const mtl::TranslatedShaderInfo &shaderInfo =
-            mCurrentShaderVariants[shaderType]->translatedSrcInfo
-                ? *mCurrentShaderVariants[shaderType]->translatedSrcInfo
-                : mMslShaderTranslateInfo[shaderType];
-
-        for (uint32_t textureIndex = 0; textureIndex < mExecutable->getSamplerBindings().size();
-             ++textureIndex)
-        {
-            const gl::SamplerBinding &samplerBinding =
-                mExecutable->getSamplerBindings()[textureIndex];
-            const mtl::SamplerBinding &mslBinding = shaderInfo.actualSamplerBindings[textureIndex];
-            if (mslBinding.textureBinding >= mtl::kMaxShaderSamplers)
-            {
-                // No binding assigned
-                continue;
-            }
-
-            gl::TextureType textureType = samplerBinding.textureType;
-
-            for (uint32_t arrayElement = 0; arrayElement < samplerBinding.textureUnitsCount;
-                 ++arrayElement)
-            {
-                GLuint textureUnit = samplerBinding.getTextureUnit(
-                    mExecutable->getSamplerBoundTextureUnits(), arrayElement);
-                gl::Texture *texture = completeTextures[textureUnit];
-                gl::Sampler *sampler = contextMtl->getState().getSampler(textureUnit);
-                uint32_t textureSlot = mslBinding.textureBinding + arrayElement;
-                uint32_t samplerSlot = mslBinding.samplerBinding + arrayElement;
-                if (!texture)
-                {
-                    ANGLE_TRY(contextMtl->getIncompleteTexture(glContext, textureType,
-                                                               samplerBinding.format, &texture));
-                }
-                TextureMtl *textureMtl = mtl::GetImpl(texture);
-                ANGLE_TRY(textureMtl->bindToShader(glContext, cmdEncoder, shaderType, sampler,
-                                                   textureSlot, samplerSlot));
-            }  // for array elements
-        }      // for sampler bindings
-
-        for (const gl::ImageBinding &imageBinding : mExecutable->getImageBindings())
-        {
-            if (imageBinding.boundImageUnits.size() != 1)
-            {
-                UNIMPLEMENTED();
-                continue;
-            }
-
-            int glslImageBinding    = imageBinding.boundImageUnits[0];
-            int mtlRWTextureBinding = shaderInfo.actualImageBindings[glslImageBinding];
-            ASSERT(mtlRWTextureBinding < static_cast<int>(mtl::kMaxShaderImages));
-            if (mtlRWTextureBinding < 0)
-            {
-                continue;  // The program does not have an image bound at this unit.
-            }
-
-            const gl::ImageUnit &imageUnit = glState.getImageUnit(glslImageBinding);
-            TextureMtl *textureMtl         = mtl::GetImpl(imageUnit.texture.get());
-            if (imageUnit.layered)
-            {
-                UNIMPLEMENTED();
-                continue;
-            }
-            ANGLE_TRY(textureMtl->bindToShaderImage(
-                glContext, cmdEncoder, shaderType, static_cast<uint32_t>(mtlRWTextureBinding),
-                imageUnit.level, imageUnit.layer, imageUnit.format));
-        }
-    }  // for shader types
+        ANGLE_TRY(bindTextures(glContext, cmdEncoder, nullptr, shaderType,
+                               getTranslatedShaderInfo(shaderType)));
+    }
 
     return angle::Result::Continue;
+}
+
+angle::Result ProgramExecutableMtl::bindTextures(const gl::Context *glContext,
+                                                 mtl::RenderCommandEncoder *renderCmdEncoder,
+                                                 mtl::ComputeCommandEncoder *computeCmdEncoder,
+                                                 gl::ShaderType shaderType,
+                                                 const mtl::TranslatedShaderInfo &shaderInfo)
+{
+    ASSERT((renderCmdEncoder == nullptr) != (computeCmdEncoder == nullptr));
+
+    ContextMtl *contextMtl                                 = mtl::GetImpl(glContext);
+    const gl::State &glState                               = glContext->getState();
+    const gl::ActiveTexturesCache &completeTextures        = glState.getActiveTexturesCache();
+    const std::vector<gl::SamplerBinding> &samplerBindings = mExecutable->getSamplerBindings();
+
+    // `actualSamplerBindings` is sized to kMaxGLSamplerBindings, which is also the maximum number
+    // of sampler bindings a program can have, so indexing it with textureIndex is always safe.
+    ASSERT(samplerBindings.size() <= shaderInfo.actualSamplerBindings.size());
+
+    for (uint32_t textureIndex = 0; textureIndex < samplerBindings.size(); ++textureIndex)
+    {
+        const gl::SamplerBinding &samplerBinding = samplerBindings[textureIndex];
+        const mtl::SamplerBinding &mslBinding    = shaderInfo.actualSamplerBindings[textureIndex];
+        if (mslBinding.textureBinding >= mtl::kMaxShaderSamplers)
+        {
+            continue;  // This sampler is not used by the shader.
+        }
+
+        for (uint32_t arrayElement = 0; arrayElement < samplerBinding.textureUnitsCount;
+             ++arrayElement)
+        {
+            const GLuint textureUnit = samplerBinding.getTextureUnit(
+                mExecutable->getSamplerBoundTextureUnits(), arrayElement);
+            gl::Texture *texture       = completeTextures[textureUnit];
+            gl::Sampler *sampler       = glState.getSampler(textureUnit);
+            const uint32_t textureSlot = mslBinding.textureBinding + arrayElement;
+            const uint32_t samplerSlot = mslBinding.samplerBinding + arrayElement;
+
+            if (texture == nullptr)
+            {
+                ANGLE_TRY(contextMtl->getIncompleteTexture(glContext, samplerBinding.textureType,
+                                                           samplerBinding.format, &texture));
+            }
+
+            TextureMtl *textureMtl = mtl::GetImpl(texture);
+            ANGLE_TRY(textureMtl->bindToShader(glContext, renderCmdEncoder, computeCmdEncoder,
+                                               shaderType, sampler, textureSlot, samplerSlot));
+        }
+    }
+
+    return bindShaderImages(glContext, renderCmdEncoder, computeCmdEncoder, shaderType, shaderInfo);
+}
+
+angle::Result ProgramExecutableMtl::bindShaderImages(const gl::Context *glContext,
+                                                     mtl::RenderCommandEncoder *renderCmdEncoder,
+                                                     mtl::ComputeCommandEncoder *computeCmdEncoder,
+                                                     gl::ShaderType shaderType,
+                                                     const mtl::TranslatedShaderInfo &shaderInfo)
+{
+    const gl::State &glState = glContext->getState();
+
+    for (const gl::ImageBinding &imageBinding : mExecutable->getImageBindings())
+    {
+        if (imageBinding.boundImageUnits.size() != 1)
+        {
+            // Arrays of image units are not supported by the MSL translator.
+            UNIMPLEMENTED();
+            continue;
+        }
+
+        const int glslImageBinding = imageBinding.boundImageUnits[0];
+        if (glslImageBinding < 0 ||
+            glslImageBinding >= static_cast<int>(shaderInfo.actualImageBindings.size()))
+        {
+            continue;
+        }
+
+        // This is an index into the Metal texture argument table, which is shared with samplers,
+        // so it is bounded by kMaxShaderSamplers and not by the image binding array size.
+        const int mtlTextureSlot = shaderInfo.actualImageBindings[glslImageBinding];
+        if (mtlTextureSlot < 0 || mtlTextureSlot >= static_cast<int>(mtl::kMaxShaderSamplers))
+        {
+            continue;  // The shader does not use an image at this unit.
+        }
+
+        const gl::ImageUnit &imageUnit = glState.getImageUnit(glslImageBinding);
+        if (imageUnit.texture.get() == nullptr)
+        {
+            continue;  // Unbound image unit.
+        }
+
+        TextureMtl *textureMtl = mtl::GetImpl(imageUnit.texture.get());
+
+        // Only 2D images are supported, and glBindImageTexture() ignores `layered` for textures
+        // that have no layers, so both bindings address layer 0.
+        const GLint layer = imageUnit.layered ? 0 : imageUnit.layer;
+
+        ANGLE_TRY(textureMtl->bindToShaderImage(glContext, renderCmdEncoder, computeCmdEncoder,
+                                                shaderType, static_cast<uint32_t>(mtlTextureSlot),
+                                                imageUnit.level, layer, imageUnit.format));
+    }
+
+    return angle::Result::Continue;
+}
+
+angle::Result ProgramExecutableMtl::updateComputeTextures(const gl::Context *glContext,
+                                                          mtl::ComputeCommandEncoder *cmdEncoder)
+{
+    const gl::ShaderType shaderType = gl::ShaderType::Compute;
+    return bindTextures(glContext, nullptr, cmdEncoder, shaderType,
+                        getTranslatedShaderInfo(shaderType));
 }
 
 angle::Result ProgramExecutableMtl::updateUniformBuffers(

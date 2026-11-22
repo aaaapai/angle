@@ -1345,7 +1345,8 @@ bool TranslatorMSL::translateImpl(TInfoSinkBase &sink,
     }
 
     if (!ReduceInterfaceBlocks(*this, *root,
-                               [&idGen]() { return idGen.createNewName().rawName(); }))
+                               [&idGen]() { return idGen.createNewName().rawName(); },
+                               ShaderStorageBlockPolicy::Reject))
     {
         return false;
     }

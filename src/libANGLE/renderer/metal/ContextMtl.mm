@@ -1428,7 +1428,8 @@ angle::Result ContextMtl::syncState(const gl::Context *context,
                 // Nothing to do.
                 break;
             case gl::state::DIRTY_BIT_SHADER_STORAGE_BUFFER_BINDING:
-                // NOTE(hqle): ES 3.0 feature.
+                // Shader storage blocks are rejected by the translator and the caps report zero
+                // bindings, so there is nothing to bind here.
                 break;
             case gl::state::DIRTY_BIT_UNIFORM_BUFFER_BINDINGS:
                 mDirtyBits.set(DIRTY_BIT_UNIFORM_BUFFERS_BINDING);
@@ -1436,7 +1437,7 @@ angle::Result ContextMtl::syncState(const gl::Context *context,
             case gl::state::DIRTY_BIT_ATOMIC_COUNTER_BUFFER_BINDING:
                 break;
             case gl::state::DIRTY_BIT_IMAGE_BINDINGS:
-                // NOTE(hqle): properly handle GLSL images.
+                // Image bindings are resolved together with the sampled textures.
                 invalidateCurrentTextures();
                 break;
             case gl::state::DIRTY_BIT_MULTISAMPLING:
@@ -1685,7 +1686,7 @@ angle::Result ContextMtl::dispatchCompute(const gl::Context *context,
 {
     ASSERT(mExecutable);
     mtl::ComputeCommandEncoder *enc = getComputeCommandEncoder();
-    ANGLE_TRY(mExecutable->setupDispatch(this, enc, numGroupsX, numGroupsY, numGroupsZ));
+    ANGLE_TRY(mExecutable->setupDispatch(context, enc, numGroupsX, numGroupsY, numGroupsZ));
     return checkCommandBufferError();
 }
 
@@ -1705,7 +1706,7 @@ angle::Result ContextMtl::dispatchComputeIndirect(const gl::Context *context, GL
     size_t offset = static_cast<size_t>(indirect);
 
     mtl::ComputeCommandEncoder *enc = getComputeCommandEncoder();
-    ANGLE_TRY(mExecutable->setupDispatchIndirect(this, enc, bufferRef, offset));
+    ANGLE_TRY(mExecutable->setupDispatchIndirect(context, enc, bufferRef, offset));
 
     return checkCommandBufferError();
 }
@@ -1810,9 +1811,8 @@ angle::Result ContextMtl::memoryBarrier(const gl::Context *context, GLbitfield b
 
 angle::Result ContextMtl::memoryBarrierByRegion(const gl::Context *context, GLbitfield barriers)
 {
-    // Metal does not expose a distinct "by region" barrier; the narrower-scope barrier can be
-    // safely lowered to the full memoryBarrier. On ES 3.1+ this still hits UNIMPLEMENTED() in
-    // memoryBarrier() until compute/image support lands.
+    // Metal has no distinct "by region" barrier, so the narrower scope is lowered to the full
+    // memoryBarrier.
     return memoryBarrier(context, barriers);
 }
 

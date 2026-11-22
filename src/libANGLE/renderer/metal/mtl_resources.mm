@@ -319,6 +319,15 @@ angle::Result Texture::MakeBufferTexture(ContextMtl *context,
                     "Buffer texture offset does not meet Metal alignment requirements.",
                     GL_INVALID_OPERATION);
 
+        // Metal validates the row stride of a buffer-backed texture even for texture buffers: it
+        // must be at least width * pixel size.  Passing 0 trips
+        //   "Linear texture: bytesPerRow (0) must be greater or equal to (N) bytes"
+        // on iOS and aborts the process, so pass the tightly packed row size.
+        const size_t pixelBytes = format.actualAngleFormat().pixelBytes;
+        ANGLE_CHECK(context, pixelBytes > 0, "Buffer texture format has no pixel size.",
+                    GL_INVALID_OPERATION);
+        const NSUInteger bytesPerRow = static_cast<NSUInteger>(width) * pixelBytes;
+
         MTLTextureDescriptor *desc = [[MTLTextureDescriptor alloc] init];
         desc.textureType           = MTLTextureTypeTextureBuffer;
         desc.pixelFormat           = format.metalFormat;
@@ -332,7 +341,7 @@ angle::Result Texture::MakeBufferTexture(ContextMtl *context,
 
         id<MTLTexture> metalTexture = [buffer->get() newTextureWithDescriptor:desc
                                                                        offset:offset
-                                                                  bytesPerRow:0];
+                                                                  bytesPerRow:bytesPerRow];
         ANGLE_CHECK_GL_ALLOC(context, metalTexture);
 
         refOut->reset(new Texture(metalTexture));
