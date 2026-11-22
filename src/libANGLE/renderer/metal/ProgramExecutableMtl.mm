@@ -1354,17 +1354,14 @@ angle::Result ProgramExecutableMtl::bindShaderImages(const gl::Context *glContex
         }
 
         TextureMtl *textureMtl = mtl::GetImpl(imageUnit.texture.get());
-        if (imageUnit.layered)
-        {
-            // Layered image bindings need one view per layer; not implemented yet.
-            UNIMPLEMENTED();
-            continue;
-        }
+
+        // Only 2D images are supported, and glBindImageTexture() ignores `layered` for textures
+        // that have no layers, so both bindings address layer 0.
+        const GLint layer = imageUnit.layered ? 0 : imageUnit.layer;
 
         ANGLE_TRY(textureMtl->bindToShaderImage(glContext, renderCmdEncoder, computeCmdEncoder,
                                                 shaderType, static_cast<uint32_t>(mtlTextureSlot),
-                                                imageUnit.level, imageUnit.layer,
-                                                imageUnit.format));
+                                                imageUnit.level, layer, imageUnit.format));
     }
 
     return angle::Result::Continue;
