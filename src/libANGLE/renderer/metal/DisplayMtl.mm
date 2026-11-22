@@ -429,12 +429,14 @@ ExternalImageSiblingImpl *DisplayMtl::createExternalImageSibling(const gl::Conte
 
 gl::Version DisplayMtl::getMaxSupportedESVersion() const
 {
-        return mtl::kMaxSupportedGLVersion;
+    return mtl::kMaxSupportedGLVersion;
 }
 
 gl::Version DisplayMtl::getMaxConformantESVersion() const
 {
-    return std::min(getMaxSupportedESVersion(), gl::Version(3, 2));
+    // The Metal backend of this fork forces the client version: the frontend raises every
+    // backward-compatible context to the conformant version, so this is what applications see.
+    return mtl::kMaxSupportedGLVersion;
 }
 
 EGLSyncImpl *ThreadSafeDisplayMtl::createSync()
@@ -858,17 +860,7 @@ void DisplayMtl::ensureCapsInitialized() const
     mNativeCaps.minProgramTexelOffset = -8;
     mNativeCaps.maxProgramTexelOffset = 7;
 
-    // NOTE: The MSL backend cannot yet lower shader storage blocks (unsized/writable arrays and
-    // SSBO argument-buffer encoding are unsupported).  Do not advertise them: a shader using a
-    // buffer block then fails to link with a clear error instead of producing invalid Metal
-    // code (or asserting in the translator).
-    const uint32_t maxPerStageStorageBuffers                     = 0;
-    mNativeCaps.maxShaderStorageBlocks[gl::ShaderType::Vertex]   = maxPerStageStorageBuffers;
-    mNativeCaps.maxShaderStorageBlocks[gl::ShaderType::Fragment] = maxPerStageStorageBuffers;
-    mNativeCaps.maxShaderStorageBlocks[gl::ShaderType::Compute]  = maxPerStageStorageBuffers;
-    mNativeCaps.maxCombinedShaderStorageBlocks                   = maxPerStageStorageBuffers * 3;
-
-    // Fill in additional limits for UBOs and SSBOs.
+    // NOTE(hqle): Fill in additional limits for UBOs.
     mNativeCaps.maxUniformBufferBindings = mNativeCaps.maxCombinedUniformBlocks;
     static_assert(mtl::kMaxUBOSize <= gl::IMPLEMENTATION_MAX_UNIFORM_BLOCK_SIZE);
     mNativeCaps.maxUniformBlockSize = mtl::kMaxUBOSize;  // Default according to GLES 3.0 spec.
@@ -883,9 +875,13 @@ void DisplayMtl::ensureCapsInitialized() const
         mNativeCaps.uniformBufferOffsetAlignment =
             256;  // constant buffers on all other GPUs must be aligned to 256.
     }
+    mNativeCaps.maxUniformLocations = 1024;
 
-    mNativeCaps.maxShaderStorageBufferBindings     = 0;
-    mNativeCaps.maxShaderStorageBlockSize          = 0;
+    // Shader storage blocks are not implemented by the MSL backend: interface blocks with unsized
+    // or writable arrays cannot be lowered to Metal.  All SSBO limits keep their zero defaults and
+    // ReduceInterfaceBlocks rejects such a shader with a link error, which keeps the caps and the
+    // translator consistent.  There is deliberately no SSBO binding path in the renderer; the
+    // offset alignment is still reported as a valid power of two because ES 3.1 queries it.
     mNativeCaps.shaderStorageBufferOffsetAlignment = 16;
 
     // UBO plus default uniform limits
@@ -896,10 +892,6 @@ void DisplayMtl::ensureCapsInitialized() const
         mNativeCaps.maxCombinedShaderUniformComponents[shaderType] = maxCombinedUniformComponents;
     }
 
-        mNativeCaps.maxUniformLocations = 1024;
-        mNativeCaps.maxCombinedShaderOutputResources = 
-        mNativeCaps.maxDrawBuffers + mNativeCaps.maxCombinedShaderStorageBlocks;
-
     mNativeCaps.maxComputeWorkGroupCount       = {65535, 65535, 65535};
     mNativeCaps.maxComputeWorkGroupSize        = {1024, 1024, 64};
     mNativeCaps.maxComputeWorkGroupInvocations = 1024;
@@ -907,9 +899,6 @@ void DisplayMtl::ensureCapsInitialized() const
     mNativeCaps.maxShaderUniformComponents[gl::ShaderType::Compute] = maxDefaultUniformComponents;
     mNativeCaps.maxShaderUniformBlocks[gl::ShaderType::Compute]     = mtl::kMaxShaderUBOs;
     mNativeCaps.maxShaderTextureImageUnits[gl::ShaderType::Compute] = mtl::kMaxShaderSamplers;
-    mNativeCaps.maxShaderImageUniforms[gl::ShaderType::Compute]     = 0;
-    mNativeCaps.maxShaderAtomicCounters[gl::ShaderType::Compute]    = 0;
-    mNativeCaps.maxShaderAtomicCounterBuffers[gl::ShaderType::Compute] = 0;
     mNativeCaps.maxCombinedShaderUniformComponents[gl::ShaderType::Compute] =
         maxCombinedUniformComponents;
 
@@ -948,29 +937,63 @@ void DisplayMtl::ensureCapsInitialized() const
     }
 
     mNativeCaps.maxFramebufferSamples = mNativeCaps.maxSamples;
-    // ES 3.1 纹理采集（Texture Gather）偏移量，规范要求至少支持 -8 到 7
+    // ES 3.1 texture gather offsets; the spec requires at least [-8, 7].
     mNativeCaps.minProgramTextureGatherOffset = -8;
     mNativeCaps.maxProgramTextureGatherOffset = 7;
-    // 通常为 Varying 向量数 * 4
-    mNativeCaps.maxVaryingComponents = mNativeCaps.maxVaryingVectors * 4;
-    // Compute 和 Image 支持，如果不支持可以设为 0，但必须有默认初始化
-    mNativeCaps.maxAtomicCounterBufferBindings  = 0;
-    mNativeCaps.maxAtomicCounterBufferSize      = 0;
-    mNativeCaps.maxCombinedAtomicCounterBuffers = 0;
-    mNativeCaps.maxCombinedAtomicCounters       = 0;
-    mNativeCaps.maxImageUnits                   = 0;
-    mNativeCaps.maxCombinedImageUniforms        = 0;
-    // ES 3.2 新增 Caps
+    mNativeCaps.maxVaryingComponents          = mNativeCaps.maxVaryingVectors * 4;
+
+    // Shader image units (ES 3.1) and ANGLE_shader_pixel_local_storage both require Metal
+    // read-write textures, which are an optional device capability.  This block is the only
+    // place that assigns the image caps: everything above it (including initializeExtensions(),
+    // which runs before the assignments in this function) must leave them untouched, otherwise
+    // a later assignment silently overwrites the probe.
+    if ([mMetalDevice readWriteTextureSupport] != MTLReadWriteTextureTierNone)
+    {
+        // Images and samplers share the same fixed-size Metal texture argument table
+        // (mtl::kMaxShaderSamplers), so reserve at most half of it for image units.
+        constexpr GLuint kMaxImageUnits = mtl::kMaxShaderSamplers / 2;
+        static_assert(kMaxImageUnits <= static_cast<GLuint>(gl::IMPLEMENTATION_MAX_IMAGE_UNITS));
+
+        if (mNativeExtensions.shaderPixelLocalStorageANGLE)
+        {
+            static_assert(mtl::kMaxShaderImages >=
+                          gl::IMPLEMENTATION_MAX_PIXEL_LOCAL_STORAGE_PLANES);
+            mNativeCaps.maxPixelLocalStoragePlanes =
+                gl::IMPLEMENTATION_MAX_PIXEL_LOCAL_STORAGE_PLANES;
+            mNativeCaps.maxCombinedDrawBuffersAndPixelLocalStoragePlanes =
+                gl::IMPLEMENTATION_MAX_PIXEL_LOCAL_STORAGE_PLANES +
+                gl::IMPLEMENTATION_MAX_DRAW_BUFFERS;
+        }
+
+        mNativeCaps.maxImageUnits            = kMaxImageUnits;
+        mNativeCaps.maxCombinedImageUniforms = kMaxImageUnits;
+        for (gl::ShaderType shaderType : gl::AllShaderTypes())
+        {
+            mNativeCaps.maxShaderImageUniforms[shaderType] = kMaxImageUnits;
+        }
+    }
+
+    // Atomic counters are not implemented by the MSL backend; all atomic counter limits keep
+    // their zero defaults for the same reason as shader storage blocks above.
+
+    // MAX_COMBINED_SHADER_OUTPUT_RESOURCES = MAX_DRAW_BUFFERS + MAX_COMBINED_IMAGE_UNIFORMS.
+    mNativeCaps.maxCombinedShaderOutputResources =
+        mNativeCaps.maxDrawBuffers + mNativeCaps.maxCombinedImageUniforms;
+
+    // ES 3.2 caps.
     mNativeCaps.maxFramebufferLayers = 2048;
     mNativeCaps.maxTextureBufferSize =
         mtl::DeviceHasTextureBufferSupport(getMetalDevice()) ? (1u << 27) : 0;
-    mNativeCaps.layerProvokingVertex = GL_LAST_VERTEX_CONVENTION; // 默认给 0x8E4D
+    mNativeCaps.layerProvokingVertex = GL_LAST_VERTEX_CONVENTION;
 
     mNativeCaps.lineWidthGranularity    = 1.0f;
     mNativeCaps.minMultisampleLineWidth = 1.0f;
     mNativeCaps.maxMultisampleLineWidth = 1.0f;
 
-    mNativeCaps.textureBufferOffsetAlignment = 256;  // Metal 的 minimum constant buffer alignment
+    // Buffer textures are created with a byte offset into an MTLBuffer; Metal requires that
+    // offset to be a multiple of minimumTextureBufferAlignmentForPixelFormat, which is at most
+    // 256 bytes on every supported device.
+    mNativeCaps.textureBufferOffsetAlignment = 256;
 }
 
 void DisplayMtl::initializeExtensions() const
@@ -996,9 +1019,9 @@ void DisplayMtl::initializeExtensions() const
     mNativeExtensions.polygonModeANGLE              = true;
     mNativeExtensions.polygonOffsetClampEXT         = true;
     mNativeExtensions.stencilTexturingANGLE         = true;
-    mNativeExtensions.gpuShader5EXT          = true;
-    mNativeExtensions.copyImageEXT           = true;
-    mNativeExtensions.copyImageOES           = true;
+    mNativeExtensions.gpuShader5EXT                 = true;
+    mNativeExtensions.copyImageEXT                  = true;
+    mNativeExtensions.copyImageOES                  = true;
     mNativeExtensions.copyTextureCHROMIUM           = true;
     mNativeExtensions.copyCompressedTextureCHROMIUM = false;
     mNativeExtensions.textureMirrorClampToEdgeEXT   = true;
@@ -1181,21 +1204,10 @@ void DisplayMtl::initializeExtensions() const
             mNativeExtensions.shaderPixelLocalStorageANGLE         = true;
             mNativeExtensions.shaderPixelLocalStorageCoherentANGLE = rasterOrderGroupsSupported;
 
-            // Set up PLS caps here because the higher level context won't have enough info to set
-            // them up itself. Shader images and other ES3.1 caps aren't fully exposed yet.
-            static_assert(mtl::kMaxShaderImages >=
-                          gl::IMPLEMENTATION_MAX_PIXEL_LOCAL_STORAGE_PLANES);
-            mNativeCaps.maxPixelLocalStoragePlanes =
-                gl::IMPLEMENTATION_MAX_PIXEL_LOCAL_STORAGE_PLANES;
-            mNativeCaps.maxCombinedDrawBuffersAndPixelLocalStoragePlanes =
-                gl::IMPLEMENTATION_MAX_PIXEL_LOCAL_STORAGE_PLANES +
-                gl::IMPLEMENTATION_MAX_DRAW_BUFFERS;
-            mNativeCaps.maxShaderImageUniforms[gl::ShaderType::Fragment] =
-                gl::IMPLEMENTATION_MAX_PIXEL_LOCAL_STORAGE_PLANES;
-            mNativeCaps.maxImageUnits = gl::IMPLEMENTATION_MAX_PIXEL_LOCAL_STORAGE_PLANES;
-            // MAX_COMBINED_IMAGE_UNIFORMS must be at least as large as MAX_IMAGE_UNITS.
-            mNativeCaps.maxCombinedImageUniforms =
-                gl::IMPLEMENTATION_MAX_PIXEL_LOCAL_STORAGE_PLANES;
+            // NOTE: the PLS caps are derived from these extensions in
+            // DisplayMtl::ensureCapsInitialized(), after all other caps are known.  Do not assign
+            // mNativeCaps here: ensureCapsInitialized() runs this function first and would
+            // overwrite (or read a half-initialized) caps block.
         }
     }
 
@@ -1206,18 +1218,6 @@ void DisplayMtl::initializeExtensions() const
     // "The GPUs in Apple3 through Apple8 families only support memory barriers for compute command
     // encoders, and for vertex-to-vertex and vertex-to-fragment stages of render command encoders."
     mHasFragmentMemoryBarriers = !supportsAppleGPUFamily(3);
-
-    // ES 3.1/3.2 general image load/store, in addition to the PLS image units above.
-    // Metal can bind read/write textures in all stages; the PLS path already exercises this.
-    // Eight units is enough for shader packs and compute post-processing.
-    mNativeCaps.maxImageUnits            = 8;
-    mNativeCaps.maxCombinedImageUniforms = 8;
-    mNativeCaps.maxShaderImageUniforms[gl::ShaderType::Vertex]   = 8;
-    mNativeCaps.maxShaderImageUniforms[gl::ShaderType::Fragment] = 8;
-    mNativeCaps.maxShaderImageUniforms[gl::ShaderType::Compute]  = 8;
-    // MAX_COMBINED_SHADER_OUTPUT_RESOURCES = MAX_DRAW_BUFFERS + MAX_COMBINED_IMAGE_UNIFORMS.
-    mNativeCaps.maxCombinedShaderOutputResources =
-        mNativeCaps.maxDrawBuffers + mNativeCaps.maxCombinedImageUniforms;
 }
 
 void DisplayMtl::initializeTextureCaps() const

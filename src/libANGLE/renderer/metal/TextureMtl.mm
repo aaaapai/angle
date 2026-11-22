@@ -711,8 +711,10 @@ mtl::TextureRef &GetLayerLevelTextureView(
     uint32_t layerCount,
     uint32_t levelCount)
 {
-    // Lazily allocate the full layer and level count to not trigger any std::vector reallocations.
-    if (layerLevelTextureViews->empty())
+    // Grow the cache to the layer/level counts currently defined by the texture instead of
+    // sizing it only once: mutable textures can gain a level or a layer after their first image
+    // binding, and a stale size would index outside the vector below.
+    if (layerLevelTextureViews->size() < layerCount)
     {
         layerLevelTextureViews->resize(layerCount);
     }
@@ -720,7 +722,7 @@ mtl::TextureRef &GetLayerLevelTextureView(
 
     TextureMtl::TextureViewVector &levelTextureViews = (*layerLevelTextureViews)[layer];
 
-    if (levelTextureViews.empty())
+    if (levelTextureViews.size() < levelCount)
     {
         levelTextureViews.resize(levelCount);
     }
@@ -900,11 +902,14 @@ void TextureMtl::onDestroy(const gl::Context *context)
 
 void TextureMtl::deallocateNativeStorage(bool keepImages, bool keepSamplerStateAndFormat)
 {
+    // Image views are children of the native storage that is released below, so they are always
+    // dropped.  Keeping them alive would either pin the old texture (the view keeps its parent
+    // allocated) or bind a view of stale storage after the texture is re-specified.
+    mShaderImageViews.clear();
 
     if (!keepImages)
     {
         mTexImageDefs.clear();
-        mShaderImageViews.clear();
     }
     else if (mNativeTextureStorage)
     {
@@ -1079,11 +1084,15 @@ angle::Result TextureMtl::createNativeStorage(const gl::Context *context,
     ContextMtl *contextMtl = mtl::GetImpl(context);
 
     // Create actual texture object:
-    mSlices              = 1;
-    bool allowFormatView =
+    mSlices = 1;
+    // Image units create per-level/per-layer views, possibly with a different pixel format, so
+    // any single-sample texture must allow format views.  Multisample textures cannot be bound as
+    // images and do not need the usage bit.
+    const bool allowFormatView =
         format.hasDepthAndStencilBits() ||
         needsFormatViewForPixelLocalStorage(
-            contextMtl->getDisplay()->getNativePixelLocalStorageOptions(), format);
+            contextMtl->getDisplay()->getNativePixelLocalStorageOptions(), format) ||
+        samples == 0;
     mtl::TextureRef nativeTextureStorage;
     switch (type)
     {
@@ -2125,35 +2134,14 @@ angle::Result TextureMtl::syncState(const gl::Context *context,
 }
 
 angle::Result TextureMtl::bindToShader(const gl::Context *context,
-                                       mtl::RenderCommandEncoder *cmdEncoder,
+                                       mtl::RenderCommandEncoder *renderCmdEncoder,
+                                       mtl::ComputeCommandEncoder *computeCmdEncoder,
                                        gl::ShaderType shaderType,
                                        gl::Sampler *sampler,
                                        int textureSlotIndex,
                                        int samplerSlotIndex)
 {
-    return bindToShaderImpl(context, cmdEncoder, nullptr, shaderType, sampler, textureSlotIndex,
-                            samplerSlotIndex);
-}
-
-angle::Result TextureMtl::bindToShaderForCompute(const gl::Context *context,
-                                                 mtl::ComputeCommandEncoder *cmdEncoder,
-                                                 gl::Sampler *sampler,
-                                                 int textureSlotIndex,
-                                                 int samplerSlotIndex)
-{
-    return bindToShaderImpl(context, nullptr, cmdEncoder, gl::ShaderType::Compute, sampler,
-                            textureSlotIndex, samplerSlotIndex);
-}
-
-angle::Result TextureMtl::bindToShaderImpl(const gl::Context *context,
-                                           mtl::RenderCommandEncoder *renderCmdEncoder,
-                                           mtl::ComputeCommandEncoder *computeCmdEncoder,
-                                           gl::ShaderType shaderType,
-                                           gl::Sampler *sampler,
-                                           int textureSlotIndex,
-                                           int samplerSlotIndex)
-{
-    ASSERT(renderCmdEncoder != nullptr || computeCmdEncoder != nullptr);
+    ASSERT((renderCmdEncoder == nullptr) != (computeCmdEncoder == nullptr));
     auto setTexture = [&](const mtl::TextureRef &texture, int slot) {
         if (renderCmdEncoder)
         {
@@ -2182,22 +2170,18 @@ angle::Result TextureMtl::bindToShaderImpl(const gl::Context *context,
 
     ContextMtl *contextMtl = mtl::GetImpl(context);
 
-    // ---- Buffer texture 独立路径 ----
-    // MSL 的 texture_buffer::read() 不使用 sampler，也没有 swizzle / stencil-view /
-    // LOD 的概念。如果走下面的 2D/cube 通用路径，会进入 swizzle 判断分支，并在
-    // mState.isStencilMode() 或 format.swizzled 时尝试创建不适用于 buffer texture 的
-    // swizzle view，MSL 编译期 / Metal 运行期都会失败。
+    // Buffer textures are read with texture_buffer::read(): no sampler, no swizzle, no stencil
+    // view and no LOD.  Routing them through the 2D/cube path below would try to build views that
+    // are invalid for buffer-backed textures and fail in the MSL compiler or in Metal.
     if (mState.getType() == gl::TextureType::Buffer)
     {
         ANGLE_CHECK(contextMtl, !mState.getSwizzleState().swizzleRequired(),
                     "Texture swizzle is not supported for buffer textures.",
                     GL_INVALID_OPERATION);
 
-        // buffer texture 的 sampler 实际不参与采样（read() 直接按坐标取），
-        // 但 Metal argument buffer 里 sampler slot 必须有一个有效 handle，
-        // 否则打包参数时会出错。ensureSamplerStateCreated 已在
-        // ensureBufferTextureCreated 里被调用过，mMetalSamplerState 必有效；
-        // 如果应用显式绑定了 Sampler 对象，优先用那个。
+        // The sampler is unused by read(), but the Metal argument buffer still needs a valid
+        // handle in the sampler slot.  ensureBufferTextureCreated() has already created one; an
+        // explicitly bound sampler object takes precedence.
         id<MTLSamplerState> samplerState = mMetalSamplerState;
         if (sampler)
         {
@@ -2207,7 +2191,7 @@ angle::Result TextureMtl::bindToShaderImpl(const gl::Context *context,
         ASSERT(samplerState != nil);
 
         setTexture(mViewFromBaseToMaxLevel->getNativeTexture(), textureSlotIndex);
-        // Buffer texture 没有 LOD，minLodClamp / maxLodClamp 填 0。
+        // Buffer textures have no LOD, so the clamps are zero.
         setSamplerState(samplerState, 0.f, 0.f, samplerSlotIndex);
 
         return angle::Result::Continue;
@@ -2303,49 +2287,53 @@ angle::Result TextureMtl::bindToShaderImage(const gl::Context *context,
                                             GLenum format)
 {
     ASSERT(mNativeTextureStorage);
+    ASSERT((renderCmdEncoder == nullptr) != (computeCmdEncoder == nullptr));
+
     ContextMtl *contextMtl = mtl::GetImpl(context);
-    // The MSL prelude implements image load/store with 2D texture views, and Metal can only
-    // create such views from 2D, 2D array and cube textures.  Reject the remaining types with a
-    // GL error instead of asserting in the resource layer.
-    const gl::TextureType imageTextureType = mState.getType();
-    ANGLE_CHECK(contextMtl,
-                imageTextureType == gl::TextureType::_2D ||
-                    imageTextureType == gl::TextureType::_2DArray ||
-                    imageTextureType == gl::TextureType::CubeMap,
-                "Shader images are only supported for 2D, 2D array and cube textures.",
-                GL_INVALID_OPERATION);
+
+    // The MSL backend declares every shader image as metal::texture2d<...>, so only 2D textures
+    // can be bound.  Reject anything else with a GL error instead of building a view the shader
+    // cannot use.
+    ANGLE_CHECK(contextMtl, mState.getType() == gl::TextureType::_2D,
+                "Shader images are only supported for 2D textures.", GL_INVALID_OPERATION);
     ANGLE_CHECK(contextMtl, mNativeTextureStorage->getNativeTexture()->isShaderWritable(),
                 "Shader image texture is not shader writable.", GL_INVALID_OPERATION);
+
     // Image units may reference either immutable (glTexStorage*) or mutable (glTexImage2D)
     // textures.  Only immutable textures know their level count up front; for mutable ones use
     // the number of levels that actually have an image defined.
-    const GLuint levelCount = mState.getImmutableFormat() ? mState.getImmutableLevels()
-                                                          : mState.getEnabledLevelCount();
+    const GLuint levelCount =
+        mState.getImmutableFormat() ? mState.getImmutableLevels() : mState.getEnabledLevelCount();
     ANGLE_CHECK(contextMtl, level >= 0 && static_cast<GLuint>(level) < levelCount,
                 "Image level is not defined.", GL_INVALID_OPERATION);
-    ANGLE_CHECK(contextMtl, layer >= 0 && static_cast<uint32_t>(layer) < mSlices,
-                "Image layer is not defined.", GL_INVALID_OPERATION);
+    ANGLE_CHECK(contextMtl, layer == 0, "Image layer is out of range for a 2D texture.",
+                GL_INVALID_OPERATION);
 
     angle::FormatID angleFormatId = angle::Format::InternalFormatToID(format);
     mtl::Format imageAccessFormat = contextMtl->getPixelFormat(angleFormatId);
     LayerLevelTextureViewVector &textureViewVector =
         mShaderImageViews[imageAccessFormat.metalFormat];
-    mtl::TextureRef &textureRef = GetLayerLevelTextureView(&textureViewVector, layer, level,
-                                                           mSlices, levelCount);
+    mtl::TextureRef &textureRef =
+        GetLayerLevelTextureView(&textureViewVector, layer, level, mSlices, levelCount);
 
-    if (textureRef == nullptr)
+    if (!textureRef)
     {
         textureRef = mNativeTextureStorage->createShaderImageView2D(level, layer,
                                                                     imageAccessFormat.metalFormat);
+
+        // Metal returns nil when the requested view pixel format is not compatible with the
+        // storage format (the frontend does not validate that combination for image units).
+        ANGLE_CHECK(contextMtl, textureRef && textureRef->get() != nil,
+                    "Shader image format is not compatible with the texture.",
+                    GL_INVALID_OPERATION);
     }
 
-    if (renderCmdEncoder)
+    if (renderCmdEncoder != nullptr)
     {
         renderCmdEncoder->setRWTexture(shaderType, textureRef, textureSlotIndex);
     }
     else
     {
-        ASSERT(computeCmdEncoder != nullptr);
         computeCmdEncoder->setTextureForWrite(textureRef, textureSlotIndex);
     }
     return angle::Result::Continue;

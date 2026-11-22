@@ -1428,7 +1428,8 @@ angle::Result ContextMtl::syncState(const gl::Context *context,
                 // Nothing to do.
                 break;
             case gl::state::DIRTY_BIT_SHADER_STORAGE_BUFFER_BINDING:
-                // NOTE(hqle): ES 3.0 feature.
+                // Shader storage blocks are rejected by the translator and the caps report zero
+                // bindings, so there is nothing to bind here.
                 break;
             case gl::state::DIRTY_BIT_UNIFORM_BUFFER_BINDINGS:
                 mDirtyBits.set(DIRTY_BIT_UNIFORM_BUFFERS_BINDING);
@@ -1436,7 +1437,7 @@ angle::Result ContextMtl::syncState(const gl::Context *context,
             case gl::state::DIRTY_BIT_ATOMIC_COUNTER_BUFFER_BINDING:
                 break;
             case gl::state::DIRTY_BIT_IMAGE_BINDINGS:
-                // NOTE(hqle): properly handle GLSL images.
+                // Image bindings are resolved together with the sampled textures.
                 invalidateCurrentTextures();
                 break;
             case gl::state::DIRTY_BIT_MULTISAMPLING:

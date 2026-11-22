@@ -26,10 +26,20 @@ using InterfaceBlockInstanceVarNameGen = std::function<ImmutableString()>;
 //  struct Foo { int x; }; uniform Foo x;
 //
 
-[[nodiscard]] bool ReduceInterfaceBlocks(TCompiler &compiler,
-                                         TIntermBlock &root,
-                                         InterfaceBlockInstanceVarNameGen nameGen,
-                                         bool reduceShaderStorageBlocks = true);
+// How shader storage blocks (GLSL `buffer` blocks) are handled.  Backends whose translator cannot
+// lower them use Reject, which fails the translation with a diagnostic instead of emitting
+// invalid code.
+enum class ShaderStorageBlockPolicy
+{
+    Reduce,
+    Reject,
+};
+
+[[nodiscard]] bool ReduceInterfaceBlocks(
+    TCompiler &compiler,
+    TIntermBlock &root,
+    InterfaceBlockInstanceVarNameGen nameGen,
+    ShaderStorageBlockPolicy storageBlockPolicy = ShaderStorageBlockPolicy::Reduce);
 
 }  // namespace sh
 

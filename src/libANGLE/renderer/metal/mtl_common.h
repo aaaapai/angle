@@ -176,17 +176,12 @@ constexpr int kEmulatedAlphaValue = 1;
 
 constexpr size_t kOcclusionQueryResultSize = sizeof(uint64_t);
 
-// ES 3.2 mode (Amethyst): always report 3.2 so an ES 3.2 context is created and the GL path is
-// selected.  This is the default for the Metal backend; do not lower it when syncing upstream.
-//
-// NOTE: ES 3.1 vertex attribute binding must stay functional here.  MobileGlues exposes
-// GL_ARB_vertex_attrib_binding to the application whenever this backend reports >= 3.1
-// (gles/loader.cpp), and Minecraft then uses its VertexArrayCache.Separate path.  VertexArrayMtl
-// therefore applies gl::VertexAttribute::relativeOffset on top of the binding offset for both the
-// direct and the converted vertex paths.
-//
-// Keep this in sync with DisplayMtl::getMaxConformantESVersion() (conformant must never exceed
-// supported).
+// Version policy for the Metal backend of this fork: every Metal device reports ES 3.2 so that
+// applications get a single, predictable client version and the ES 3.1/3.2 entry points stay
+// reachable.  DisplayMtl::getMaxSupportedESVersion() and DisplayMtl::getMaxConformantESVersion()
+// both return this value, and the frontend raises backward-compatible contexts to it, so keeping
+// the ES 3.1 features functional (notably separate vertex attribute bindings) is a hard
+// requirement for this number, not an optional extra.
 constexpr gl::Version kMaxSupportedGLVersion = gl::Version(3, 2);
 
 enum class PixelType

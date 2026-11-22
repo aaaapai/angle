@@ -28,19 +28,16 @@ class Reducer : public TIntermRebuild
     std::unordered_map<const TInterfaceBlock *, const TVariable *> mLiftedMap;
     std::unordered_map<const TVariable *, const TVariable *> mInstanceMap;
     InterfaceBlockInstanceVarNameGen &mInstanceVarNameGen;
-    const bool mReduceShaderStorageBlocks;
-    bool mHasShaderStorageBlock = false;
+    const ShaderStorageBlockPolicy mStorageBlockPolicy;
 
   public:
     Reducer(TCompiler &compiler,
             InterfaceBlockInstanceVarNameGen &instanceVarNameGen,
-            bool reduceShaderStorageBlocks)
+            ShaderStorageBlockPolicy storageBlockPolicy)
         : TIntermRebuild(compiler, true, false),
           mInstanceVarNameGen(instanceVarNameGen),
-          mReduceShaderStorageBlocks(reduceShaderStorageBlocks)
+          mStorageBlockPolicy(storageBlockPolicy)
     {}
-
-    bool hasShaderStorageBlock() const { return mHasShaderStorageBlock; }
 
     PreResult visitDeclarationPre(TIntermDeclaration &declNode) override
     {
@@ -54,13 +51,12 @@ class Reducer : public TIntermRebuild
             const SymbolType symbolType = var.symbolType();
             if (const TInterfaceBlock *interfaceBlock = type.getInterfaceBlock())
             {
-                // The MSL backend cannot lower shader storage blocks yet.  Leave them
-                // untouched and let ReduceInterfaceBlocks fail with a clear error instead
-                // of generating invalid Metal code.
-                if (!mReduceShaderStorageBlocks && type.getQualifier() == TQualifier::EvqBuffer)
+                if (mStorageBlockPolicy == ShaderStorageBlockPolicy::Reject &&
+                    type.getQualifier() == TQualifier::EvqBuffer)
                 {
-                    mHasShaderStorageBlock = true;
-                    return {declNode, VisitBits::Neither};
+                    mCompiler.getInfoSink().info
+                        << "error: shader storage blocks are not supported by this backend.\n";
+                    return Fail{};
                 }
                 const bool isEmptySymbol = symbolType == SymbolType::Empty;
                 Name newInstanceVarName =
@@ -125,18 +121,11 @@ class Reducer : public TIntermRebuild
 bool sh::ReduceInterfaceBlocks(TCompiler &compiler,
                                TIntermBlock &root,
                                InterfaceBlockInstanceVarNameGen nameGen,
-                               bool reduceShaderStorageBlocks)
+                               ShaderStorageBlockPolicy storageBlockPolicy)
 {
-    Reducer reducer(compiler, nameGen, reduceShaderStorageBlocks);
+    Reducer reducer(compiler, nameGen, storageBlockPolicy);
     if (!reducer.rebuildRoot(root))
     {
-        return false;
-    }
-
-    if (reducer.hasShaderStorageBlock())
-    {
-        compiler.getInfoSink().info
-            << "error: shader storage blocks are not supported by the Metal backend.\n";
         return false;
     }
 

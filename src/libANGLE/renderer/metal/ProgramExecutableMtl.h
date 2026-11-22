@@ -201,10 +201,6 @@ class ProgramExecutableMtl : public ProgramExecutableImpl
                                         size_t indirectBufferOffset);
 
   private:
-    // Bind every active shader storage block at its shader-declared binding slot.
-    // Used by both glDispatchCompute and glDispatchComputeIndirect.
-    angle::Result bindShaderStorageBuffers(ContextMtl *context,
-                                           mtl::ComputeCommandEncoder *cmdEncoder);
     friend class ProgramMtl;
 
     void reset(ContextMtl *context);
@@ -255,6 +251,16 @@ class ProgramExecutableMtl : public ProgramExecutableImpl
                                  bool forceUpdate);
     angle::Result updateComputeTextures(const gl::Context *glContext,
                                         mtl::ComputeCommandEncoder *cmdEncoder);
+
+    // Shared by the graphics and the compute paths.  Exactly one encoder must be non-null.
+    angle::Result bindTextures(const gl::Context *glContext,
+                               mtl::RenderCommandEncoder *renderCmdEncoder,
+                               mtl::ComputeCommandEncoder *computeCmdEncoder,
+                               gl::ShaderType shaderType,
+                               const mtl::TranslatedShaderInfo &shaderInfo);
+
+    // Reflection for the shader variant that is currently bound for `shaderType`.
+    const mtl::TranslatedShaderInfo &getTranslatedShaderInfo(gl::ShaderType shaderType) const;
 
     angle::Result bindShaderImages(const gl::Context *glContext,
                                    mtl::RenderCommandEncoder *renderCmdEncoder,
