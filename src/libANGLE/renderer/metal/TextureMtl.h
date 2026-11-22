@@ -187,8 +187,16 @@ class TextureMtl : public TextureImpl
                                int textureSlotIndex,
                                int samplerSlotIndex);
 
+    // Compute shaders have their own encoder and no gl::ShaderType parameter.
+    angle::Result bindToShaderForCompute(const gl::Context *context,
+                                         mtl::ComputeCommandEncoder *cmdEncoder,
+                                         gl::Sampler *sampler, /** nullable */
+                                         int textureSlotIndex,
+                                         int samplerSlotIndex);
+
     angle::Result bindToShaderImage(const gl::Context *context,
-                                    mtl::RenderCommandEncoder *cmdEncoder,
+                                    mtl::RenderCommandEncoder *renderCmdEncoder,
+                                    mtl::ComputeCommandEncoder *computeCmdEncoder,
                                     gl::ShaderType shaderType,
                                     int textureSlotIndex,
                                     int level,
@@ -196,6 +204,13 @@ class TextureMtl : public TextureImpl
                                     GLenum format);
 
   private:
+    angle::Result bindToShaderImpl(const gl::Context *context,
+                                   mtl::RenderCommandEncoder *renderCmdEncoder,
+                                   mtl::ComputeCommandEncoder *computeCmdEncoder,
+                                   gl::ShaderType shaderType,
+                                   gl::Sampler *sampler,
+                                   int textureSlotIndex,
+                                   int samplerSlotIndex);
     void deallocateNativeStorage(bool keepImages, bool keepSamplerStateAndFormat = false);
     angle::Result createNativeStorage(const gl::Context *context,
                                       gl::TextureType type,

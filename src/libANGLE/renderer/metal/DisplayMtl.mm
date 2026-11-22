@@ -434,7 +434,7 @@ gl::Version DisplayMtl::getMaxSupportedESVersion() const
 
 gl::Version DisplayMtl::getMaxConformantESVersion() const
 {
-    return std::min(getMaxSupportedESVersion(), gl::Version(3, 0));
+    return std::min(getMaxSupportedESVersion(), gl::Version(3, 2));
 }
 
 EGLSyncImpl *ThreadSafeDisplayMtl::createSync()
@@ -858,8 +858,11 @@ void DisplayMtl::ensureCapsInitialized() const
     mNativeCaps.minProgramTexelOffset = -8;
     mNativeCaps.maxProgramTexelOffset = 7;
 
-    // NOTE(hqle): support storage buffer.
-    const uint32_t maxPerStageStorageBuffers                     = mtl::kMaxShaderSSBOs;
+    // NOTE: The MSL backend cannot yet lower shader storage blocks (unsized/writable arrays and
+    // SSBO argument-buffer encoding are unsupported).  Do not advertise them: a shader using a
+    // buffer block then fails to link with a clear error instead of producing invalid Metal
+    // code (or asserting in the translator).
+    const uint32_t maxPerStageStorageBuffers                     = 0;
     mNativeCaps.maxShaderStorageBlocks[gl::ShaderType::Vertex]   = maxPerStageStorageBuffers;
     mNativeCaps.maxShaderStorageBlocks[gl::ShaderType::Fragment] = maxPerStageStorageBuffers;
     mNativeCaps.maxShaderStorageBlocks[gl::ShaderType::Compute]  = maxPerStageStorageBuffers;
@@ -881,8 +884,8 @@ void DisplayMtl::ensureCapsInitialized() const
             256;  // constant buffers on all other GPUs must be aligned to 256.
     }
 
-    mNativeCaps.maxShaderStorageBufferBindings     = mtl::kMaxShaderSSBOs;
-    mNativeCaps.maxShaderStorageBlockSize          = 1 << 27;
+    mNativeCaps.maxShaderStorageBufferBindings     = 0;
+    mNativeCaps.maxShaderStorageBlockSize          = 0;
     mNativeCaps.shaderStorageBufferOffsetAlignment = 16;
 
     // UBO plus default uniform limits
@@ -993,6 +996,9 @@ void DisplayMtl::initializeExtensions() const
     mNativeExtensions.polygonModeANGLE              = true;
     mNativeExtensions.polygonOffsetClampEXT         = true;
     mNativeExtensions.stencilTexturingANGLE         = true;
+    mNativeExtensions.gpuShader5EXT          = true;
+    mNativeExtensions.copyImageEXT           = true;
+    mNativeExtensions.copyImageOES           = true;
     mNativeExtensions.copyTextureCHROMIUM           = true;
     mNativeExtensions.copyCompressedTextureCHROMIUM = false;
     mNativeExtensions.textureMirrorClampToEdgeEXT   = true;
@@ -1187,6 +1193,9 @@ void DisplayMtl::initializeExtensions() const
             mNativeCaps.maxShaderImageUniforms[gl::ShaderType::Fragment] =
                 gl::IMPLEMENTATION_MAX_PIXEL_LOCAL_STORAGE_PLANES;
             mNativeCaps.maxImageUnits = gl::IMPLEMENTATION_MAX_PIXEL_LOCAL_STORAGE_PLANES;
+            // MAX_COMBINED_IMAGE_UNIFORMS must be at least as large as MAX_IMAGE_UNITS.
+            mNativeCaps.maxCombinedImageUniforms =
+                gl::IMPLEMENTATION_MAX_PIXEL_LOCAL_STORAGE_PLANES;
         }
     }
 
@@ -1198,6 +1207,17 @@ void DisplayMtl::initializeExtensions() const
     // encoders, and for vertex-to-vertex and vertex-to-fragment stages of render command encoders."
     mHasFragmentMemoryBarriers = !supportsAppleGPUFamily(3);
 
+    // ES 3.1/3.2 general image load/store, in addition to the PLS image units above.
+    // Metal can bind read/write textures in all stages; the PLS path already exercises this.
+    // Eight units is enough for shader packs and compute post-processing.
+    mNativeCaps.maxImageUnits            = 8;
+    mNativeCaps.maxCombinedImageUniforms = 8;
+    mNativeCaps.maxShaderImageUniforms[gl::ShaderType::Vertex]   = 8;
+    mNativeCaps.maxShaderImageUniforms[gl::ShaderType::Fragment] = 8;
+    mNativeCaps.maxShaderImageUniforms[gl::ShaderType::Compute]  = 8;
+    // MAX_COMBINED_SHADER_OUTPUT_RESOURCES = MAX_DRAW_BUFFERS + MAX_COMBINED_IMAGE_UNIFORMS.
+    mNativeCaps.maxCombinedShaderOutputResources =
+        mNativeCaps.maxDrawBuffers + mNativeCaps.maxCombinedImageUniforms;
 }
 
 void DisplayMtl::initializeTextureCaps() const

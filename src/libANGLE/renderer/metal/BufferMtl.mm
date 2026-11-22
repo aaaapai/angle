@@ -403,8 +403,13 @@ ConversionBufferMtl *BufferMtl::getVertexConversionBuffer(ContextMtl *context,
 {
     for (VertexConversionBufferMtl &buffer : mVertexConversionBuffers)
     {
+        // A zero stride means every vertex reads the same element, so only an exact offset match
+        // can reuse the conversion (and the modulo below would divide by zero).
+        const bool offsetMatches =
+            stride == 0 ? buffer.offset == offset
+                        : (buffer.offset % buffer.stride == offset % stride);
         if (buffer.formatID == formatID && buffer.stride == stride && buffer.offset <= offset &&
-            buffer.offset % buffer.stride == offset % stride)
+            offsetMatches)
         {
             return &buffer;
         }

@@ -1399,7 +1399,10 @@ bool DeviceHasTextureBufferSupport(id<MTLDevice> device)
     }
     return false;
 #elif TARGET_OS_IOS || TARGET_OS_TV
-    if (@available(iOS 14.0, tvOS 14.0, *))
+    // minimumTextureBufferAlignmentForPixelFormat: is available since iOS/tvOS 12.0, the same
+    // OS version that introduced MTLTextureTypeTextureBuffer.  Do not require iOS 14 here:
+    // Metal reports a zero MAX_TEXTURE_BUFFER_SIZE to apps otherwise.
+    if (@available(iOS 12.0, tvOS 12.0, *))
     {
         return [device respondsToSelector:@selector(minimumTextureBufferAlignmentForPixelFormat:)];
     }

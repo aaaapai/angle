@@ -91,12 +91,14 @@ class VertexArrayMtl : public VertexArrayImpl
     angle::Result convertVertexBuffer(const gl::Context *glContext,
                                       BufferMtl *srcBuffer,
                                       const gl::VertexBinding &binding,
+                                      uintptr_t attribOffset,
                                       size_t attribIndex,
                                       const mtl::VertexFormat &vertexFormat);
 
     angle::Result convertVertexBufferCPU(ContextMtl *contextMtl,
                                          BufferMtl *srcBuffer,
                                          const gl::VertexBinding &binding,
+                                         uintptr_t attribOffset,
                                          size_t attribIndex,
                                          const mtl::VertexFormat &convertedFormat,
                                          GLuint targetStride,
@@ -105,6 +107,7 @@ class VertexArrayMtl : public VertexArrayImpl
     angle::Result convertVertexBufferGPU(const gl::Context *glContext,
                                          BufferMtl *srcBuffer,
                                          const gl::VertexBinding &binding,
+                                         uintptr_t attribOffset,
                                          size_t attribIndex,
                                          const mtl::VertexFormat &convertedFormat,
                                          GLuint targetStride,

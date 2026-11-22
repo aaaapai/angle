@@ -28,7 +28,8 @@ using InterfaceBlockInstanceVarNameGen = std::function<ImmutableString()>;
 
 [[nodiscard]] bool ReduceInterfaceBlocks(TCompiler &compiler,
                                          TIntermBlock &root,
-                                         InterfaceBlockInstanceVarNameGen nameGen);
+                                         InterfaceBlockInstanceVarNameGen nameGen,
+                                         bool reduceShaderStorageBlocks = true);
 
 }  // namespace sh
 
