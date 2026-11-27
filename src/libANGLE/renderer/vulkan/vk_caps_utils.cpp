@@ -678,6 +678,10 @@ void Renderer::ensureCapsInitialized() const
     mNativeCaps.maxFramebufferWidth  = rx::LimitToInt(limitsVk.maxFramebufferWidth);
     mNativeCaps.maxFramebufferHeight = rx::LimitToInt(limitsVk.maxFramebufferHeight);
     mNativeCaps.maxColorAttachments  = rx::LimitToInt(limitsVk.maxColorAttachments);
+    // maxFramebufferLayers is a core limit and does not depend on geometry shader support.
+    // Drivers that cannot render to layered attachments report 1, which the front-end uses
+    // to reject layered framebuffer attachments instead of passing them to the backend.
+    mNativeCaps.maxFramebufferLayers = rx::LimitToInt(limitsVk.maxFramebufferLayers);
     mNativeCaps.maxViewportWidth     = rx::LimitToInt(limitsVk.maxViewportDimensions[0]);
     mNativeCaps.maxViewportHeight    = rx::LimitToInt(limitsVk.maxViewportDimensions[1]);
     mNativeCaps.maxSampleMaskWords   = rx::LimitToInt(limitsVk.maxSampleMaskWords);
@@ -1238,7 +1242,6 @@ void Renderer::ensureCapsInitialized() const
              mFeatures.exposeNonConformantExtensionsAndVersions.enabled);
         mNativeExtensions.geometryShaderEXT = geometryShaderEnabled;
         mNativeExtensions.geometryShaderOES = geometryShaderEnabled;
-        mNativeCaps.maxFramebufferLayers    = rx::LimitToInt(limitsVk.maxFramebufferLayers);
 
         // Use "undefined" which means APP would have to set gl_Layer identically.
         mNativeCaps.layerProvokingVertex = GL_UNDEFINED_VERTEX_EXT;
